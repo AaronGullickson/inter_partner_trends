@@ -6,3 +6,4 @@ format:
     theme: flatly
 execute: 
   message: false
+  warning: false
