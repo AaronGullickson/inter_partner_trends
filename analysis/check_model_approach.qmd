@@ -416,86 +416,119 @@ inter_lor |>
   theme_bw()
 ```
 
+```{r}
+calculate_lor_model <- function(selected_groups) {
+  
+  # trim down the data to selected groups and frequency counts greater than zero
+  mar_data <- mar_data_full |>
+    filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
+    filter(freq > 0)
+  
+  # create required variables
+  for(i in 1:(length(selected_groups)-1)) {
+    for(j in (i+1):length(selected_groups)) {
+      
+      race1 <- selected_groups[i]
+      race2 <- selected_groups[j]
+      
+      var_suffix <- paste(str_to_lower(race1), str_to_lower(race2), sep = "_")
+      var_suffix <- str_replace_all(var_suffix, "/", ".")
+      
+      var_name <- paste0("inter_", var_suffix)                 
+      mar_data <- mar_data |>
+        mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
+      
+      if(i > 1) {
+        # we need a gender adjuster
+        var_name <- paste0("gender_", var_suffix)
+        mar_data <- mar_data |>
+          mutate(
+            {{ var_name }} := case_when(
+              race_husband == race1 & race_wife == race2 ~ 1,
+              race_husband ==  race2 & race_wife ==  race1 ~ -1,
+              TRUE ~ 0
+            )
+          )
+      }
+    }
+  }
+
+  # create formula
+  terms <- colnames(mar_data) |> str_subset("freq|year", negate = TRUE)
+  formula_model <- reformulate(paste0("(", paste(terms, collapse="+"), ")*year"),
+                               "freq")
+  # run the model
+  glm(formula_model, data = mar_data, family = poisson)
+  
+}
+
+get_marg_effects <- function(model, groups) {
+  vars <- map_chr(groups, function(x) {
+    x <- str_to_lower(x)
+    x <- str_replace(x, "/", ".")
+    paste0("inter_", paste(x, collapse = "_"))
+  })
+  
+  avg_slopes(model, variables = vars, by = "year", type = "link") |>
+    as_tibble() |>
+    mutate(year = as.numeric(paste(year)))
+}
+
+```
+
+```{r}
+selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
+model <- calculate_lor_model(selected_groups)
+
+get_marg_effects(model, 
+                 list(c("White", "Black"),
+                      c("White", "API"),
+                      c("White", "AIAN"),
+                      c("White", "Hispanic"))) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+
+get_marg_effects(model, 
+                 list(c("AIAN", "API"),
+                      c("White", "API"))) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_hline(yintercept = exp(-9.394), linetype = 3)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+```
 
 # All groups
 
-Is there a way where we can do this more programmatically for all the groups?
+The model can run for the full model, but extracting average slopes from this model takes forever. Its more efficient to simply run the model on the subset that you want.
 
 ```{r}
+selected_groups <- c("White", "Black", "White/Black")
 
+model <- calculate_lor_model(selected_groups)
 
-# restrict marriage data to what is in all_combos
-mar_data <- pmap(all_combos, function(race1, race2) {
-  mar_data |>
-    filter((race_husband == race1 & race_wife == race2) |
-             (race_husband == race2 & race_wife == race1))
-  }) |>
-  bind_rows()
-
-for(i in 1:nrow(all_combos)) {
-    
-    race1 <- all_combos$race1[i]
-    race2 <- all_combos$race2[i]
-  
-    var_suffix <- paste(race1, race2, sep = "_")
-    var_suffix <- str_replace(var_suffix, "/", ".")
-    
-    var_name <- paste0("inter_", var_suffix)                 
-    mar_data <- mar_data |>
-      mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
-  
-  if(race1 != "White") {
-    # we need a gender adjuster
-    var_name <- paste0("gender_", var_suffix)
-    mar_data <- mar_data |>
-      mutate(
-        {{ var_name }} := case_when(
-          race_husband == race1 & race_wife == race2 ~ 1,
-          race_husband ==  race2 & race_wife ==  race1 ~ -1,
-          TRUE ~ 0
-        )
-      )
-  }
-  
-}
+get_marg_effects(model, 
+                 list(c("White", "Black"),
+                      c("White", "White/Black"),
+                      c("Black", "White/Black"))) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
 ```
-
-
-```{r}
-
-model_recipe <- recipe(freq ~ ., data = mar_data) |>
-  step_select(race_husband, race_wife, starts_with("inter_"), starts_with("gender_"), year) |>
-  step_interact(terms = ~ (race_husband+race_wife+starts_with("inter_")+starts_with("gender_"))*year)
-
-#model_recipe |> prep() |> formula()
-
-model <- glm(freq~(race_husband + race_wife + (inter_White_Black + inter_White_AIAN + inter_White_API + inter_White_Hispanic
-  + inter_Black_AIAN + inter_Black_API + inter_Black_Hispanic + inter_AIAN_API + inter_AIAN_Hispanic + inter_API_Hispanic +
-  inter_White.Black_White + inter_White.Black_Black + inter_White.API_White + inter_White.API_API + inter_White.AIAN_White +
-  inter_White.AIAN_AIAN) + (gender_Black_AIAN + gender_Black_API + gender_Black_Hispanic + gender_AIAN_API +
-  gender_AIAN_Hispanic + gender_API_Hispanic + gender_White.Black_White + gender_White.Black_Black + gender_White.API_White +
-  gender_White.API_API + gender_White.AIAN_White + gender_White.AIAN_AIAN)) * year, data = mar_data, family = poisson)
-
-inter_lor <- avg_slopes(model, 
-                        variables = c("inter_White_Black"), 
-                        by = "year", 
-                        type = "link")
-
-inter_lor <- avg_slopes(model, 
-                        variables = c("inter_White_Black", 
-                                      "inter_White_AIAN",
-                                      "inter_White_API",
-                                      "inter_White_Hispanic",
-                                      "inter_Black_API",
-                                      "inter_Black_AIAN",
-                                      "inter_Black_Hispanic",
-                                      "inter_AIAN_API",
-                                      "inter_API_Hispanic",
-                                      "inter_AIAN_Hispanic"), 
-                        by = "year", 
-                        type = "link")
-
-```
-
 
 
