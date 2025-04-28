@@ -10,7 +10,7 @@ packages = c(
   "knitr", # for processing quarto
   "readr","haven", # I/O
   "tidyverse","lubridate","broom", #tidyverse and friends
-  "recipes", # from tidymodels
+  "tidymodels", "poissonreg", # for tidyd modeling
   "ggrepel", # plotting extras
   "marginaleffects", # for computing log-odds from models
   "modelsummary","gt" # for table output

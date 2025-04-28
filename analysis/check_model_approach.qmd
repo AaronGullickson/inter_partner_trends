@@ -351,17 +351,86 @@ inter_lor |>
 
 ```
 
+# Try automating
+
+
+```{r}
+selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
+
+mar_data <- mar_data_full |>
+  filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
+  filter(freq > 0)
+
+for(i in 1:(length(selected_groups)-1)) {
+  for(j in (i+1):length(selected_groups)) {
+    
+    race1 <- selected_groups[i]
+    race2 <- selected_groups[j]
+    
+    var_suffix <- paste(str_to_lower(race1), str_to_lower(race2), sep = "_")
+    var_suffix <- str_replace(var_suffix, "/", ".")
+    
+    var_name <- paste0("inter_", var_suffix)                 
+    mar_data <- mar_data |>
+      mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
+    
+    if(i > 1) {
+      # we need a gender adjuster
+      var_name <- paste0("gender_", var_suffix)
+      mar_data <- mar_data |>
+        mutate(
+          {{ var_name }} := case_when(
+            race_husband == race1 & race_wife == race2 ~ 1,
+            race_husband ==  race2 & race_wife ==  race1 ~ -1,
+            TRUE ~ 0
+          )
+        )
+    }
+  }
+}
+
+create_formula <- function(mar_data) {
+  terms <- colnames(mar_data)
+  terms <- terms[-which(terms == "year")]
+  terms <- terms[-which(terms == "freq")]
+  terms <- paste0("(", paste(terms, collapse="+"), ")*year")
+  reformulate(terms, "freq")
+}
+
+model <- glm(create_formula(mar_data), data = mar_data, family = poisson)
+
+terms <- colnames(mar_data)[str_detect(colnames(mar_data), "^inter_")]
+
+inter_lor <- avg_slopes(model, variables = terms, by = "year", type = "link")
+
+inter_lor |>
+  as_tibble() |>
+  mutate(year = as.numeric(paste(year))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+```
+
+
 # All groups
 
 Is there a way where we can do this more programmatically for all the groups?
 
 ```{r}
-# create ordered list of groups for constructing intermarriage terms
 
-mar_data <- mar_data_full |>
-  filter(!str_detect(race_husband, "Other"), 
-         !str_detect(race_wife, "Other")) |>
-  filter(freq > 0)
+
+# restrict marriage data to what is in all_combos
+mar_data <- pmap(all_combos, function(race1, race2) {
+  mar_data |>
+    filter((race_husband == race1 & race_wife == race2) |
+             (race_husband == race2 & race_wife == race1))
+  }) |>
+  bind_rows()
 
 for(i in 1:nrow(all_combos)) {
     
