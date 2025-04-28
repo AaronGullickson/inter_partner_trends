@@ -39,6 +39,7 @@ In more recent data we will have some same sex couples. Since we are interested 
 
 ```{r}
 #| label: check-spouse-sex
+#| eval: false
 
 # 
 table(census$SEX, census$SEX_SP)
@@ -135,56 +136,11 @@ From husband's race, wife's race, and year, we can create a three-way table.
 tab_mar <- table(census$race_husband, census$race_wife, census$year)
 ```
 
-Lets create a function that will calculate the log-odds ratio and its standard error from `tab-mar` for two groups.
-
-```{r}
-calculate_or <- function(group1, group2) {
-  lor <- log(tab_mar[group1, group2,])+log(tab_mar[group2, group1,])-
-    log(tab_mar[group1, group1,])-log(tab_mar[group2, group2,])
-  se <- sqrt(1/tab_mar[group1, group2,]+1/tab_mar[group2, group1,]+
-               1/tab_mar[group1, group1,]+1/tab_mar[group2, group2,])
-  tibble(year = as.numeric(names(lor)), lor, se, 
-         type = paste(group1, group2, sep="-"))
-}
-```
-
-We can now use `pmap` to calculate log odds ratios across all groups of interest.
-
-```{r}
-#| label: get-lor-df
-
-all_combos <- tribble(
-  ~race1, ~race2,
-  "White", "Black",
-  "White", "AIAN",
-  "White", "API",
-  "White", "Hispanic",
-  "Black", "AIAN",
-  "Black", "API",
-  "Black", "Hispanic",
-  "AIAN", "API",
-  "AIAN", "Hispanic",
-  "API", "Hispanic",
-  "White/Black", "White",
-  "White/Black", "Black",
-  "White/API", "White",
-  "White/API", "API",
-  "White/AIAN", "White",
-  "White/AIAN", "AIAN"
-)
-
-lor_data <- pmap(all_combos, function(race1, race2) {
-  calculate_or(race1, race2)
-  }) |>
-  bind_rows() |>
-  filter(lor > -Inf)
-```
-
 
 Now lets save the data.
 
 ```{r}
-save(lor_data, file = here("data", "data_constructed", "analytical_data.RData"))
+save(tab_mar, file = here("data", "data_constructed", "mar_table.RData"))
 ```
 
 
