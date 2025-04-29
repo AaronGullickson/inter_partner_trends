@@ -20,6 +20,7 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00141.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
+                                            STATEFIP = c(55, 56),
                                             SEX = 84,
                                             AGE = c(85, 87),
                                             RACED = c(90, 92),
@@ -151,6 +152,7 @@ census <- census |>
          educ_wife = code_educ(EDUC_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
+         state = STATEFIP, 
          year = case_when(
            YEAR <= 2000 ~ YEAR,
            YEAR <= 2003 ~ 2002,
@@ -189,7 +191,7 @@ census <- census |>
   select(race_husband, race_wife, 
          educ_husband, educ_wife, 
          age_husband, age_wife,
-         year)
+         state, year)
          
 
 save(census, file = here("data", "data_constructed", "individ_data.RData"))

@@ -87,7 +87,7 @@ Now lets do this within a model.
 ```{r}
 #| label: modeling-function
 
-calculate_lor_model <- function(selected_groups) {
+calculate_lor_model <- function(selected_groups, terms_add = NULL) {
   
   # trim down the data to selected groups and frequency counts greater than zero
   model_data <- mar_data |>
@@ -128,7 +128,11 @@ calculate_lor_model <- function(selected_groups) {
 
   # create formula
   terms <- colnames(model_data) |> str_subset("freq|year", negate = TRUE)
-  formula_model <- reformulate(paste0("(", paste(terms, collapse="+"), ")*year"),
+  terms_str <- paste(terms, collapse="+")
+  if(!is.null(terms_add)) {
+    terms_str <- paste(terms_str, terms_add, sep = "+")
+  }
+  formula_model <- reformulate(paste0("(", terms_str, ")*year"),
                                "freq")
   # run the model
   model <- glm(formula_model, data = model_data, family = poisson)
@@ -341,4 +345,52 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
        y = "log odds ratio standard error by model")+
   facet_wrap(~type)+
   theme_bw()
+```
+
+# Add covariates
+
+```{r}
+
+selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
+results_single_no_controls <- calculate_lor_model(selected_groups) |>
+  mutate(type = "no controls")
+
+```
+
+
+```{r}
+#| label: create-agg-mar-data-covar
+
+mar_data <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, educ_husband, educ_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup()
+```
+
+```{r}
+results_single_ed_controls <- calculate_lor_model( 
+  selected_groups,
+  terms_add = "educ_husband*race_husband+educ_wife*race_wife+educ_husband*educ_wife"
+)
+
+results_single <- results_single_ed_controls |>
+  mutate(type = "ed controls") |> 
+  bind_rows(results_single_no_controls)
+
+results_single |>
+  filter(str_detect(term, "_white_")) |>
+  mutate(type = factor(type, levels = c("no controls", "ed controls"))) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term, linetype = type))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+
 ```
