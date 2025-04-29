@@ -55,10 +55,11 @@ census <- census |>
 table(census$SEX, census$SEX_SP)
 ```
 
-Replace HISPAN with HISP1970 for the 1970 data.
+Replace HISPAN with HISP1970 for the 1970 data (actuall don't do this).
 
 ```{r}
 #| label: restrict-1970
+#| eval: false
 
 census <- census |>
   mutate(HISPAN = ifelse(YEAR == 1970, HISP1970, HISPAN),
@@ -107,10 +108,10 @@ Ok, now we are ready to code race.
 # TODO: deal with quality flags on race
 
 # lets create a function for assigning race, since we will do it for both spouses
-code_race <- function(raced, hispan) {
+code_race <- function(raced, hispan, year) {
   
   race <- case_when(
-    hispan != 0 | raced == 110 ~ "Hispanic",
+    (hispan != 0 | raced == 110) & year > 1970 ~ "Hispanic",
     raced == 100 ~ "White",
     raced == 200 ~ "Black",
     raced >= 300 & raced <= 399 ~ "AIAN",
@@ -146,8 +147,8 @@ code_educ <- function(educ) {
 }
 
 census <- census |>
-  mutate(race_husband = code_race(RACED, HISPAN),
-         race_wife = code_race(RACED_SP, HISPAN_SP), 
+  mutate(race_husband = code_race(RACED, HISPAN, YEAR),
+         race_wife = code_race(RACED_SP, HISPAN_SP, YEAR), 
          educ_husband = code_educ(EDUC),
          educ_wife = code_educ(EDUC_SP),
          age_husband = AGE,
@@ -162,8 +163,6 @@ census <- census |>
            YEAR <= 2015 ~ 2014,
            YEAR <= 2018 ~ 2017
          )) |>
-  # remove hispanics in 1960 and 1970 due to measurement issues
-  filter(!(race_husband == "Hispanic" & year <= 1970)) |>
   # remove 2019
   filter(YEAR != 2019) |>
   # remove other and other multiracial
