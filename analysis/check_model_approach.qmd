@@ -9,13 +9,32 @@ format: html
 library(here)
 source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
-load(here("data", "data_constructed", "mar_table.RData"))
+load(here("data", "data_constructed", "individ_data.RData"))
+```
+
+
+Lets start by creating a summary dataset by year and race of spouses
+
+```{r}
+mar_data <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup()
 ```
 
 
 Lets create a function that will calculate the log-odds ratio and its standard error from `tab-mar` for two groups.
 
 ```{r}
+temp <- census |>
+  filter(age_husband >= 25 & age_husband <= 34)
+
+tab_mar <- table(census$race_husband, census$race_wife, census$year)
+
 calculate_or <- function(group1, group2) {
   lor <- log(tab_mar[group1, group2,])+log(tab_mar[group2, group1,])-
     log(tab_mar[group1, group1,])-log(tab_mar[group2, group2,])
@@ -75,7 +94,7 @@ mar_data_full <- as.data.frame.table(tab_mar) |>
 Start with two groups. By default you will get an endogamy parameter so switch this to an intermarriage parameter.
 
 ```{r}
-mar_data_white_black <- mar_data_full |>
+mar_data_white_black <- mar_data |>
   filter(race_husband %in% c("White", "Black") & 
            race_wife %in% c("White", "Black")) |>
   mutate(inter_w_b = (race_husband == "White" & race_wife == "Black"))
@@ -126,7 +145,7 @@ Perfect fit.
 Now we have a spare parameter to fit.
 
 ```{r}
-mar_data_three_group <- mar_data_full |>
+mar_data_three_group <- mar_data |>
   filter(race_husband %in% c("White", "Black", "API") & 
            race_wife %in% c("White", "Black", "API")) |>
   mutate(inter_w_b = (race_husband == "White" & race_wife == "Black"),
@@ -353,74 +372,11 @@ inter_lor |>
 
 # Try automating
 
-
-```{r}
-selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
-
-mar_data <- mar_data_full |>
-  filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
-  filter(freq > 0)
-
-for(i in 1:(length(selected_groups)-1)) {
-  for(j in (i+1):length(selected_groups)) {
-    
-    race1 <- selected_groups[i]
-    race2 <- selected_groups[j]
-    
-    var_suffix <- paste(str_to_lower(race1), str_to_lower(race2), sep = "_")
-    var_suffix <- str_replace(var_suffix, "/", ".")
-    
-    var_name <- paste0("inter_", var_suffix)                 
-    mar_data <- mar_data |>
-      mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
-    
-    if(i > 1) {
-      # we need a gender adjuster
-      var_name <- paste0("gender_", var_suffix)
-      mar_data <- mar_data |>
-        mutate(
-          {{ var_name }} := case_when(
-            race_husband == race1 & race_wife == race2 ~ 1,
-            race_husband ==  race2 & race_wife ==  race1 ~ -1,
-            TRUE ~ 0
-          )
-        )
-    }
-  }
-}
-
-create_formula <- function(mar_data) {
-  terms <- colnames(mar_data)
-  terms <- terms[-which(terms == "year")]
-  terms <- terms[-which(terms == "freq")]
-  terms <- paste0("(", paste(terms, collapse="+"), ")*year")
-  reformulate(terms, "freq")
-}
-
-model <- glm(create_formula(mar_data), data = mar_data, family = poisson)
-
-terms <- colnames(mar_data)[str_detect(colnames(mar_data), "^inter_")]
-
-inter_lor <- avg_slopes(model, variables = terms, by = "year", type = "link")
-
-inter_lor |>
-  as_tibble() |>
-  mutate(year = as.numeric(paste(year))) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10()+
-  theme_bw()
-```
-
 ```{r}
 calculate_lor_model <- function(selected_groups) {
   
   # trim down the data to selected groups and frequency counts greater than zero
-  mar_data <- mar_data_full |>
+  model_data <- mar_data |>
     filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
     filter(freq > 0)
   
@@ -435,13 +391,13 @@ calculate_lor_model <- function(selected_groups) {
       var_suffix <- str_replace_all(var_suffix, "/", ".")
       
       var_name <- paste0("inter_", var_suffix)                 
-      mar_data <- mar_data |>
+      model_data <- model_data |>
         mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
       
       if(i > 1) {
         # we need a gender adjuster
         var_name <- paste0("gender_", var_suffix)
-        mar_data <- mar_data |>
+        model_data <- model_data |>
           mutate(
             {{ var_name }} := case_when(
               race_husband == race1 & race_wife == race2 ~ 1,
@@ -454,11 +410,11 @@ calculate_lor_model <- function(selected_groups) {
   }
 
   # create formula
-  terms <- colnames(mar_data) |> str_subset("freq|year", negate = TRUE)
+  terms <- colnames(model_data) |> str_subset("freq|year", negate = TRUE)
   formula_model <- reformulate(paste0("(", paste(terms, collapse="+"), ")*year"),
                                "freq")
   # run the model
-  glm(formula_model, data = mar_data, family = poisson)
+  glm(formula_model, data = model_data, family = poisson)
   
 }
 
