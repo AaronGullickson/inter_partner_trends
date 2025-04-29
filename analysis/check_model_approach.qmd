@@ -87,10 +87,10 @@ Now lets do this within a model.
 ```{r}
 #| label: modeling-function
 
-calculate_lor_model <- function(selected_groups, terms_add = NULL) {
+calculate_lor_model <- function(model_data, selected_groups, terms_add = NULL) {
   
   # trim down the data to selected groups and frequency counts greater than zero
-  model_data <- mar_data |>
+  model_data <- model_data |>
     filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
     filter(freq > 0)
   
@@ -169,7 +169,8 @@ Try it out for a few cases:
 #| fig-cap: Log odds of interracial marriage with white partners
 
 selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
-calculate_lor_model(selected_groups) |>
+mar_data |>
+  calculate_lor_model(selected_groups) |>
   filter(str_detect(term, "_white_")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -185,7 +186,8 @@ calculate_lor_model(selected_groups) |>
 #| label: fig-aian-intermar
 #| fig-cap: Log odds of interracial marriage with AIAN partners
 
-calculate_lor_model(selected_groups) |>
+mar_data |>
+  calculate_lor_model(selected_groups) |>
   filter(str_detect(term, "_aian")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -201,7 +203,8 @@ calculate_lor_model(selected_groups) |>
 #| label: fig-wb-intermar
 #| fig-cap: Log odds of interracial marriage between White, Black, and White/Black partners
 
-calculate_lor_model(c("White", "Black", "White/Black")) |>
+mar_data |>
+  calculate_lor_model(c("White", "Black", "White/Black")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -227,7 +230,8 @@ Start with two groups. Does it match results from lor by cross-product?
 #|    - Estimate
 #|    - Standard Error
 
-wb_lor <- calculate_lor_model(c("White", "Black")) |>
+wb_lor <- mar_data |>
+  calculate_lor_model(c("White", "Black")) |>
   rename(lor_model = estimate, se_model = std.error) |>
   select(lor_model, se_model, year)
 
@@ -266,7 +270,8 @@ We now have a spare parameter to fit.
 #|    - Estimate
 #|    - Standard Error
 
-inter_lor <- calculate_lor_model(c("White", "Black", "API")) |>
+inter_lor <- mar_data |>
+  calculate_lor_model(c("White", "Black", "API")) |>
   mutate(type = case_when(
     term == "inter_black_api" ~ "Black-API",
     term == "inter_white_black" ~ "White-Black",
@@ -312,7 +317,8 @@ Lets put in a multiracial group this time.
 #|    - Estimate
 #|    - Standard Error
 
-inter_lor <- calculate_lor_model(c("White", "Black", "API", "White/API")) |>
+inter_lor <- mar_data |>
+  calculate_lor_model(c("White", "Black", "API", "White/API")) |>
   mutate(type = case_when(
     term == "inter_black_api" ~ "Black-API",
     term == "inter_white_black" ~ "White-Black",
@@ -352,7 +358,8 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
 ```{r}
 
 selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
-results_single_no_controls <- calculate_lor_model(selected_groups) |>
+results_single_no_controls <- mar_data |>
+  calculate_lor_model(selected_groups) |>
   mutate(type = "no controls")
 
 ```
@@ -361,7 +368,7 @@ results_single_no_controls <- calculate_lor_model(selected_groups) |>
 ```{r}
 #| label: create-agg-mar-data-covar
 
-mar_data <- census |>
+mar_data_educ <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 25 & age_husband <= 34) |>
   mutate(year = factor(year),
@@ -372,10 +379,11 @@ mar_data <- census |>
 ```
 
 ```{r}
-results_single_ed_controls <- calculate_lor_model( 
-  selected_groups,
-  terms_add = "educ_husband*race_husband+educ_wife*race_wife+educ_husband*educ_wife"
-)
+results_single_ed_controls <- mar_data_educ |>
+  calculate_lor_model( 
+    selected_groups,
+    terms_add = "educ_husband*race_husband+educ_wife*race_wife+educ_husband*educ_wife"
+  )
 
 results_single <- results_single_ed_controls |>
   mutate(type = "ed controls") |> 
