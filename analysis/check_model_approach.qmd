@@ -414,8 +414,30 @@ calculate_lor_model <- function(selected_groups) {
   formula_model <- reformulate(paste0("(", paste(terms, collapse="+"), ")*year"),
                                "freq")
   # run the model
-  glm(formula_model, data = model_data, family = poisson)
+  model <- glm(formula_model, data = model_data, family = poisson)
   
+  # identify results that are missing
+  missing <- coef(model) |> 
+    enframe(name = "variable", value = "coef") |>
+    filter(is.na(coef), 
+           str_detect(variable, "^inter_")) |>
+    mutate(term = str_split_i(variable, "TRUE", 1),
+           year = as.numeric(str_sub(variable, start = -4)),
+           year = if_else(is.na(year), 2000, year),
+           missing = TRUE) |>
+    select(term, year, missing)
+    
+  marg <- avg_slopes(model, 
+                     variables = str_subset(terms, "^inter_"),
+                     by = "year",
+                     type = "link") |>
+    as_tibble() |>
+    mutate(year = as.numeric(paste(year))) |> 
+    left_join(missing) |>
+    filter(is.na(missing)) |>
+    select(-missing)
+  
+  return(marg)
 }
 
 get_marg_effects <- function(model, groups) {
@@ -434,13 +456,8 @@ get_marg_effects <- function(model, groups) {
 
 ```{r}
 selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
-model <- calculate_lor_model(selected_groups)
-
-get_marg_effects(model, 
-                 list(c("White", "Black"),
-                      c("White", "API"),
-                      c("White", "AIAN"),
-                      c("White", "Hispanic"))) |>
+calculate_lor_model(selected_groups) |>
+  filter(str_detect(term, "_white_")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -450,12 +467,10 @@ get_marg_effects(model,
   scale_y_log10()+
   theme_bw()
 
-get_marg_effects(model, 
-                 list(c("AIAN", "API"),
-                      c("White", "API"))) |>
+calculate_lor_model(selected_groups) |>
+  filter(str_detect(term, "_aian_")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
-  geom_hline(yintercept = exp(-9.394), linetype = 3)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
