@@ -1,6 +1,9 @@
 ---
 title: "Check model approach"
 format: html
+execute:
+  warning: false
+  message: false
 ---
 
 ```{r}
@@ -12,10 +15,13 @@ source(here("utils","functions.R"))
 load(here("data", "data_constructed", "individ_data.RData"))
 ```
 
+# Set up the data
 
 Lets start by creating a summary dataset by year and race of spouses
 
 ```{r}
+#| label: create-agg-mar-data
+
 mar_data <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 25 & age_husband <= 34) |>
@@ -27,13 +33,15 @@ mar_data <- census |>
 ```
 
 
-Lets create a function that will calculate the log-odds ratio and its standard error from `tab-mar` for two groups.
+Lets also calculate the raw log odds via a cross product
 
 ```{r}
+#| label: calculate-lor-crossproduct
+
 temp <- census |>
   filter(age_husband >= 25 & age_husband <= 34)
 
-tab_mar <- table(census$race_husband, census$race_wife, census$year)
+tab_mar <- table(temp$race_husband, temp$race_wife, temp$year)
 
 calculate_or <- function(group1, group2) {
   lor <- log(tab_mar[group1, group2,])+log(tab_mar[group2, group1,])-
@@ -43,12 +51,6 @@ calculate_or <- function(group1, group2) {
   tibble(year = as.numeric(names(lor)), lor, se, 
          type = paste(group1, group2, sep="-"))
 }
-```
-
-We can now use `pmap` to calculate log odds ratios across all groups of interest.
-
-```{r}
-#| label: get-lor-df
 
 all_combos <- tribble(
   ~race1, ~race2,
@@ -65,6 +67,7 @@ all_combos <- tribble(
   "White/Black", "White",
   "White/Black", "Black",
   "White/API", "White",
+  "White/API", "Black",
   "White/API", "API",
   "White/AIAN", "White",
   "White/AIAN", "AIAN"
@@ -77,11 +80,13 @@ lor_data <- pmap(all_combos, function(race1, race2) {
   filter(lor > -Inf)
 ```
 
-# Model within a function
+# Model it within a function
 
 Now lets do this within a model.
 
 ```{r}
+#| label: modeling-function
+
 calculate_lor_model <- function(selected_groups) {
   
   # trim down the data to selected groups and frequency counts greater than zero
@@ -156,6 +161,9 @@ calculate_lor_model <- function(selected_groups) {
 Try it out for a few cases:
 
 ```{r}
+#| label: fig-five-single
+#| fig-cap: Log odds of interracial marriage with white partners
+
 selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
 calculate_lor_model(selected_groups) |>
   filter(str_detect(term, "_white_")) |>
@@ -167,9 +175,14 @@ calculate_lor_model(selected_groups) |>
   geom_point(size = 0.5)+
   scale_y_log10()+
   theme_bw()
+```
+
+```{r}
+#| label: fig-aian-intermar
+#| fig-cap: Log odds of interracial marriage with AIAN partners
 
 calculate_lor_model(selected_groups) |>
-  filter(str_detect(term, "_aian_")) |>
+  filter(str_detect(term, "_aian")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -178,6 +191,11 @@ calculate_lor_model(selected_groups) |>
   geom_point(size = 0.5)+
   scale_y_log10()+
   theme_bw()
+```
+
+```{r}
+#| label: fig-wb-intermar
+#| fig-cap: Log odds of interracial marriage between White, Black, and White/Black partners
 
 calculate_lor_model(c("White", "Black", "White/Black")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
@@ -198,6 +216,13 @@ calculate_lor_model(c("White", "Black", "White/Black")) |>
 Start with two groups. Does it match results from lor by cross-product?
 
 ```{r}
+#| label: fig-two-group
+#| fig-cap: Comparison of log odds ratio and standard errors for White/Black intermarriage by model and cross-product
+#| layout-ncol: 2
+#| fig-subcap:
+#|    - Estimate
+#|    - Standard Error
+
 wb_lor <- calculate_lor_model(c("White", "Black")) |>
   rename(lor_model = estimate, se_model = std.error) |>
   select(lor_model, se_model, year)
@@ -230,6 +255,13 @@ Perfect fit.
 We now have a spare parameter to fit.
 
 ```{r}
+#| label: fig-three-group
+#| fig-cap: Comparison of log odds ratio and standard errors for White/Black, Black/API, and White/API intermarriage by model and cross-product
+#| layout-ncol: 2
+#| fig-subcap:
+#|    - Estimate
+#|    - Standard Error
+
 inter_lor <- calculate_lor_model(c("White", "Black", "API")) |>
   mutate(type = case_when(
     term == "inter_black_api" ~ "Black-API",
@@ -268,6 +300,14 @@ perfect fit again! Its working.
 Lets put in a multiracial group this time.
 
 ```{r}
+#| label: fig-four-group
+#| fig-cap: Comparison of log odds ratio and standard errors for several intermarriages by model and cross-product
+#| layout-ncol: 2
+#| fig-height: 7
+#| fig-subcap:
+#|    - Estimate
+#|    - Standard Error
+
 inter_lor <- calculate_lor_model(c("White", "Black", "API", "White/API")) |>
   mutate(type = case_when(
     term == "inter_black_api" ~ "Black-API",
