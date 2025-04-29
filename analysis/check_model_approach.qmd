@@ -370,7 +370,7 @@ inter_lor |>
 
 ```
 
-# Try automating
+# Model within a function
 
 ```{r}
 calculate_lor_model <- function(selected_groups) {
@@ -394,6 +394,9 @@ calculate_lor_model <- function(selected_groups) {
       model_data <- model_data |>
         mutate({{ var_name }} := (race_husband == race1 & race_wife == race2))
       
+      # for cases not involving the reference category, we need to add a 
+      # variable for the two gender combinations with 1 and -1 coding so that 
+      # the general effect is the average of the two
       if(i > 1) {
         # we need a gender adjuster
         var_name <- paste0("gender_", var_suffix)
@@ -416,7 +419,7 @@ calculate_lor_model <- function(selected_groups) {
   # run the model
   model <- glm(formula_model, data = model_data, family = poisson)
   
-  # identify results that are missing
+  # identify results that are missing due to zero values
   missing <- coef(model) |> 
     enframe(name = "variable", value = "coef") |>
     filter(is.na(coef), 
