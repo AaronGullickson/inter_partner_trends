@@ -16,32 +16,36 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00138.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00141.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
-                                            SEX = 82,
-                                            AGE = c(83, 85),
-                                            RACED = c(88, 90),
-                                            HISPAN = 91,
-                                            HISP1970 = 103,
-                                            BPL = c(95, 97),
-                                            SEX_SP = 104,
-                                            AGE_SP = c(105, 107),
-                                            RACED_SP = c(109, 111),
-                                            HISPAN_SP = 112,
-                                            HISP1970_SP = 119,
-                                            BPL_SP = c(116, 118)),
+                                            SEX = 84,
+                                            AGE = c(85, 87),
+                                            RACED = c(90, 92),
+                                            HISPAN = 93,
+                                            HISP1970 = 105,
+                                            BPL = c(97, 99),
+                                            EDUC = c(106, 107),
+                                            SEX_SP = 114,
+                                            AGE_SP = c(115, 117),
+                                            RACED_SP = c(118, 120),
+                                            HISPAN_SP = 121,
+                                            HISP1970_SP = 125,
+                                            BPL_SP = c(122, 124),
+                                            EDUC_SP = c(126, 127),
+                                            QRACE = 112,
+                                            QHISPAN = 111,
+                                            QRACE_SP = 129,
+                                            QHISPAN_SP = 128),
                    col_types = cols(.default = "i", HHWT = "d"))
 ```
 
-In more recent data we will have some same sex couples. Since we are interested in genealogies, we want opposite sex couples. We also want to have a consistent comparison over time. So, we will exclude same sex couples.
+In more recent data we will have some same sex couples. To keep consistency across the time we will focus on heterosexual couples It also makes our data extract simpler because we can grab only men and attach spousal characteristics. However, we will still get male gay couples in the sample, so these need to be removed.
 
 ```{r}
 #| label: check-spouse-sex
-#| eval: false
 
-# 
 table(census$SEX, census$SEX_SP)
 
 census <- census |>
@@ -60,23 +64,33 @@ census <- census |>
          HISPAN_SP = ifelse(YEAR == 1970, HISP1970_SP, HISPAN_SP))
 ```
 
-Check that husbands are restricted to native born respondents and also restrict wives.
+Restrict both spouses to native born status
 
 ```{r}
 #| label: restrict-nativity
 
-table(census$BPL)
+census |> 
+  select(BPL, BPL_SP) |>
+  summary()
 
 census <- census |>
-  filter(BPL_SP <= 99)
+  filter(BPL <= 99, BPL_SP <= 99)
 
-table(census$BPL)
+census |> 
+  select(BPL, BPL_SP) |>
+  summary()
 ```
 
-Husbands should be restricted to 25-34. Lets check the ages of men and women.
+Lets check the ages of men and women. We won't chane age here however.
 
 ```{r}
 #| label: check-age
+
+summary(census$AGE)
+summary(census$AGE_SP)
+
+census <- census |>
+  filter(AGE >= 25 & AGE < 35)
 
 summary(census$AGE)
 summary(census$AGE_SP)
@@ -89,6 +103,8 @@ Ok, now we are ready to code race.
 ```{r}
 #| label: create-vars
 
+# TODO: deal with quality flags on race
+
 # lets create a function for assigning race, since we will do it for both spouses
 code_race <- function(raced, hispan) {
   
@@ -99,40 +115,69 @@ code_race <- function(raced, hispan) {
     raced >= 300 & raced <= 399 ~ "AIAN",
     # we have to do API because 1980 and 1990
     (raced >= 400 & raced <= 699) | (raced >= 860 & raced <= 869) ~ "API",
-    raced == 700 ~ "Other", 
+    #raced == 700 ~ "Other", 
     # lets do major biracial groups for fun
     raced == 801 ~ "White/Black",
     raced == 802 ~ "White/AIAN",
     raced >= 803 & raced <= 825 ~ "White/API",
     raced == 830 ~ "Black/AIAN",
-    raced >= 831 & raced <= 842 ~ "Black/API",
-    TRUE ~ "Other Multiracial")
+    raced >= 831 & raced <= 842 ~ "Black/API")
   
   factor(race, 
-         levels = c("White", "Black", "AIAN", "Hispanic", "API", "Other",
+         levels = c("White", "Black", "AIAN", "Hispanic", "API",
                     "White/Black", "White/AIAN", "White/API", 
-                    "Black/AIAN", "Black/API", "Other Multiracial"))
+                    "Black/AIAN", "Black/API"))
+}
+
+# TODO: really should used educd but will need to re-DL to get it for spouse
+code_educ <- function(educ) {
+  education <- case_when(
+    educ < 6 ~ "LHS",
+    educ == 6 ~ "HS",
+    educ < 10 ~ "SC",
+    TRUE ~ "C"
+  )
+  
+  education <- factor(education,
+                      levels = c("LHS", "HS", "SC", "C"))
+  
+  return(education)
 }
 
 census <- census |>
   mutate(race_husband = code_race(RACED, HISPAN),
          race_wife = code_race(RACED_SP, HISPAN_SP), 
-         year = YEAR) |>
+         educ_husband = code_educ(EDUC),
+         educ_wife = code_educ(EDUC_SP),
+         age_husband = AGE,
+         age_wife = AGE_SP,
+         year = case_when(
+           YEAR <= 2000 ~ YEAR,
+           YEAR <= 2003 ~ 2002,
+           YEAR <= 2006 ~ 2005,
+           YEAR <= 2009 ~ 2008,
+           YEAR <= 2012 ~ 2011,
+           YEAR <= 2015 ~ 2014,
+           YEAR <= 2018 ~ 2017
+         )) |>
   # remove hispanics in 1960 and 1970 due to measurement issues
-  filter(!(race_husband == "Hispanic" & year <= 1970))
-  
+  filter(!(race_husband == "Hispanic" & year <= 1970)) |>
+  # remove 2019
+  filter(YEAR != 2019) |>
+  # remove other and other multiracial
+  filter(!is.na(race_husband) & !is.na(race_wife))
 
-census <- census
+table(census$YEAR, census$year)
+table(census$EDUC, census$educ_husband)
 
 table(census$race_husband)
 table(census$race_wife)
 ```
 
 
-From husband's race, wife's race, and year, we can create a three-way table.
-
 ```{r}
 #| label: create-master-tab
+#| eval: false
 tab_mar <- table(census$race_husband, census$race_wife, census$year)
 ```
 
@@ -140,7 +185,14 @@ tab_mar <- table(census$race_husband, census$race_wife, census$year)
 Now lets save the data.
 
 ```{r}
-save(tab_mar, file = here("data", "data_constructed", "mar_table.RData"))
+census <- census |> 
+  select(race_husband, race_wife, 
+         educ_husband, educ_wife, 
+         age_husband, age_wife,
+         year)
+         
+
+save(census, file = here("data", "data_constructed", "individ_data.RData"))
 ```
 
 
