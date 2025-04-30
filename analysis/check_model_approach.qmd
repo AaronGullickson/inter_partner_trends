@@ -15,36 +15,29 @@ source(here("utils","functions.R"))
 load(here("data", "data_constructed", "individ_data.RData"))
 ```
 
-# Set up the data
+# Modeling exogamy
 
-Lets start by creating a summary dataset by year and race of spouses
+For illustrative purposes, I will limit analysis to couples where the husband is 25 to 34 years old.
 
 ```{r}
-#| label: create-agg-mar-data
-
-mar_data <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup()
+census_age <- census |>
+  filter(age_husband >= 25 & age_husband <= 34)
 ```
 
-# Modeling exogamy
+I can then use this to create three-way contingency tables across all racial groups and years.
+
+```{r}
+tab_mar <- table(census_age$race_husband, census_age$race_wife, census_age$year)
+```
 
 ## The cross-product
 
-Lets take the simple case of two racial groups at one point in time by a simple contingency table.
+### Two group case
+
+Lets take the simple case of two racial groups at one point in time (2017) as an example.
 
 ```{r}
-temp <- census |>
-  filter(age_husband >= 25 & age_husband <= 34)
-
-tab_mar <- table(temp$race_husband, temp$race_wife, temp$year)
 tab_bw <- tab_mar[c("White", "Black"), c("White", "Black"), "2017"]
-
 tab_bw
 ```
 
@@ -78,14 +71,71 @@ log(tab_bw["White", "Black"]) + log(tab_bw["Black", "White"])-
   log(tab_bw["White", "White"])-log(tab_bw["Black", "Black"])
 ```
 
+You can see that this simplify reverses the sign on the log scale.
+
+We can also calculate standard errors for this log odds ratio parameter:
+
+$$SE = \sqrt{\frac{1}{n_{11}}+\frac{1}{n_{22}}+\frac{1}{n_{12}}+\frac{1}{n_{21}}}$$
+
+```{r}
+sqrt(1/tab_bw["White", "White"]+1/tab_bw["Black", "Black"]+
+  1/tab_bw["White", "Black"]+1/tab_bw["Black", "White"])
+```
+
+### Calculate all cross-products
+
+A little bit of functional programming will allow me to calculate the log odds ratio and its standard error across a wide variety of combinations and years. Lets do that for all single race combinations.
+
+```{r}
+#| label: calculate-lor-crossproduct
+
+calculate_or <- function(group1, group2) {
+  lor <- log(tab_mar[group1, group2,])+log(tab_mar[group2, group1,])-
+    log(tab_mar[group1, group1,])-log(tab_mar[group2, group2,])
+  se <- sqrt(1/tab_mar[group1, group2,]+1/tab_mar[group2, group1,]+
+               1/tab_mar[group1, group1,]+1/tab_mar[group2, group2,])
+  tibble(year = as.numeric(names(lor)), lor, se, 
+         type = paste(group1, group2, sep="-"))
+}
+
+all_combos <- tribble(
+  ~race1, ~race2,
+  "White", "Black",
+  "White", "API",
+  "White", "AIAN",
+  "White", "Hispanic",
+  "Black", "API",
+  "Black", "AIAN",
+  "Black", "Hispanic",
+  "API", "AIAN",
+  "API", "Hispanic",
+  "AIAN", "Hispanic",
+)
+
+lor_data <- pmap(all_combos, function(race1, race2) {
+  calculate_or(race1, race2)
+  }) |>
+  bind_rows() |>
+  filter(lor > -Inf)
+```
+
+Lets look at the results for 2017:
+
+```{r}
+lor_data |>
+  filter(year == 2017) |>
+  gt()
+```
+
 ## Log-linear models
+
+### Two group case
 
 We would like to be able to calculate these odds ratios/cross-products in a log-linear model so that we may consider other covariates. The two-group case is straightforward. First, we will convert the contingency table to a more familiar data structure.
 
 ```{r}
-mar_data <- census |>
-  filter(age_husband >= 25 & age_husband <= 34,
-         year == 2017,
+mar_data <- census_age |>
+  filter(year == 2017,
          race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
   group_by(race_husband, race_wife) |>
@@ -104,7 +154,7 @@ model <- glm(freq ~ race_husband * race_wife, data = mar_data, family = poisson)
 summary(model)
 ```
 
-The parameter of interest is the single $\lambda_{ij}$ which is given by the interaction term. This term is identical to the cross-product measuring endogamy above.
+The parameter of interest is the single $\lambda_{ij}$ which is given by the interaction term. This term is identical to the cross-product measuring endogamy above and the standard error is also the same.
 
 I would prefer to estimate exogamy rather than endogamy. I can do this by re-parameterizing the interaction term. There are a couple ways to do this for the two-group case, but I will do it by putting a dummy on the $F_12$ case of a White husband and a Black wife.
 
@@ -117,7 +167,7 @@ model <- glm(freq ~ race_husband + race_wife + inter_wb,
 summary(model)
 ```
 
-Note that I get the exact same result if I instead put a dummy on the other off-diagonal cell.
+Note that I get the exact same estimate for `inter_wb` if I instead put a dummy on the other off-diagonal cell.
 
 ```{r}
 mar_data <- mar_data |>
@@ -134,7 +184,7 @@ $$\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta X_{ij}$$
 
 where $X_{ij}$ is my dummy variable. Plugging all of the appropriate values into the cross-product formula above will demonstrate that all terms except $\beta$ cancel out. 
 
-Mote that I have saturated the entire model (there are no more degrees of freedom). The gender difference in intermarriage between black and white spouses is absorbed into the marginal distributions here. This can be demonstrated by calculating the log ratio of black woman/white man pairings to black man/white woman pairings:
+Note that I have saturated the entire model (there are no more degrees of freedom). The gender difference in intermarriage between black and white spouses is absorbed into the marginal distributions here. This can be demonstrated by calculating the log ratio of black woman/white man pairings to black man/white woman pairings:
 
 $$\log(F_{12}/F_{21}) = \log(F_{12})-\log(F_{21}) = log(508)-log(1293) = -0.9342389$$
 Black woman/white man pairings are substantially less common. Now lets use the original model formulation to calculate this same log ratio from the model:
@@ -149,7 +199,7 @@ From the original model:
 
 We can see that these numbers match. This is also why the values of `race_husband` and `race_wife` change in the model when I switch the dummy variable from black woman/white man pairings to black man/white woman pairings.
 
-## Extending to three groups
+### Extending to three groups
 
 Extending from the two group case to larger numbers of groups adds an additional complication to this procedure. Lets do this for three groups.
 
@@ -161,24 +211,8 @@ tab_three <- tab_mar[c("White", "Black", "API"),
 tab_three
 ```
 
-Lets start by calculating the log odds ratios for the three comparisons possible here.
 
-```{r}
-lor_wb <- log(tab_three["White", "Black"]) + log(tab_three["Black", "White"])-
-  log(tab_three["White", "White"])-log(tab_three["Black", "Black"])
-
-lor_wa <- log(tab_three["White", "API"]) + log(tab_three["API", "White"])-
-  log(tab_three["White", "White"])-log(tab_three["API", "API"])
-
-lor_ba <- log(tab_three["Black", "API"]) + log(tab_three["API", "Black"])-
-  log(tab_three["API", "API"])-log(tab_three["Black", "Black"])
-
-tibble(pairing = c("White-Black", "White-API", "Black-API"),
-       lor = c(lor_wb, lor_wa, lor_ba)) |>
-  gt()
-```
-
-Now lets try to recover these same log-odds ratios using a log-linear model approach. I will code three dummies corresponding to the upper off-diagonal cases.
+Now lets try to calculate the log-odds ratios using a log-linear model approach. I will code three dummies corresponding to the upper off-diagonal cases, as I did for the two group case above:
 
 ```{r}
 mar_data <- census |>
@@ -204,9 +238,16 @@ model <- glm(freq ~ race_husband + race_wife + inter_wb + inter_wa + inter_ba,
 summary(model)
 ```
 
-These parameters do not match the cross-products calculated above. The issue is that in this model I still have one degree of freedom left. I have not saturated the model. Although I could just saturate it with an interaction term between the race of husband and wife, this would not give me the parameterization I need to easily extract the exogamy odds ratios. 
+Compare these numbers to the correct cross-products:
 
-The issue is that for the Black-Asian case which does not involve the reference category of White, the single dummy on the above diagonal case does not fully capture exogamy for this case. If I put an additional dummy for the below diagonal case, I will fully saturate the model. 
+```{r}
+lor_data |>
+  filter(year == 2017 & type %in% c("White-Black", "White-API", "Black-API"))
+```
+
+These parameters do not match the cross-products. The issue is that in this model I still have one degree of freedom left. I have not saturated the model. Although I could just saturate it with an interaction term between `race_husband` and `race_wife`, this would not give me the parameterization I need to easily extract the exogamy odds ratios. 
+
+The issue is that for one of the cases, exogamy is not completely captured by the single dummy above the diagonal. To fully saturate the model, I also need to include another dummy below the diagonal. I will do that for the Black-Asian case:
 
 ```{r}
 mar_data <- mar_data |>
@@ -218,7 +259,7 @@ model <- glm(freq ~ race_husband + race_wife + inter_wb + inter_wa + inter_ba+
 summary(model)
 ```
 
-The exogamy log odds ratios are now being correctly calculated for White-Black and White-Asian marriages, but the total log odds ratio for Black-Asian marriages is now split between the two cases (adding them up gets me the correct value). 
+The exogamy log odds ratios (and their standard errors) are now being correctly calculated for White-Black and White-Asian marriages, but the total log odds ratio for Black-Asian marriages is now split between the two cases (adding them up gets me the correct value). 
 
 Note that I could have put in the below diagonal term for any of my three intermarriage pairings and it would split that log odds ratio in two and keep the others intact:
 
@@ -234,7 +275,7 @@ summary(model)
 
 Although the log odds ratios I want are recoverable from this parameterization, it is inconvenient to have to recombine other parameters after model estimation. Furthermore, I will not have standard errors properly calculated for such cases. 
 
-To resolve this issue and get all of the log-odds ratio I want directly from the model, instead of fitting a dummy for one of the below diagonal cells, I can instead use "ANOVA" style coding on one intermarriage pairing for both the above and below cells, setting one cell to the value of 1 an the other cell to the value of -1. I do that below for Black-API marriages. 
+To resolve this issue and get all of the log-odds ratio I want directly from the model, instead of fitting a dummy for one of the below diagonal cells, I can instead use "ANOVA" style coding on one intermarriage pairing for both the above and below cells, setting one cell to a value of 1 an the other cell to a value of -1. I do that below for Black-API marriages. 
 
 ```{r}
 mar_data <- mar_data |>
@@ -250,9 +291,9 @@ model <- glm(freq ~ race_husband + race_wife + inter_wb + inter_wa + inter_ba+
 summary(model)
 ```
 
-The three `inter_` terms now give me the correct log odds ratio of exogamy for each pairing. 
+The three `inter_` terms now give me the correct log odds ratio of exogamy for each pairing and the correct standard error. 
 
-How do I understand the `gender_ba` term itself? In some sense, this term is just a nuisance parameter to get what I want from the other terms. However, it is telling me some information, although the interpretation is somewhat complex. I can think of it as telling me how different the gender asymmetry is in Black-Asian marriages compared to what would be predicted from the marginal parameters of spouse's race alone. 
+How do I understand the `gender_ba` term itself? In some sense, this term is just a nuisance parameter to get what I want from the other terms. However, it is providing me some information, although the interpretation is not straightforward. I can think of it as telling me how different the gender asymmetry is in Black-Asian marriages compared to what would be predicted from the marginal parameters of spouse's race alone. 
 
 To demonstrate, lets first specify the full model we are using at this point:
 
@@ -260,7 +301,7 @@ $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 
 Where, the $\beta_ij$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter for one of my pairings (in this case Black-Asian marriages).
 
-I can use this formula to calculate the loggender asymmetry ratios for White-Black marriage and White-Asian marriage. For White-Black marriage:
+I can use this formula to calculate the log gender asymmetry ratios for White-Black marriage and White-Asian marriage. For White-Black marriage:
 
 $$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}+\beta_{WB}-\lambda_B^{HR}$$
 
@@ -295,9 +336,9 @@ To confirm:
 log(tab_three["Black", "API"])-log(tab_three["API", "Black"])
 ```
 
-In short, for two of the groups the marginals and the log-odds ratio exogamy will be sufficient to get the correct gender ratios, but the remaining group will need to have an additional paramete to fit the correct gender asymmetry.
+In short, for two of the groups the marginal values by race of spouse and the log exogamy odds ratio will be sufficient to get the correct gender ratios, but the remaining group will need to have an additional parameter to fit the correct gender asymmetry.
 
-## Generalizing the approach
+### Generalizing the approach
 
 The formula outlined above provides a general purpose solution:
 
@@ -305,59 +346,12 @@ $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 
 Where, the $\beta_ij$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter. For a model with $k$ groups, we need to fit a total of $(k-1)(k-1)$ parameters to saturate the interaction term for husband's and wife's race. We will need to fit $k(k-1)/2$ parameters for the exogamy log odds ratio exogamy. We will then need to fit $(1/2)k^2-(3/2)k+1$ remaining nuisance terms. The easiest approach is to fit these terms to the pairings that don't involve the reference race category (White in this case).
 
-Let's use the contingency table for all single race groups as an example.
+
+Lets set up the parameters we need and run the model:
 
 ```{r}
-tab_single <- tab_mar[c("White", "Black", "API", "AIAN", "Hispanic"), 
-                     c("White", "Black", "API", "AIAN", "Hispanic"), 
-                     "2017"]
-
-lor_wb <- log(tab_single["White", "Black"]) + log(tab_single["Black", "White"])-
-  log(tab_three["White", "White"])-log(tab_three["Black", "Black"])
-
-lor_wa <- log(tab_single["White", "API"]) + log(tab_single["API", "White"])-
-  log(tab_single["White", "White"])-log(tab_single["API", "API"])
-
-lor_wi <- log(tab_single["White", "AIAN"]) + log(tab_single["AIAN", "White"])-
-  log(tab_single["White", "White"])-log(tab_single["AIAN", "AIAN"])
-
-lor_wh <- log(tab_single["White", "Hispanic"]) + log(tab_single["Hispanic", "White"])-
-  log(tab_single["White", "White"])-log(tab_single["Hispanic", "Hispanic"])
-
-lor_ba <- log(tab_single["Black", "API"]) + log(tab_single["API", "Black"])-
-  log(tab_single["API", "API"])-log(tab_single["Black", "Black"])
-
-lor_bi <- log(tab_single["Black", "AIAN"]) + log(tab_single["AIAN", "Black"])-
-  log(tab_single["AIAN", "AIAN"])-log(tab_single["Black", "Black"])
-
-lor_bh <- log(tab_single["Black", "Hispanic"]) + log(tab_single["Hispanic", "Black"])-
-  log(tab_single["Hispanic", "Hispanic"])-log(tab_single["Black", "Black"])
-
-lor_ai <- log(tab_single["API", "AIAN"]) + log(tab_single["AIAN", "API"])-
-  log(tab_single["API", "API"])-log(tab_single["AIAN", "AIAN"])
-
-lor_ah <- log(tab_single["API", "Hispanic"]) + log(tab_single["Hispanic", "API"])-
-  log(tab_single["API", "API"])-log(tab_single["Hispanic", "Hispanic"])
-
-lor_ih <- log(tab_single["AIAN", "Hispanic"]) + log(tab_single["Hispanic", "AIAN"])-
-  log(tab_single["AIAN", "AIAN"])-log(tab_single["Hispanic", "Hispanic"])
-
-
-tibble(pairing = c("White-Black", "White-API", "White-AIAN", "White-Hispanic",
-                   "Black-API", "Black-AIAN", "Black-Hispanic", 
-                   "API-AIAN", "API-Hispanic", "AIAN-Hispanic"),
-       lor = c(lor_wb, lor_wa, lor_wi, lor_wh, 
-               lor_ba, lor_bi, lor_bh, 
-               lor_ai, lor_ah, lor_ih)) |>
-  gt()
-```
-
-Now lets set up the parameters we need and run the model:
-
-```{r}
-mar_data <- census |>
-  filter(age_husband >= 25 & age_husband <= 34,
-         year == 2017,
+mar_data <- census_age |>
+  filter(year == 2017,
          race_husband %in% c("White", "Black", "API", "AIAN", "Hispanic"),
          race_wife %in% c("White", "Black", "API", "AIAN", "Hispanic")) |>
   group_by(race_husband, race_wife) |>
@@ -417,58 +411,19 @@ model <- glm(freq ~ race_husband + race_wife +
 summary(model)
 
 ```
-
-
-
-
-# Odds ratios from cross-products
-
-Lets also calculate the raw log odds via a cross product
+Compare these results to the cross-products estimated manually:
 
 ```{r}
-#| label: calculate-lor-crossproduct
-
-temp <- census |>
-  filter(age_husband >= 25 & age_husband <= 34)
-
-tab_mar <- table(temp$race_husband, temp$race_wife, temp$year)
-
-calculate_or <- function(group1, group2) {
-  lor <- log(tab_mar[group1, group2,])+log(tab_mar[group2, group1,])-
-    log(tab_mar[group1, group1,])-log(tab_mar[group2, group2,])
-  se <- sqrt(1/tab_mar[group1, group2,]+1/tab_mar[group2, group1,]+
-               1/tab_mar[group1, group1,]+1/tab_mar[group2, group2,])
-  tibble(year = as.numeric(names(lor)), lor, se, 
-         type = paste(group1, group2, sep="-"))
-}
-
-all_combos <- tribble(
-  ~race1, ~race2,
-  "White", "Black",
-  "White", "AIAN",
-  "White", "API",
-  "White", "Hispanic",
-  "Black", "AIAN",
-  "Black", "API",
-  "Black", "Hispanic",
-  "AIAN", "API",
-  "AIAN", "Hispanic",
-  "API", "Hispanic",
-  "White/Black", "White",
-  "White/Black", "Black",
-  "White/API", "White",
-  "White/API", "Black",
-  "White/API", "API",
-  "White/AIAN", "White",
-  "White/AIAN", "AIAN"
-)
-
-lor_data <- pmap(all_combos, function(race1, race2) {
-  calculate_or(race1, race2)
-  }) |>
-  bind_rows() |>
-  filter(lor > -Inf)
+lor_data |>
+  filter(year == 2017) |>
+  gt()
 ```
+
+The models produce identical results for both the estimates and the standard errors. 
+
+### Adding time
+
+
 
 # Model it within a function
 
@@ -552,7 +507,22 @@ calculate_lor_model <- function(model_data, selected_groups, terms_add = NULL) {
 }
 ```
 
-Try it out for a few cases:
+## Test it out
+
+Lets start by creating a summary dataset by year and race of spouses
+
+```{r}
+#| label: create-agg-mar-data
+
+mar_data <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup()
+```
 
 ```{r}
 #| label: fig-five-single
@@ -605,10 +575,7 @@ mar_data |>
   theme_bw()
 ```
 
-
-# Test it out
-
-## Two-group case
+### Two-group case
 
 Start with two groups. Does it match results from lor by cross-product?
 
@@ -648,7 +615,7 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
 
 Perfect fit.
 
-## Three-group case
+### Three-group case
 
 We now have a spare parameter to fit.
 
@@ -694,7 +661,7 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
 
 perfect fit again! Its working.
 
-## Four-group case
+### Four-group case
 
 Lets put in a multiracial group this time.
 
@@ -743,7 +710,7 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
   theme_bw()
 ```
 
-# Add covariates
+### Add covariates
 
 ```{r}
 
