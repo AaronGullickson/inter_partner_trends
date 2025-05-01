@@ -508,7 +508,37 @@ marg |>
   theme_bw()
 ```
 
-I can also compare the 
+I can also compare this to the log odds ratios and standard errors estimated via cross product to ensure that they are the same. 
+
+```{r}
+temp <- marg |>
+  as_tibble() |>
+  rename(lor_model = estimate, se_model = std.error) |>
+  select(year, lor_model, se_model) |>
+  mutate(year = as.numeric(paste(year)))
+
+temp <- lor_data |>
+  filter(type == "White-Black") |>
+  select(-type) |>
+  rename(lor_cross = lor, se_cross = se) |>
+  full_join(temp)
+
+ggplot(temp, aes(x = lor_cross, y = lor_model))+
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
+  geom_point()+
+  labs(x = "log odds ratio by cross product",
+       y = "log odds ratio by log linear model")+
+  theme_bw()
+
+ggplot(temp, aes(x = se_cross, y = se_model))+
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
+  geom_point()+
+  labs(x = "standard error of log odds ratio by cross product",
+       y = "standard error of log odds ratio by log linear model")+
+  theme_bw()
+```
+
+
 
 
 # Model it within a function
