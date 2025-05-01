@@ -4,6 +4,7 @@ format: html
 execute:
   warning: false
   message: false
+  echo: true
 ---
 
 ```{r}
@@ -156,7 +157,7 @@ summary(model)
 
 The parameter of interest is the single $\lambda_{ij}$ which is given by the interaction term. This term is identical to the cross-product measuring endogamy above and the standard error is also the same.
 
-I would prefer to estimate exogamy rather than endogamy. I can do this by re-parameterizing the interaction term. There are a couple ways to do this for the two-group case, but I will do it by putting a dummy on the $F_12$ case of a White husband and a Black wife.
+I would prefer to estimate exogamy rather than endogamy. I can do this by re-parameterizing the interaction term. There are a couple ways to do this for the two-group case, but I will do it by putting a dummy on the $F_{12}$ case of a White husband and a Black wife.
 
 ```{r}
 mar_data <- mar_data |>
@@ -299,11 +300,11 @@ To demonstrate, lets first specify the full model we are using at this point:
 
 $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 
-Where, the $\beta_ij$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter for one of my pairings (in this case Black-Asian marriages).
+Where, the $\beta_{ij}$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter for one of my pairings (in this case Black-Asian marriages).
 
 I can use this formula to calculate the log gender asymmetry ratios for White-Black marriage and White-Asian marriage. For White-Black marriage:
 
-$$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}+\beta_{WB}-\lambda_B^{HR}$$
+$$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}-\lambda_B^{HR}+\beta_{WB}$$
 
 ```{r}
 1.356863-6.827014-(-4.535912)
@@ -311,7 +312,7 @@ $$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}+\beta_{WB}-\lambda_B^{HR}$$
 
 And for White-Asian marriage:
 
-$$\log(F_{WA})-\log(F_{AW})=\lambda_A^{WR}+\beta_{WA}-\lambda_A^{HR}$$
+$$\log(F_{WA})-\log(F_{AW})=\lambda_A^{WR}-\lambda_A^{HR}+\beta_{WA}$$
 
 ```{r}
 0.755190-5.698890-(-5.410917)
@@ -322,7 +323,7 @@ For Black-Asian marriages, we would get:
 $$
 \begin{align}
 \log(F_{BA})-\log(F_{AB}) & =\lambda_B^{HR}+\lambda_A^{WR}+\beta_{BA}+\alpha_{BA}-\lambda_A^{HR}-\lambda_B^{WR}+\alpha_{BA} \\
- & = \lambda_B^{HR}+\lambda_A^{WR}+\beta_{BA}-\lambda_A^{HR}-\lambda_B^{WR}+2\alpha_{BA}
+ & = \lambda_B^{HR}+\lambda_A^{WR}-\lambda_A^{HR}-\lambda_B^{WR}+\beta_{BA}+2\alpha_{BA}
 \end{align}
 $$
 
@@ -336,7 +337,7 @@ To confirm:
 log(tab_three["Black", "API"])-log(tab_three["API", "Black"])
 ```
 
-In short, for two of the groups the marginal values by race of spouse and the log exogamy odds ratio will be sufficient to get the correct gender ratios, but the remaining group will need to have an additional parameter to fit the correct gender asymmetry.
+In short, for two of the groups, the marginal values by race of spouse and the log exogamy odds ratio will be sufficient to get the correct gender ratios, but the remaining group will need to have an additional parameter to fit the correct gender asymmetry.
 
 ### Generalizing the approach
 
@@ -344,7 +345,7 @@ The formula outlined above provides a general purpose solution:
 
 $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 
-Where, the $\beta_ij$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter. For a model with $k$ groups, we need to fit a total of $(k-1)(k-1)$ parameters to saturate the interaction term for husband's and wife's race. We will need to fit $k(k-1)/2$ parameters for the exogamy log odds ratio exogamy. We will then need to fit $(1/2)k^2-(3/2)k+1$ remaining nuisance terms. The easiest approach is to fit these terms to the pairings that don't involve the reference race category (White in this case).
+Where, the $\beta_{ij}$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter. For a model with $k$ groups, we need to fit a total of $(k-1)(k-1)$ parameters to saturate the interaction term for husband's and wife's race. We will need to fit $k(k-1)/2$ parameters for the exogamy log odds ratio exogamy. We will then need to fit $(1/2)k^2-(3/2)k+1$ remaining nuisance terms. The easiest approach is to fit these terms to the pairings that don't involve the reference race category (White in this case).
 
 
 Lets set up the parameters we need and run the model:
@@ -409,8 +410,8 @@ model <- glm(freq ~ race_husband + race_wife +
                gender_ai + gender_ah + gender_ih,
              data = mar_data, family = poisson)
 summary(model)
-
 ```
+
 Compare these results to the cross-products estimated manually:
 
 ```{r}
@@ -423,6 +424,91 @@ The models produce identical results for both the estimates and the standard err
 
 ### Adding time
 
+Now, I want to observe how these parameters change over time. I can add this to the model by simply interacting all the existing variables with a year variable.
+
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black", "API", "AIAN", "Hispanic"),
+         race_wife %in% c("White", "Black", "API", "AIAN", "Hispanic")) |>
+  group_by(race_husband, race_wife, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wb = race_husband == "White" & race_wife == "Black",
+    inter_wa = race_husband == "White" & race_wife == "API",
+    inter_wi = race_husband == "White" & race_wife == "AIAN",
+    inter_wh = race_husband == "White" & race_wife == "Hispanic",
+    inter_ba = race_husband == "Black" & race_wife == "API",
+    inter_bi = race_husband == "Black" & race_wife == "AIAN",
+    inter_bh = race_husband == "Black" & race_wife == "Hispanic",
+    inter_ai = race_husband == "API" & race_wife == "AIAN",
+    inter_ah = race_husband == "API" & race_wife == "Hispanic",
+    inter_ih = race_husband == "AIAN" & race_wife == "Hispanic",
+    gender_ba = case_when(
+      race_husband == "Black" & race_wife == "API" ~ 1,
+      race_husband == "API" & race_wife == "Black" ~ -1,
+      TRUE ~ 0
+    ),
+    gender_bi = case_when(
+      race_husband == "Black" & race_wife == "AIAN" ~ 1,
+      race_husband == "AIAN" & race_wife == "Black" ~ -1,
+      TRUE ~ 0
+    ),
+    gender_bh = case_when(
+      race_husband == "Black" & race_wife == "Hispanic" ~ 1,
+      race_husband == "Hispanic" & race_wife == "Black" ~ -1,
+      TRUE ~ 0
+    ),
+    gender_ai = case_when(
+      race_husband == "API" & race_wife == "AIAN" ~ 1,
+      race_husband == "AIAN" & race_wife == "API" ~ -1,
+      TRUE ~ 0
+    ),
+    gender_ah = case_when(
+      race_husband == "API" & race_wife == "Hispanic" ~ 1,
+      race_husband == "Hispanic" & race_wife == "API" ~ -1,
+      TRUE ~ 0
+    ),
+    gender_ih = case_when(
+      race_husband == "AIAN" & race_wife == "Hispanic" ~ 1,
+      race_husband == "Hispanic" & race_wife == "AIAN" ~ -1,
+      TRUE ~ 0
+    )
+  )
+
+model <- glm(freq ~ (race_husband + race_wife + 
+               inter_wb + inter_wa + inter_wi + inter_wh + 
+               inter_ba + inter_bi + inter_bh + 
+               inter_ai + inter_ah + 
+               inter_ih +
+               gender_ba + gender_bi + gender_bh + 
+               gender_ai + gender_ah + gender_ih) * year,
+             data = mar_data, family = poisson)
+```
+
+This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White-Black marriage over time. 
+
+```{r}
+marg <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link")
+marg |> as_tibble()
+```
+
+I can then use this to plot the change:
+
+```{r}
+marg |>
+  as_tibble() |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate)))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high)),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point()+
+  scale_y_log10()+
+  theme_bw()
+```
+
+I can also compare the 
 
 
 # Model it within a function
