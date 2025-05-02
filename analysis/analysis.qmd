@@ -16,7 +16,7 @@ source(here("utils","functions.R"))
 load(here("data", "data_constructed", "individ_data.RData"))
 ```
 
-# Modeling exogamy
+## Modeling exogamy
 
 For illustrative purposes, I will limit analysis to couples where the husband is 25 to 34 years old.
 
@@ -31,9 +31,9 @@ I can then use this to create three-way contingency tables across all racial gro
 tab_mar <- table(census_age$race_husband, census_age$race_wife, census_age$year)
 ```
 
-## The cross-product
+### The cross-product
 
-### Two group case
+#### Two group case
 
 Lets take the simple case of two racial groups at one point in time (2017) as an example.
 
@@ -83,7 +83,7 @@ sqrt(1/tab_bw["White", "White"]+1/tab_bw["Black", "Black"]+
   1/tab_bw["White", "Black"]+1/tab_bw["Black", "White"])
 ```
 
-### Calculate all cross-products
+#### Calculate all cross-products
 
 A little bit of functional programming will allow me to calculate the log odds ratio and its standard error across a wide variety of combinations and years. Lets do that for all single race combinations.
 
@@ -128,9 +128,9 @@ lor_data |>
   gt()
 ```
 
-## Log-linear models
+### Log-linear models
 
-### Two group case
+#### Two group case
 
 We would like to be able to calculate these odds ratios/cross-products in a log-linear model so that we may consider other covariates. The two-group case is straightforward. First, we will convert the contingency table to a more familiar data structure.
 
@@ -200,7 +200,7 @@ From the original model:
 
 We can see that these numbers match. This is also why the values of `race_husband` and `race_wife` change in the model when I switch the dummy variable from black woman/white man pairings to black man/white woman pairings.
 
-### Extending to three groups
+#### Extending to three groups
 
 Extending from the two group case to larger numbers of groups adds an additional complication to this procedure. Lets do this for three groups.
 
@@ -339,7 +339,7 @@ log(tab_three["Black", "API"])-log(tab_three["API", "Black"])
 
 In short, for two of the groups, the marginal values by race of spouse and the log exogamy odds ratio will be sufficient to get the correct gender ratios, but the remaining group will need to have an additional parameter to fit the correct gender asymmetry.
 
-### Generalizing the approach
+#### Generalizing the approach
 
 The formula outlined above provides a general purpose solution:
 
@@ -422,7 +422,7 @@ lor_data |>
 
 The models produce identical results for both the estimates and the standard errors. 
 
-### Adding time
+#### Adding time
 
 Now, I want to observe how these parameters change over time. I can add this to the model by simply interacting all the existing variables with a year variable.
 
@@ -577,14 +577,14 @@ The two measurements match up exactly for data from 1980 to 2017. However, the 1
 
 We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the `coef` command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
 
-### Adding a covariate
+#### Adding a covariate
 
 We may wish to add a single covariate to the model to do one of two things. Lets use region of the country as an example here. We might wish to:
 
 1. Account for compositional issues across the covariate. In the region example, racial groups will be differently distributed across regions and we might want to account for that. 
 2. Allow the intermarriage parameters to vary by the values of the covariate. In the region example, we may want to calculate intermarriage log odds ratio separately by region.
 
-#### Adjusting for regional composition
+##### Adjusting for regional composition
 
 To adjust for compositional issues, I just need to interact the regional variable with `race_husband` and `race_wife` inside the parenthetical part of the formula. I could do this by state, for example. In this case, though, calculating `avg_slopes` will be computationally expensive, unless I turn off the calculation of standard errors.
 
@@ -661,7 +661,7 @@ marg_wb_division |>
   theme_bw()
 ```
 
-#### Calculating log odds ratio conditional on another variable
+##### Calculating log odds ratio conditional on another variable
 
 We can also calculate log odds ratios separately by some other covariate, which is basically an interaction term. Lets do that with region.
 
@@ -741,15 +741,55 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
 
 The models are estimating the values correctly.
 
-### Adding other spousal characteristics
+#### Adding other spousal characteristics
 
+We can also try to control for other spousal characteristics that might vary across the partners, like education. In this case, we need to control for both the marginal distributions of the variable and its interaction with the race of each spouse and the association between the two spouses on this characteristic. Lets try it out with education.
 
-## Use a function for modeling
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, educ_husband, educ_wife, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wb = race_husband == "White" & race_wife == "Black"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wb) * (year) +
+               (race_husband*educ_husband+race_wife*educ_wife+
+                  educ_husband*educ_wife)*year,
+             data =mar_data, family = poisson)
+
+marg_wb_educ <- avg_slopes(model, variables = "inter_wb", 
+                             by = "year", 
+                             type = "link") |> 
+  as_tibble()
+
+marg_wb_educ |> 
+  rename(estimate_educ = estimate) |>
+  select(year, estimate_educ) |>
+  right_join(marg_bw) |>
+  rename(estimate_none = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_",
+               names_to = "control", values_to = "estimate") |>
+  mutate(year = as.numeric(paste(year))) |>
+  ggplot(aes(x = year, y = estimate, color = control))+
+  geom_line()+
+  geom_point()+
+  labs(color = "control")+
+  theme_bw()
+  
+```
+
+### Use a function for modeling
 
 Now lets do this within a model.
 
 ```r
-freq~((race_husband+race_wife)*(composition_var))*(year*conditional_var)+((control_husband+control_wife)*(composition_var)+control_husband*control_wife)*year
+freq~((race_husband+race_wife)*(composition_var))*(year*conditional_var)+((race_husband*conrol_husband+race_wife*control_wife)*(composition_var)*(conditional_var)+control_husband*control_wife)*year
 ```
 
 ```{r}
@@ -817,6 +857,32 @@ calculate_lor_model <- function(model_data,
                           ")*(",
                           paste(c("year", conditional_var), collapse = "*"),
                           ")")
+  if(!is.null(control_var)) {
+    formula_control <- paste(c(paste0("race_husband*", control_var, "_husband"),
+                               paste0("race_wife*", control_var, "_wife")),
+                             collapse = "+")
+    formula_control <- paste0("(", formula_control, ")")
+    if(!is.null(composition_var)) {
+      formula_control <- paste0(formula_control, 
+                                "*(",
+                                paste(composition_var, collapse = "+"),
+                                ")")
+    }
+    if(!is.null(conditional_var)) {
+      formula_control <- paste0(formula_control, 
+                                "*(",
+                                paste(conditional_var, collapse = "+"),
+                                ")")
+    }
+    formula_control <- paste(formula_control,
+                             "+",
+                             paste(paste(paste0(control_var, "_husband"), 
+                                         paste0(control_var, "_wife"),
+                                         sep = "*"),
+                                   collapse = "+"))
+    formula_control <- paste0("(", formula_control, ")*year")
+    formula_model <- paste(formula_model, formula_control, sep = "+")
+  }
   formula_model <- reformulate(formula_model, "freq")
   
   # run the model
@@ -857,7 +923,7 @@ extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
 }
 ```
 
-### Test it out
+#### Test it out
 
 Lets start by creating a summary dataset by year and race of spouses
 
@@ -981,3 +1047,80 @@ census |>
   theme_bw()
 ```
 
+
+
+```{r}
+#| label: fig-wb-educ
+#| fig-cap: Log odds of interracial marriage between White and Black partners, with and without controls for partner education
+
+marg_bw <- mar_data |>
+  calculate_lor_model(c("White", "Black")) |>
+  extract_marg_effects() |>
+  mutate(type = "no controls")
+
+marg_bw_educ <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, educ_husband, educ_wife, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), control_var = "educ") |>
+  extract_marg_effects() |>
+  mutate(type = "educ. controls")
+
+
+marg_bw |>
+  bind_rows(marg_bw_educ) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = type))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = type),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-wb-educ
+#| fig-cap: Log odds of interracial marriage between White and Black partners by region, with and without controls for partner education
+
+marg_bw_region <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, region, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), conditional_var = "region") |>
+  extract_marg_effects(by = c("region", "year")) |>
+  mutate(type = "region")
+
+marg_bw_educ_region <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, educ_husband, educ_wife, region, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), control_var = "educ", 
+                      conditional_var = "region") |>
+  extract_marg_effects(by = c("region", "year")) |>
+  mutate(type = "educ. controls+region")
+
+marg_bw_region |>
+  bind_rows(marg_bw_educ_region) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = region,
+             linetype = type))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+```
