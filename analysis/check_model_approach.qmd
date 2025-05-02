@@ -490,14 +490,14 @@ model <- glm(freq ~ (race_husband + race_wife +
 This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White-Black marriage over time. 
 
 ```{r}
-marg <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link")
-marg |> as_tibble()
+marg_bw <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link")
+marg_bw |> as_tibble()
 ```
 
 I can then use this to plot the change:
 
 ```{r}
-marg |>
+marg_bw |>
   as_tibble() |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate)))+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high)),
@@ -511,7 +511,7 @@ marg |>
 I can also compare this to the log odds ratios and standard errors estimated via cross product to ensure that they are the same. 
 
 ```{r}
-temp <- marg |>
+temp <- marg_bw |>
   as_tibble() |>
   rename(lor_model = estimate, se_model = std.error) |>
   select(year, lor_model, se_model) |>
@@ -591,7 +591,7 @@ Now lets do this within a model.
 ```{r}
 #| label: modeling-function
 
-calculate_lor_model <- function(model_data, selected_groups, terms_add = NULL) {
+calculate_lor_model <- function(model_data, selected_groups, ) {
   
   # trim down the data to selected groups and frequency counts greater than zero
   model_data <- model_data |>
@@ -731,141 +731,6 @@ mar_data |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  theme_bw()
-```
-
-### Two-group case
-
-Start with two groups. Does it match results from lor by cross-product?
-
-```{r}
-#| label: fig-two-group
-#| fig-cap: Comparison of log odds ratio and standard errors for White/Black intermarriage by model and cross-product
-#| layout-ncol: 2
-#| fig-subcap:
-#|    - Estimate
-#|    - Standard Error
-
-wb_lor <- mar_data |>
-  calculate_lor_model(c("White", "Black")) |>
-  rename(lor_model = estimate, se_model = std.error) |>
-  select(lor_model, se_model, year)
-
-temp <- lor_data |> 
-  filter(type == "White-Black") |>
-  rename(lor_cross = lor, se_cross = se) |>
-  select(-type) |>
-  inner_join(wb_lor)
-
-ggplot(temp, aes(x = lor_cross, y = lor_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "White/Black log odds ratio by cross-product",
-       y = "White/Black lod odds ratio by model")+
-  theme_bw()
-
-ggplot(temp, aes(x = se_cross, y = se_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "White/Black log odds ratio standard error by cross-product",
-       y = "White/Black lod odds ratio standard error by model")+
-  theme_bw()
-```
-
-Perfect fit.
-
-### Three-group case
-
-We now have a spare parameter to fit.
-
-```{r}
-#| label: fig-three-group
-#| fig-cap: Comparison of log odds ratio and standard errors for White/Black, Black/API, and White/API intermarriage by model and cross-product
-#| layout-ncol: 2
-#| fig-subcap:
-#|    - Estimate
-#|    - Standard Error
-
-inter_lor <- mar_data |>
-  calculate_lor_model(c("White", "Black", "API")) |>
-  mutate(type = case_when(
-    term == "inter_black_api" ~ "Black-API",
-    term == "inter_white_black" ~ "White-Black",
-    term == "inter_white_api" ~ "White-API"
-  )) |>
-  rename(lor_model = estimate, se_model = std.error) |>
-  select(type, lor_model, se_model, year)
-
-temp <- lor_data |> 
-  filter(type %in% c("White-Black", "White-API", "Black-API")) |>
-  rename(lor_cross = lor, se_cross = se) |>
-  inner_join(inter_lor)
-
-ggplot(temp, aes(x = lor_cross, y = lor_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "log odds ratio by cross-product",
-       y = "log odds ratio by model")+
-  facet_wrap(~type)+
-  theme_bw()
-
-ggplot(temp, aes(x = se_cross, y = se_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "log odds ratio standard error by cross-product",
-       y = "log odds ratio standard error by model")+
-  facet_wrap(~type)+
-  theme_bw()
-```
-
-perfect fit again! Its working.
-
-### Four-group case
-
-Lets put in a multiracial group this time.
-
-```{r}
-#| label: fig-four-group
-#| fig-cap: Comparison of log odds ratio and standard errors for several intermarriages by model and cross-product
-#| layout-ncol: 2
-#| fig-height: 7
-#| fig-subcap:
-#|    - Estimate
-#|    - Standard Error
-
-inter_lor <- mar_data |>
-  calculate_lor_model(c("White", "Black", "API", "White/API")) |>
-  mutate(type = case_when(
-    term == "inter_black_api" ~ "Black-API",
-    term == "inter_white_black" ~ "White-Black",
-    term == "inter_white_api" ~ "White-API",
-    term == "inter_white_white.api" ~ "White/API-White",
-    term == "inter_api_white.api" ~ "White/API-API",
-    term == "inter_black_white.api" ~ "White/API-Black"
-  )) |>
-  rename(lor_model = estimate, se_model = std.error) |>
-  select(type, lor_model, se_model, year)
-
-temp <- lor_data |> 
-  filter(type %in% c("White-Black", "White-API", "Black-API", 
-                     "White/API-White", "White/API-API", "White/API-Black")) |>
-  rename(lor_cross = lor, se_cross = se) |>
-  inner_join(inter_lor)
-
-ggplot(temp, aes(x = lor_cross, y = lor_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "log odds ratio by cross-product",
-       y = "log odds ratio by model")+
-  facet_wrap(~type)+
-  theme_bw()
-
-ggplot(temp, aes(x = se_cross, y = se_model))+
-  geom_abline(slope = 1, intercept = 0, linetype = 2, color = "red")+
-  geom_point()+
-  labs(x = "log odds ratio standard error by cross-product",
-       y = "log odds ratio standard error by model")+
-  facet_wrap(~type)+
   theme_bw()
 ```
 
