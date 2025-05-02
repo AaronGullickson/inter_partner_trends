@@ -538,6 +538,46 @@ ggplot(temp, aes(x = se_cross, y = se_model))+
   theme_bw()
 ```
 
+There is one issue with this approach however. A close analysis of the model will reveal that some model parameters were dropped:
+
+```{r}
+x <- coef(model)
+x[is.na(x)]
+```
+
+The cases that were all dropped here were involving the Hispanic codes in 1970 and 2017. The reason for this is that there was no Hispanic identifier in the 1960 and 1970 data so these parameters have no variation. It may seem odd that 2017 was the dropped case, but that is because 1960 is the reference and so R had to leave out one of the other cases, which defaulted to the last case. 
+
+This actually wouldn't be a problem except for the way this is handled by the `avg_slopes` command. Let me demonstrate with White-Hispanic intermarriage. 
+
+```{r}
+marg <- avg_slopes(model, variables = "inter_wh", by = "year", type = "link")
+temp <- marg |>
+  as_tibble() |>
+  rename(lor_model = estimate, se_model = std.error) |>
+  select(year, lor_model, se_model) |>
+  mutate(year = as.numeric(paste(year)))
+
+temp <- lor_data |>
+  filter(type == "White-Hispanic") |>
+  select(-type) |>
+  rename(lor_cross = lor, se_cross = se) |>
+  full_join(temp)
+
+lor2017 <- temp |> filter(year == 2017) |> pull(lor_cross)
+
+ggplot(temp, aes(x = year, y = lor_cross))+
+  geom_line(color = "blue", alpha = 0.4)+
+  geom_point(color = "blue", alpha = 0.4)+
+  geom_line(aes(y = lor_model), color = "red", alpha = 0.4)+
+  geom_point(aes(y = lor_model), color = "red", alpha = 0.4)+
+  geom_hline(yintercept = lor2017, linetype = 2)+
+  theme_bw()
+```
+
+The two measurements match up exactly for data from 1980 to 2017. However, the 1960 and 1970 data are not missing in `avg_slopes`. Instead it uses the main effect estimate of `inter_bh` which is identical to the value for 2017. What we want to happen here is that these cases should be missing values. 
+
+We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the coef command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
+
 
 
 
@@ -635,7 +675,7 @@ mar_data <- census |>
   filter(age_husband >= 25 & age_husband <= 34) |>
   mutate(year = factor(year),
          year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  group_by(race_husband, race_wife, year) |>
   summarize(freq = n()) |>
   ungroup()
 ```
