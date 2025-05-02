@@ -491,14 +491,14 @@ This leads to a huge number of parameters. To get out each log odds ratio for th
 
 ```{r}
 marg_bw <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link")
-marg_bw |> as_tibble()
+marg_bw <- marg_bw |> as_tibble()
+marg_bw
 ```
 
 I can then use this to plot the change:
 
 ```{r}
 marg_bw |>
-  as_tibble() |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate)))+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high)),
               alpha = 0.3, color = NA)+
@@ -512,7 +512,6 @@ I can also compare this to the log odds ratios and standard errors estimated via
 
 ```{r}
 temp <- marg_bw |>
-  as_tibble() |>
   rename(lor_model = estimate, se_model = std.error) |>
   select(year, lor_model, se_model) |>
   mutate(year = as.numeric(paste(year)))
@@ -578,20 +577,66 @@ The two measurements match up exactly for data from 1980 to 2017. However, the 1
 
 We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the coef command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
 
-### Adding single covariate
+### Adding a covariate
+
+We may wish to add a single covariate to the model to do one of two things. Lets use region of the country as an example here. We might wish to:
+
+1. Account for compositional issues across the covariate. In the region example, racial groups will be differently distributed across regions and we might want to account for that. 
+2. Allow the intermarriage parameters to vary by the values of the covariate. In the region example, we may want to calculate intermarriage log odds ratio separately by region.
+
+#### Adjusting for regional composition
+
+To adjust for compositional issues, I just need to interact the regional variable with `race_husband` and `race_wife` inside the parenthetical part of the formula. I could do this by state, for example. In this case, though, calculating `avg_slopes` will be computationally expensive, unless I turn off the calculation of standard errors.
+
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    state = as.factor(state),
+    inter_wb = race_husband == "White" & race_wife == "Black"
+  )
+
+model <- glm(freq ~ (race_husband * state + race_wife * state + inter_wb) * year,
+             data =mar_data, family = poisson)
+
+marg_wb_state <- avg_slopes(model, variables = "inter_wb", by = "year", 
+                            type = "link", vcov = FALSE) |> 
+  as_tibble()
+
+marg_wb_state |> rename(estimate_state = estimate) |>
+  right_join(marg_bw) |>
+  rename(estimate_reg = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_") |>
+  mutate(year = as.numeric(paste(year))) |>
+  ggplot(aes(x = year, y = value, color = name))+
+  geom_line()+
+  geom_point()+
+  theme_bw()
+```
+
+
+
+#### Calculating log odds ratio by region
+
 
 
 ### Adding other spousal characteristics
 
 
-# Model it within a function
+## Use a function for modeling
 
 Now lets do this within a model.
 
 ```{r}
 #| label: modeling-function
 
-calculate_lor_model <- function(model_data, selected_groups, ) {
+calculate_lor_model <- function(model_data, selected_groups) {
   
   # trim down the data to selected groups and frequency counts greater than zero
   model_data <- model_data |>
@@ -666,7 +711,7 @@ calculate_lor_model <- function(model_data, selected_groups, ) {
 }
 ```
 
-## Test it out
+### Test it out
 
 Lets start by creating a summary dataset by year and race of spouses
 
@@ -734,52 +779,3 @@ mar_data |>
   theme_bw()
 ```
 
-### Add covariates
-
-```{r}
-
-selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
-results_single_no_controls <- mar_data |>
-  calculate_lor_model(selected_groups) |>
-  mutate(type = "no controls")
-
-```
-
-
-```{r}
-#| label: create-agg-mar-data-covar
-
-mar_data_educ <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, educ_husband, educ_wife, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup()
-```
-
-```{r}
-results_single_ed_controls <- mar_data_educ |>
-  calculate_lor_model( 
-    selected_groups,
-    terms_add = "educ_husband*race_husband+educ_wife*race_wife+educ_husband*educ_wife"
-  )
-
-results_single <- results_single_ed_controls |>
-  mutate(type = "ed controls") |> 
-  bind_rows(results_single_no_controls)
-
-results_single |>
-  filter(str_detect(term, "_white_")) |>
-  mutate(type = factor(type, levels = c("no controls", "ed controls"))) |>
-  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term, linetype = type))+
-  geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10()+
-  theme_bw()
-
-```
