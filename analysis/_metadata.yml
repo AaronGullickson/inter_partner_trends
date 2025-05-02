@@ -3,6 +3,7 @@ format:
     code-fold: true
     self-contained: true
     toc: true
+    toc-depth: 4
     theme: flatly
 execute: 
   message: false
