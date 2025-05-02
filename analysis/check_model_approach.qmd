@@ -601,7 +601,7 @@ mar_data <- census_age |>
     inter_wb = race_husband == "White" & race_wife == "Black"
   )
 
-model <- glm(freq ~ (race_husband * state + race_wife * state + inter_wb) * year,
+model <- glm(freq ~ ((race_husband + race_wife) * state + inter_wb) * year,
              data =mar_data, family = poisson)
 
 marg_wb_state <- avg_slopes(model, variables = "inter_wb", by = "year", 
@@ -620,6 +620,7 @@ marg_wb_state |> rename(estimate_state = estimate) |>
   theme_bw()
 ```
 
+Lets also do 
 
 
 #### Calculating log odds ratio by region
@@ -636,12 +637,15 @@ Now lets do this within a model.
 ```{r}
 #| label: modeling-function
 
-calculate_lor_model <- function(model_data, selected_groups) {
+calculate_lor_model <- function(model_data, 
+                                selected_groups,
+                                control_var = NULL) {
   
   # trim down the data to selected groups and frequency counts greater than zero
   model_data <- model_data |>
-    filter(race_husband %in% selected_groups & race_wife %in% selected_groups) |>
-    filter(freq > 0)
+    filter(race_husband %in% selected_groups,
+           race_wife %in% selected_groups) |>
+    mutate(year = as.factor(year))
   
   # create required variables
   for(i in 1:(length(selected_groups)-1)) {
@@ -676,13 +680,21 @@ calculate_lor_model <- function(model_data, selected_groups) {
   }
 
   # create formula
-  terms <- colnames(model_data) |> str_subset("freq|year", negate = TRUE)
-  terms_str <- paste(terms, collapse="+")
-  if(!is.null(terms_add)) {
-    terms_str <- paste(terms_str, terms_add, sep = "+")
+  formula_model <- "(race_husband+race_wife)"
+  if(!is.null(control_var)) {
+    formula_model <- paste0(formula_model,
+                            "*(",
+                            paste(control_var, collapse = "+"),
+                            ")")
   }
-  formula_model <- reformulate(paste0("(", terms_str, ")*year"),
-                               "freq")
+  mar_terms <- colnames(model_data) |> str_subset("^inter_|^gender_")
+  formula_model <- paste0(formula_model,
+                          "+(",
+                          paste(mar_terms, collapse = "+"),
+                          ")")
+  formula_model <- paste0("(", formula_model, ")*year")
+  formula_model <- reformulate(formula_model, "freq")
+  
   # run the model
   model <- glm(formula_model, data = model_data, family = poisson)
   
@@ -698,7 +710,7 @@ calculate_lor_model <- function(model_data, selected_groups) {
     select(term, year, missing)
     
   marg <- avg_slopes(model, 
-                     variables = str_subset(terms, "^inter_"),
+                     variables = str_subset(mar_terms, "^inter_"),
                      by = "year",
                      type = "link") |>
     as_tibble() |>
