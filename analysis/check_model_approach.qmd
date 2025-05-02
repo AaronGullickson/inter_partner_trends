@@ -575,7 +575,7 @@ ggplot(temp, aes(x = year, y = lor_cross))+
 
 The two measurements match up exactly for data from 1980 to 2017. However, the 1960 and 1970 data are not missing in `avg_slopes`. Instead it uses the main effect estimate of `inter_wh` which is identical to the value for 2017. What we want to happen here is that these cases should be missing values. 
 
-We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the coef command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
+We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the `coef` command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
 
 ### Adding a covariate
 
@@ -634,11 +634,17 @@ Lets also do
 
 Now lets do this within a model.
 
+```
+freq~((race_husband+race_wife)*(composition_var))*(year+conditional_var)+((control_husband+control_wife)*(composition_var)+control_husband*control_wife)*year
+```
+
 ```{r}
 #| label: modeling-function
 
 calculate_lor_model <- function(model_data, 
                                 selected_groups,
+                                composition_var = NULL,
+                                conditional_var = NULL,
                                 control_var = NULL) {
   
   # trim down the data to selected groups and frequency counts greater than zero
@@ -681,10 +687,10 @@ calculate_lor_model <- function(model_data,
 
   # create formula
   formula_model <- "(race_husband+race_wife)"
-  if(!is.null(control_var)) {
+  if(!is.null(composition_var)) {
     formula_model <- paste0(formula_model,
                             "*(",
-                            paste(control_var, collapse = "+"),
+                            paste(composition_var, collapse = "+"),
                             ")")
   }
   mar_terms <- colnames(model_data) |> str_subset("^inter_|^gender_")
@@ -759,7 +765,7 @@ mar_data |>
   calculate_lor_model(selected_groups) |>
   extract_marg_effects() |>
   filter(str_detect(term, "_white_")) |>
-  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
