@@ -876,7 +876,7 @@ Now lets look include a multiracial group.
 #| fig-cap: Log odds of interracial marriage between White, Black, and White/Black partners
 
 mar_data |>
-  calculate_lor_model(c("White", "Black", "White/Black")) |>
+  calculate_lor_model(c("White", "Black", "White-Black")) |>
   extract_marg_effects() |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+

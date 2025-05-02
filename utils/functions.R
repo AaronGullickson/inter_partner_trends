@@ -24,7 +24,7 @@ calculate_lor_model <- function(model_data,
       race2 <- selected_groups[j]
       
       var_suffix <- paste(str_to_lower(race1), str_to_lower(race2), sep = "_")
-      var_suffix <- str_replace_all(var_suffix, "/", ".")
+      var_suffix <- str_replace_all(var_suffix, "-", ".")
       
       var_name <- paste0("inter_", var_suffix)                 
       model_data <- model_data |>

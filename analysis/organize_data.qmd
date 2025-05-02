@@ -127,16 +127,16 @@ code_race <- function(raced, hispan, year) {
     (raced >= 400 & raced <= 699) | (raced >= 860 & raced <= 869) ~ "API",
     #raced == 700 ~ "Other", 
     # lets do major biracial groups for fun
-    raced == 801 ~ "White/Black",
-    raced == 802 ~ "White/AIAN",
-    raced >= 803 & raced <= 825 ~ "White/API",
-    raced == 830 ~ "Black/AIAN",
-    raced >= 831 & raced <= 842 ~ "Black/API")
+    raced == 801 ~ "White-Black",
+    raced == 802 ~ "White-AIAN",
+    raced >= 803 & raced <= 825 ~ "White-API",
+    raced == 830 ~ "Black-AIAN",
+    raced >= 831 & raced <= 842 ~ "Black-API")
   
   factor(race, 
          levels = c("White", "Black", "AIAN", "Hispanic", "API",
-                    "White/Black", "White/AIAN", "White/API", 
-                    "Black/AIAN", "Black/API"))
+                    "White-Black", "White-AIAN", "White-API", 
+                    "Black-AIAN", "Black-API"))
 }
 
 # TODO: really should used educd but will need to re-DL to get it for spouse
