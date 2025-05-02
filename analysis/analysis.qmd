@@ -637,7 +637,7 @@ temp <- marg |>
          type = "model")
 
 temp <- lor_data |>
-  filter(type == "White-Hispanic") |>
+  filter(type == "White/Hispanic") |>
   select(-type) |>
   #rename(lor_cross = lor, se_cross = se) |>
   mutate(type = "cross-product") |>
@@ -654,7 +654,7 @@ ggplot(temp, aes(x = year, y = lor, color = type))+
 
 The two measurements match up exactly for data from 1980 to 2017. However, the 1960 and 1970 data are not missing in `avg_slopes`. Instead it uses the main effect estimate of `inter_wh` which is identical to the value for 2017. What we want to happen here is that these cases should be missing values. 
 
-We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. Our best bet would be to look for missing values from the `coef` command and use the variable names to replace incorrect values with correct ones. We will try to do that later in the function we build for this process.
+We can get singularity problems leading to dropped values for a variety of reasons. In this case, it was due to missing all observations completely, but this can also happen if any of the cells for a comparison are zero, which may be more likely to happen when we break out results by region or other characteristics, for example. So it is difficult to determine apriori what values we need to ignore. We handle this in the custom build functions below by parsing the names of missing coefficients and removing them from the output of `avg_slopes`. 
 
 #### Adding a covariate
 
