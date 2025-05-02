@@ -14,7 +14,8 @@ packages = c(
   "ggrepel", # plotting extras
   "marginaleffects", # for computing log-odds from models
   "modelsummary","gt", # for table output
-  "tidycensus"
+  "tidycensus", # for statefip names
+  "MoMAColors" # for fun
 )
 
 package.check <- lapply(packages, FUN = function(x) {

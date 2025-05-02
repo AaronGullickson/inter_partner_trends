@@ -13,8 +13,25 @@ execute:
 library(here)
 source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
+```
+
+
+
+```{r}
+#| label: load-data
+#| include: false
+
 load(here("data", "data_constructed", "individ_data.RData"))
 ```
+
+```{r}
+#| label: set-colors
+#| include: false
+
+options(ggplot2.discrete.fill = moma.colors("Warhol"))
+options(ggplot2.discrete.color = moma.colors("Warhol"))
+```
+
 
 ## Modeling exogamy
 
