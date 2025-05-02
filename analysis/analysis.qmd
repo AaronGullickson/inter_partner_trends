@@ -21,6 +21,7 @@ load(here("data", "data_constructed", "individ_data.RData"))
 For illustrative purposes, I will limit analysis to couples where the husband is 25 to 34 years old.
 
 ```{r}
+#| label: restrict-age
 census_age <- census |>
   filter(age_husband >= 25 & age_husband <= 34)
 ```
@@ -28,6 +29,8 @@ census_age <- census |>
 I can then use this to create three-way contingency tables across all racial groups and years.
 
 ```{r}
+#| label: create-mar-table
+
 tab_mar <- table(census_age$race_husband, census_age$race_wife, census_age$year)
 ```
 
@@ -38,6 +41,8 @@ tab_mar <- table(census_age$race_husband, census_age$race_wife, census_age$year)
 Lets take the simple case of two racial groups at one point in time (2017) as an example.
 
 ```{r}
+#| label: subset-table
+
 tab_bw <- tab_mar[c("White", "Black"), c("White", "Black"), "2017"]
 tab_bw
 ```
@@ -123,9 +128,12 @@ lor_data <- pmap(all_combos, function(race1, race2) {
 Lets look at the results for 2017:
 
 ```{r}
+#| label: tbl-lor-2017
+#| tbl-cap: Log odds ratios of interracial marriage all single race pairings in 2017
 lor_data |>
   filter(year == 2017) |>
-  gt()
+  gt() |>
+  tab_options(table.width = "100%")
 ```
 
 ### Log-linear models
@@ -135,6 +143,8 @@ lor_data |>
 We would like to be able to calculate these odds ratios/cross-products in a log-linear model so that we may consider other covariates. The two-group case is straightforward. First, we will convert the contingency table to a more familiar data structure.
 
 ```{r}
+#| label: construct-mar-data-bw-2017
+
 mar_data <- census_age |>
   filter(year == 2017,
          race_husband %in% c("White", "Black"),
@@ -148,7 +158,7 @@ mar_data
 
 I can fit this with a saturated log-linear model:
 
-$$\log(F_{ij} = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}$$
+$$\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}$$
 
 ```{r}
 model <- glm(freq ~ race_husband * race_wife, data = mar_data, family = poisson)
@@ -190,7 +200,7 @@ Note that I have saturated the entire model (there are no more degrees of freedo
 $$\log(F_{12}/F_{21}) = \log(F_{12})-\log(F_{21}) = log(508)-log(1293) = -0.9342389$$
 Black woman/white man pairings are substantially less common. Now lets use the original model formulation to calculate this same log ratio from the model:
 
-$$\log(F_{12})-\log(F_{21}) = \lambda_2^{WR}+\beta-\lambda_2^{HR}$$
+$$\log(F_{12})-\log(F_{21}) = \lambda_2^{WR}-\lambda_2^{HR}+\beta$$
 
 From the original model:
 
@@ -205,6 +215,8 @@ We can see that these numbers match. This is also why the values of `race_husban
 Extending from the two group case to larger numbers of groups adds an additional complication to this procedure. Lets do this for three groups.
 
 ```{r}
+#| label: table-three-groups-2017
+
 tab_three <- tab_mar[c("White", "Black", "API"), 
                      c("White", "Black", "API"), 
                      "2017"]
@@ -348,6 +360,8 @@ $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 Where, the $\beta_{ij}$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter. For a model with $k$ groups, we need to fit a total of $(k-1)(k-1)$ parameters to saturate the interaction term for husband's and wife's race. We will need to fit $k(k-1)/2$ parameters for the exogamy log odds ratio exogamy. We will then need to fit $(1/2)k^2-(3/2)k+1$ remaining nuisance terms. The easiest approach is to fit these terms to the pairings that don't involve the reference race category (White in this case).
 
 
+Lets try this out by calculating exogomy log odds ratios for every possible pairing from among our single race respondents. 
+
 Lets set up the parameters we need and run the model:
 
 ```{r}
@@ -415,16 +429,50 @@ summary(model)
 Compare these results to the cross-products estimated manually:
 
 ```{r}
+#| label: tbl-compare-lor
+#| tbl-cap: Comparison of exogamy log odds ratios and standard errors for all single-race pairings in 2017 estimated from the log-linear model with those calculated by the cross-product
+
+pattern <- "\\b([a-z])-([a-z])\\b"
+lookup <- c(
+  w = "White",
+  b = "Black",
+  i = "AIAN",
+  a = "API",
+  h = "Hispanic"
+)
+model_coef <- summary(model)$coef[,1:2] |> as_tibble(rownames = "type") |>
+  rename(lor_model = Estimate, se_model = `Std. Error`) |>
+  filter(str_detect(type, "^inter_")) |>
+  mutate(type = str_remove(type, "^inter_"),
+         type = str_remove(type, "TRUE$"),
+         type = paste0(str_sub(type, 1, 1), "-", str_sub(type, 2, 2)),
+         type= str_replace_all(type, pattern, function(m) {
+           matches = str_match(m, pattern)[, 2:3]
+           paste(lookup[matches], collapse = "-")
+         }))
+
 lor_data |>
   filter(year == 2017) |>
-  gt()
+  rename(lor_cross = lor, se_cross = se) |>
+  right_join(model_coef) |>
+  select(type, lor_model, lor_cross, se_model, se_cross) |>
+  gt() |>
+  tab_options(table.width = "100%") |>
+  cols_label(lor_model = "model", lor_cross = "cross-product",
+             se_model = "model", se_cross = "cross-product") |>
+  tab_spanner("Log odds ratio", 2:3) |>
+  tab_spanner("Standard error", 4:5)
 ```
 
 The models produce identical results for both the estimates and the standard errors. 
 
 #### Adding time
 
-Now, I want to observe how these parameters change over time. I can add this to the model by simply interacting all the existing variables with a year variable.
+Now, I want to observe how these parameters change over time, which is the key goal of the research proejct. I can add this to the model by simply interacting all the existing variables with a year variable. Essentially, I want to esimate this model:
+
+$$\log(F_{ijt})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_t^T+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\beta_{ijt}+\alpha_{ijt}$$
+
+The model includes saturated terms to account for time and each partner's race ($\lambda_{it}^{HRT}$ and $\lambda_{jt}^{WRT}$) and each $\beta$ and $\alpha$ value is additionally distinguished by a time component. In practice the $\beta_{ijt}$ and $\alpha_{ijt}$ can be estimated by interacting the time variable with the intermarriage parameters.
 
 ```{r}
 mar_data <- census_age |>
@@ -487,17 +535,20 @@ model <- glm(freq ~ (race_husband + race_wife +
              data = mar_data, family = poisson)
 ```
 
-This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White-Black marriage over time. 
+This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year ($\beta_{ijt}$) with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White-Black marriage over time. 
 
 ```{r}
-marg_bw <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link")
-marg_bw <- marg_bw |> as_tibble()
+marg_bw <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link") |>
+  as_tibble()
 marg_bw
 ```
 
-I can then use this to plot the change:
+I can then use this to plot the change over time.
 
 ```{r}
+#| label: fig-inter-bw-time
+#| fig-cap: Change in the odds of White/Black intermarriage over time. Shaded band indicates 95% confidence interval
+
 marg_bw |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate)))+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high)),
@@ -505,12 +556,20 @@ marg_bw |>
   geom_line()+
   geom_point()+
   scale_y_log10()+
+  labs(x = "year", y = "odds ratio")+
   theme_bw()
 ```
 
 I can also compare this to the log odds ratios and standard errors estimated via cross product to ensure that they are the same. 
 
 ```{r}
+#| label: fig-compare-bw-time-cross
+#| fig-cap: Comparison of log odds ratios and standard errors by year for White-Black marriage using a log-linear model and cross-product
+#| layout-ncol: 2
+#| fig-subcap:
+#|    - Log odds ratio
+#|    - Standard error
+
 temp <- marg_bw |>
   rename(lor_model = estimate, se_model = std.error) |>
   select(year, lor_model, se_model) |>
@@ -544,32 +603,35 @@ x <- coef(model)
 x[is.na(x)]
 ```
 
-The cases that were all dropped here were involving the Hispanic codes in 1970 and 2017. The reason for this is that there was no Hispanic identifier in the 1960 and 1970 data so these parameters have no variation. It may seem odd that 2017 was the dropped case, but that is because 1960 is the reference and so R had to leave out one of the other cases, which defaulted to the last case. 
+The cases that were all dropped here involved the Hispanic codes in 1970 and 2017. The reason for this is that there was no Hispanic identifier in the 1960 and 1970 data so these parameters have no variation. It may seem odd that 2017 was the dropped case, but that is because 1960 is the reference and so R had to leave out one of the other cases, which defaulted to the last case. 
 
 This actually wouldn't be a problem except for the way this is handled by the `avg_slopes` command. Let me demonstrate with White-Hispanic intermarriage. 
 
 ```{r}
+#| label: fig-compare-wh-model-cross
+#| fig-cap: Log odds ratio of White-Hispanic marriage from the model and by the cross-product
+
 marg <- avg_slopes(model, variables = "inter_wh", by = "year", type = "link")
 temp <- marg |>
   as_tibble() |>
-  rename(lor_model = estimate, se_model = std.error) |>
-  select(year, lor_model, se_model) |>
-  mutate(year = as.numeric(paste(year)))
+  rename(lor = estimate, se = std.error) |>
+  select(year, lor, se) |>
+  mutate(year = as.numeric(paste(year)),
+         type = "model")
 
 temp <- lor_data |>
   filter(type == "White-Hispanic") |>
   select(-type) |>
-  rename(lor_cross = lor, se_cross = se) |>
-  full_join(temp)
+  #rename(lor_cross = lor, se_cross = se) |>
+  mutate(type = "cross-product") |>
+  bind_rows(temp)
 
-lor2017 <- temp |> filter(year == 2017) |> pull(lor_cross)
+lor2017 <- temp |> filter(year == 2017 & type == "cross-product") |> pull(lor)
 
-ggplot(temp, aes(x = year, y = lor_cross))+
-  geom_line(color = "blue", alpha = 0.4)+
-  geom_point(color = "blue", alpha = 0.4)+
-  geom_line(aes(y = lor_model), color = "red", alpha = 0.4)+
-  geom_point(aes(y = lor_model), color = "red", alpha = 0.4)+
+ggplot(temp, aes(x = year, y = lor, color = type))+
   geom_hline(yintercept = lor2017, linetype = 2)+
+  geom_line(alpha = 0.4)+
+  geom_point(alpha = 0.4)+
   theme_bw()
 ```
 
@@ -586,9 +648,22 @@ We may wish to add a single covariate to the model to do one of two things. Lets
 
 ##### Adjusting for regional composition
 
-To adjust for compositional issues, I just need to interact the regional variable with `race_husband` and `race_wife` inside the parenthetical part of the formula. I could do this by state, for example. In this case, though, calculating `avg_slopes` will be computationally expensive, unless I turn off the calculation of standard errors.
+To adjust for compositional issues, we need to allow the race of husband and wife to vary by the region, and by region over time:
+
+$$
+\begin{align}
+\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HRK}+\lambda_{jk}^{WRK}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{ikt}^{HRKT}+\lambda_{jkt}^{WRKT}\\
+ & +\beta_{ijt}+\alpha_{ijt}
+\end{align}
+$$
+
+Where $k$ is the region. We need to add the two-way interactions between each spouses' race and region and the three way interactions between each spouses's race, region, and time.
+
+I could do this by state, for example. In this case, though, calculating `avg_slopes` will be computationally expensive, unless I turn off the calculation of standard errors.
 
 ```{r}
+#| label: fig-wb-state-time
+#| fig-cap: Log odds ratio of White/Black marriage over time, showing differene in estimates when accounting for varying racial composition across states.
 mar_data <- census_age |>
   filter(race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
@@ -624,6 +699,9 @@ marg_wb_state |> rename(estimate_state = estimate) |>
 Lets also do try this with census divisions.
 
 ```{r}
+#| label: fig-wb-division-time
+#| fig-cap: Log odds ratio of White/Black marriage over time, showing differene in estimates when accounting for varying racial composition across states and census divisions.
+
 mar_data <- census_age |>
   filter(race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
@@ -663,9 +741,23 @@ marg_wb_division |>
 
 ##### Calculating log odds ratio conditional on another variable
 
-We can also calculate log odds ratios separately by some other covariate, which is basically an interaction term. Lets do that with region.
+We can also calculate log odds ratios separately by some other covariate, which is basically an interaction term. From a model perspective:
+
+$$
+\begin{align}
+\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HRK}+\lambda_{jk}^{WRK}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{ikt}^{HRKT}+\lambda_{jkt}^{WRKT}\\
+ & +\beta_{ijkt}+\alpha_{ijkt}
+\end{align}
+$$
+
+We are allowing the $\beta$ and $\alpha$ terms to vary by $k$. We can implement this by including an interaction with the $k$ variable and then pulling out marginal effects by year and the $k$ variable.
+
+Lets do that with region.
 
 ```{r}
+#| label: fig-wb-region-trends
+#| fig-cap: Log odds ratio of White/Black marriage over time and region of the US.
+
 mar_data <- census_age |>
   filter(race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
@@ -691,12 +783,20 @@ marg_wb_region |>
               color = NA, alpha = 0.3)+
   geom_line()+
   geom_point()+
+  labs(x = "year")+
   theme_bw()
 ```
 
-We can calculate these log odds ratios by hand from the cross product. Lets do that to confirm that are model is doing what we think it should be doing. 
+We can calculate these log odds ratios by hand from the cross product. Lets do that to confirm that the model is doing what we think it should be doing. 
 
 ```{r}
+#| label: fig-compare-region-bw-cross
+#| fig-cap: Comparison of log odds ratios and standard errors by year for White-Black marriage across region using a log-linear model and cross-product
+#| layout-ncol: 2
+#| fig-subcap:
+#|    - Log odds ratio
+#|    - Standard error
+
 tab_mar_region <- table(census_age$race_husband, census_age$race_wife, 
                         census_age$region, census_age$year)
 group1 <- "White"
@@ -731,11 +831,15 @@ temp <- marg_wb_region |>
 ggplot(temp, aes(x = lor_cross, y = lor_model))+
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
   geom_point()+
+  labs(x = "log odds ratio by cross product",
+       y = "log odds ratio by log linear model")+
   theme_bw()
 
 ggplot(temp, aes(x = se_cross, y = se_model))+
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
   geom_point()+
+  labs(x = "standard error of log odds ratio by cross product",
+       y = "standard error of log odds ratio by log linear model")+
   theme_bw()
 ```
 
@@ -743,9 +847,23 @@ The models are estimating the values correctly.
 
 #### Adding other spousal characteristics
 
-We can also try to control for other spousal characteristics that might vary across the partners, like education. In this case, we need to control for both the marginal distributions of the variable and its interaction with the race of each spouse and the association between the two spouses on this characteristic. Lets try it out with education.
+We can also try to control for other spousal characteristics that might vary across the partners, like education. From a model perspective:
+
+$$
+\begin{align}
+\log(F_{ijklt})=&\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^{HE}+\lambda_l^{WE}+\lambda_t^T+\\
+&\lambda_{ik}^{HRHE}+\lambda_{jl}^{WRWE}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{kt}^{HET}+\lambda_{lt}^{WET}+\\
+&\lambda_{ikt}^{HRHET}+\lambda_{jlt}^{WRHET}+\lambda_{kl}^{HEWE}+\lambda_{klt}^{HEWET}+\\
+&\beta_{ijt}+\alpha_{ijt}
+\end{align}
+$$
+
+In this case, we need to control for the marginal distributions of the variable, its interaction with the race of each spouse, the association between the two spouses on this characteristic, and all of the associations over time. Lets try it out with education.
 
 ```{r}
+#| label: fig-wb-educ
+#| fig-cap: Log odds ratio of White/Black marriage across time, accounting for differences in education across racial groups and the association of husband's and wife's education over time
+
 mar_data <- census_age |>
   filter(race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
@@ -804,8 +922,10 @@ For the log-linear model, we will feed in the aggregated count data that at leas
 
 In total, the full structure of the formula will look like this:
 
-```r
-freq~((race_husband+race_wife)*(composition_var)+(intermar_parameters))*(year*conditional_var)+((race_husband*conrol_husband+race_wife*control_wife)*(composition_var)*(conditional_var)+control_husband*control_wife)*year
+```
+freq~((race_husband+race_wife)*(composition_var)+(intermar_parameters))*(year*conditional_var)+
+     ((race_husband*conrol_husband+race_wife*control_wife)*(composition_var)*(conditional_var)+
+      control_husband*control_wife)*year
 ```
 
 #### Test it out
@@ -952,7 +1072,7 @@ Now lets control for education.
 
 
 ```{r}
-#| label: fig-wb-educ
+#| label: fig-wb-educ-again
 #| fig-cap: Log odds of interracial marriage between White and Black partners, with and without controls for partner education
 
 marg_bw <- mar_data |>
