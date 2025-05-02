@@ -609,22 +609,137 @@ marg_wb_state <- avg_slopes(model, variables = "inter_wb", by = "year",
 
 marg_wb_state |> rename(estimate_state = estimate) |>
   right_join(marg_bw) |>
-  rename(estimate_reg = estimate) |>
+  rename(estimate_none = estimate) |>
   select(year, starts_with("estimate_")) |>
-  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_") |>
+  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_",
+               names_to = "composition", values_to = "estimate") |>
   mutate(year = as.numeric(paste(year))) |>
-  ggplot(aes(x = year, y = value, color = name))+
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_line()+
+  geom_point()+
+  labs(color = "compositional\nadjustment")+
+  theme_bw()
+```
+
+Lets also do try this with census divisions.
+
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wb = race_husband == "White" & race_wife == "Black"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) * division + inter_wb) * year,
+             data =mar_data, family = poisson)
+
+marg_wb_division <- avg_slopes(model, variables = "inter_wb", by = "year", 
+                               type = "link") |> 
+  as_tibble()
+
+marg_wb_division |> 
+  rename(estimate_division = estimate) |>
+  right_join(marg_wb_state) |>
+  rename(estimate_state = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  right_join(marg_bw) |>
+  rename(estimate_none = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_",
+               names_to = "composition", values_to = "estimate") |>
+  mutate(year = as.numeric(paste(year)),
+         name = factor(composition, levels = c("none", "division", "state"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_line()+
+  geom_point()+
+  labs(color = "compositional\nadjustment")+
+  theme_bw()
+```
+
+#### Calculating log odds ratio conditional on another variable
+
+We can also calculate log odds ratios separately by some other covariate, which is basically an interaction term. Lets do that with region.
+
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, region, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wb = race_husband == "White" & race_wife == "Black"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wb) * (year*region),
+             data =mar_data, family = poisson)
+
+marg_wb_region <- avg_slopes(model, variables = "inter_wb", 
+                             by = c("region", "year"), 
+                             type = "link") |> 
+  as_tibble()
+
+marg_wb_region |>
+  ggplot(aes(x = as.numeric(paste(year)), y = estimate, color = region))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = region), 
+              color = NA, alpha = 0.3)+
   geom_line()+
   geom_point()+
   theme_bw()
 ```
 
-Lets also do 
+We can calculate these log odds ratios by hand from the cross product. Lets do that to confirm that are model is doing what we think it should be doing. 
 
+```{r}
+tab_mar_region <- table(census_age$race_husband, census_age$race_wife, 
+                        census_age$region, census_age$year)
+group1 <- "White"
+group2 <- "Black"
 
-#### Calculating log odds ratio by region
+lor <- log(tab_mar_region[group1, group2,,])+
+  log(tab_mar_region[group2, group1,,])-
+  log(tab_mar_region[group1, group1,,])-
+  log(tab_mar_region[group2, group2,,])
+se <- sqrt(1/tab_mar_region[group1, group2,,]+
+             1/tab_mar_region[group2, group1,,]+
+             1/tab_mar_region[group1, group1,,]+
+             1/tab_mar_region[group2, group2,,])
 
+lor <- as.data.frame.table(lor) |>
+  as_tibble() |>
+  rename(region = Var1, year = Var2, lor_cross = Freq)
 
+lor <- as.data.frame.table(se) |>
+  as_tibble() |>
+  rename(region = Var1, year = Var2, se_cross = Freq) |>
+  right_join(lor) |>
+  mutate(region = as.character(region),
+         year = as.numeric(paste(year)))
+
+temp <- marg_wb_region |>
+  mutate(year = as.numeric(paste(year))) |>
+  select(region, year, estimate, std.error) |>
+  rename(lor_model = estimate, se_model = std.error) |>
+  right_join(lor) 
+
+ggplot(temp, aes(x = lor_cross, y = lor_model))+
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
+  geom_point()+
+  theme_bw()
+
+ggplot(temp, aes(x = se_cross, y = se_model))+
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
+  geom_point()+
+  theme_bw()
+```
+
+The models are estimating the values correctly.
 
 ### Adding other spousal characteristics
 
@@ -633,8 +748,8 @@ Lets also do
 
 Now lets do this within a model.
 
-```
-freq~((race_husband+race_wife)*(composition_var))*(year+conditional_var)+((control_husband+control_wife)*(composition_var)+control_husband*control_wife)*year
+```r
+freq~((race_husband+race_wife)*(composition_var))*(year*conditional_var)+((control_husband+control_wife)*(composition_var)+control_husband*control_wife)*year
 ```
 
 ```{r}
@@ -697,7 +812,11 @@ calculate_lor_model <- function(model_data,
                           "+(",
                           paste(mar_terms, collapse = "+"),
                           ")")
-  formula_model <- paste0("(", formula_model, ")*year")
+  formula_model <- paste0("(", 
+                          formula_model, 
+                          ")*(",
+                          paste(c("year", conditional_var), collapse = "*"),
+                          ")")
   formula_model <- reformulate(formula_model, "freq")
   
   # run the model
@@ -806,6 +925,59 @@ mar_data |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-wb-region
+#| fig-cap: Log odds of interracial marriage between White and Black partners by region
+
+census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, region, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), conditional_var = "region") |>
+  extract_marg_effects(by = c("region", "year")) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = region))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  theme_bw()
+```
+
+```{r}
+census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), conditional_var = "division") |>
+  extract_marg_effects(by = c("division", "year"), se = FALSE) |>
+  mutate(division = factor(division, 
+                           levels = c("New England", "Middle Atlantic",
+                                      "South Atlantic", "West South Central",
+                                      "East South Central", "West North Central",
+                                      "East North Central", "Mountain", 
+                                      "Pacific"))) |>
+  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = division))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("darkgreen", "springgreen", 
+                                "tomato", "salmon", "maroon",
+                                "goldenrod", "lightgoldenrod",
+                                "skyblue", "navyblue"))+
   theme_bw()
 ```
 
