@@ -1,4 +1,4 @@
-Description: data for long term trends in interracial marriage
+Description: Revision of (data for long term trends in interracial marriage)
 Samples selected:
       1960 1%
             Note: 
@@ -129,36 +129,37 @@ Case Selection:               Yes
   CBSERIAL                     H  19-31          13     .       .       .       .       .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       .       .       .       
   HHWT                         H  32-41          10     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
   CLUSTER                      H  42-54          13     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  STATEFIP                     H  55-56           2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  STRATA                       H  57-68          12     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  GQ                           H  69              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  PERNUM                       P  70-73           4     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  PERWT                        P  74-83          10     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  SEX                          P  84              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  AGE                          P  85-87           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  MARST                        P  88              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  RACE                         P  89              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  RACED                        P  90-92           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAN                       P  93              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAND                      P  94-96           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPL                          P  97-99           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPLD                         P 100-104          5     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISP1970                     P 105              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
-  EDUC                         P 106-107          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  EDUCD                        P 108-110          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QHISPAN                    q P 111              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE                      q P 112              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE2                     q P 113              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
-  SEX_SP                       P 114              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  AGE_SP                       P 115-117          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  RACED_SP                     P 118-120          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAN_SP                    P 121              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPL_SP                       P 122-124          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISP1970_SP                  P 125              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
-  EDUC_SP                      P 126-127          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QHISPAN_SP                 q P 128              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE_SP                   q P 129              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE2_SP                  q P 130              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  REGION                       H  55-56           2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  STATEFIP                     H  57-58           2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  STRATA                       H  59-70          12     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  GQ                           H  71              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  PERNUM                       P  72-75           4     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  PERWT                        P  76-85          10     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  SEX                          P  86              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  AGE                          P  87-89           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  MARST                        P  90              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  RACE                         P  91              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  RACED                        P  92-94           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAN                       P  95              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAND                      P  96-98           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPL                          P  99-101          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPLD                         P 102-106          5     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISP1970                     P 107              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
+  EDUC                         P 108-109          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  EDUCD                        P 110-112          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QHISPAN                    q P 113              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE                      q P 114              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE2                     q P 115              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  SEX_SP                       P 116              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  AGE_SP                       P 117-119          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  RACED_SP                     P 120-122          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAN_SP                    P 123              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPL_SP                       P 124-126          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISP1970_SP                  P 127              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
+  EDUC_SP                      P 128-129          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QHISPAN_SP                 q P 130              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE_SP                   q P 131              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE2_SP                  q P 132              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
 
 Variable Availability Key:
 All Years X - available in this sample
@@ -388,6 +389,30 @@ SAMPLE              IPUMS sample identifier
 186001              1860 1%
 185002              1850 100% database
 185001              1850 1%
+
+REGION              Census region and division
+                    NORTHEAST REGION
+11                  New England Division
+12                  Middle Atlantic Division
+13                  Mixed Northeast Divisions (1970 Metro)
+                    MIDWEST REGION
+21                  East North Central Div.
+22                  West North Central Div.
+23                  Mixed Midwest Divisions (1970 Metro)
+                    SOUTH REGION
+31                  South Atlantic Division
+32                  East South Central Div.
+33                  West South Central Div.
+34                  Mixed Southern Divisions (1970 Metro)
+                    WEST REGION
+41                  Mountain Division
+42                  Pacific Division
+43                  Mixed Western Divisions (1970 Metro)
+                    STATE UNKNOWN
+91                  Military/Military reservations
+92                  PUMA boundaries cross state lines-1% sample
+97                  State not identified
+99                  Not identified
 
 STATEFIP            State (FIPS code)
 01                  Alabama
