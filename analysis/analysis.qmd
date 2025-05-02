@@ -101,7 +101,7 @@ calculate_or <- function(group1, group2) {
   se <- sqrt(1/tab_mar[group1, group2,]+1/tab_mar[group2, group1,]+
                1/tab_mar[group1, group1,]+1/tab_mar[group2, group2,])
   tibble(year = as.numeric(names(lor)), lor, se, 
-         type = paste(group1, group2, sep="-"))
+         type = paste(group1, group2, sep="/"))
 }
 
 all_combos <- tribble(
@@ -255,12 +255,12 @@ Compare these numbers to the correct cross-products:
 
 ```{r}
 lor_data |>
-  filter(year == 2017 & type %in% c("White-Black", "White-API", "Black-API"))
+  filter(year == 2017 & type %in% c("White/Black", "White/API", "Black/API"))
 ```
 
 These parameters do not match the cross-products. The issue is that in this model I still have one degree of freedom left. I have not saturated the model. Although I could just saturate it with an interaction term between `race_husband` and `race_wife`, this would not give me the parameterization I need to easily extract the exogamy odds ratios. 
 
-The issue is that for one of the cases, exogamy is not completely captured by the single dummy above the diagonal. To fully saturate the model, I also need to include another dummy below the diagonal. I will do that for the Black-Asian case:
+The issue is that for one of the cases, exogamy is not completely captured by the single dummy above the diagonal. To fully saturate the model, I also need to include another dummy below the diagonal. I will do that for the Black/API case:
 
 ```{r}
 mar_data <- mar_data |>
@@ -272,7 +272,7 @@ model <- glm(freq ~ race_husband + race_wife + inter_wb + inter_wa + inter_ba+
 summary(model)
 ```
 
-The exogamy log odds ratios (and their standard errors) are now being correctly calculated for White-Black and White-Asian marriages, but the total log odds ratio for Black-Asian marriages is now split between the two cases (adding them up gets me the correct value). 
+The exogamy log odds ratios (and their standard errors) are now being correctly calculated for White/Black and White/API marriages, but the total log odds ratio for Black/API marriages is now split between the two cases (adding them up gets me the correct value). 
 
 Note that I could have put in the below diagonal term for any of my three intermarriage pairings and it would split that log odds ratio in two and keep the others intact:
 
@@ -306,15 +306,15 @@ summary(model)
 
 The three `inter_` terms now give me the correct log odds ratio of exogamy for each pairing and the correct standard error. 
 
-How do I understand the `gender_ba` term itself? In some sense, this term is just a nuisance parameter to get what I want from the other terms. However, it is providing me some information, although the interpretation is not straightforward. I can think of it as telling me how different the gender asymmetry is in Black-Asian marriages compared to what would be predicted from the marginal parameters of spouse's race alone. 
+How do I understand the `gender_ba` term itself? In some sense, this term is just a nuisance parameter to get what I want from the other terms. However, it is providing me some information, although the interpretation is not straightforward. I can think of it as telling me how different the gender asymmetry is in Black/API marriages compared to what would be predicted from the marginal parameters of spouse's race alone. 
 
 To demonstrate, lets first specify the full model we are using at this point:
 
 $$\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}$$
 
-Where, the $\beta_{ij}$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter for one of my pairings (in this case Black-Asian marriages).
+Where, the $\beta_{ij}$ represent my parameterization of the log odds ratio of a particular interracial pairing and $\alpha_{ij}$ represents the ANOVA-coded "nuisance" parameter for one of my pairings (in this case Black/API marriages).
 
-I can use this formula to calculate the log gender asymmetry ratios for White-Black marriage and White-Asian marriage. For White-Black marriage:
+I can use this formula to calculate the log gender asymmetry ratios for White/Black marriage and White/API marriage. For White/Black marriage:
 
 $$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}-\lambda_B^{HR}+\beta_{WB}$$
 
@@ -322,7 +322,7 @@ $$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}-\lambda_B^{HR}+\beta_{WB}$$
 1.356863-6.827014-(-4.535912)
 ```
 
-And for White-Asian marriage:
+And for White/API marriage:
 
 $$\log(F_{WA})-\log(F_{AW})=\lambda_A^{WR}-\lambda_A^{HR}+\beta_{WA}$$
 
@@ -330,7 +330,7 @@ $$\log(F_{WA})-\log(F_{AW})=\lambda_A^{WR}-\lambda_A^{HR}+\beta_{WA}$$
 0.755190-5.698890-(-5.410917)
 ```
 
-For Black-Asian marriages, we would get:
+For Black/API marriages, we would get:
 
 $$
 \begin{align}
@@ -448,7 +448,7 @@ model_coef <- summary(model)$coef[,1:2] |> as_tibble(rownames = "type") |>
          type = paste0(str_sub(type, 1, 1), "-", str_sub(type, 2, 2)),
          type= str_replace_all(type, pattern, function(m) {
            matches = str_match(m, pattern)[, 2:3]
-           paste(lookup[matches], collapse = "-")
+           paste(lookup[matches], collapse = "/")
          }))
 
 lor_data |>
@@ -535,7 +535,7 @@ model <- glm(freq ~ (race_husband + race_wife +
              data = mar_data, family = poisson)
 ```
 
-This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year ($\beta_{ijt}$) with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White-Black marriage over time. 
+This leads to a huge number of parameters. To get out each log odds ratio for the appropriate year ($\beta_{ijt}$) with a corresponding standard error, I can calculate marginal effects across years using the `marginaleffects` package. For example, lets calculate the log odds ratios for White/Black marriage over time. 
 
 ```{r}
 marg_bw <- avg_slopes(model, variables = "inter_wb", by = "year", type = "link") |>
@@ -564,7 +564,7 @@ I can also compare this to the log odds ratios and standard errors estimated via
 
 ```{r}
 #| label: fig-compare-bw-time-cross
-#| fig-cap: Comparison of log odds ratios and standard errors by year for White-Black marriage using a log-linear model and cross-product
+#| fig-cap: Comparison of log odds ratios and standard errors by year for White/Black marriage using a log-linear model and cross-product
 #| layout-ncol: 2
 #| fig-subcap:
 #|    - Log odds ratio
@@ -576,7 +576,7 @@ temp <- marg_bw |>
   mutate(year = as.numeric(paste(year)))
 
 temp <- lor_data |>
-  filter(type == "White-Black") |>
+  filter(type == "White/Black") |>
   select(-type) |>
   rename(lor_cross = lor, se_cross = se) |>
   full_join(temp)
@@ -791,7 +791,7 @@ We can calculate these log odds ratios by hand from the cross product. Lets do t
 
 ```{r}
 #| label: fig-compare-region-bw-cross
-#| fig-cap: Comparison of log odds ratios and standard errors by year for White-Black marriage across region using a log-linear model and cross-product
+#| fig-cap: Comparison of log odds ratios and standard errors by year for White/Black marriage across region using a log-linear model and cross-product
 #| layout-ncol: 2
 #| fig-subcap:
 #|    - Log odds ratio
@@ -993,7 +993,7 @@ Now lets look include a multiracial group.
 
 ```{r}
 #| label: fig-wb-intermar
-#| fig-cap: Log odds of interracial marriage between White, Black, and White/Black partners
+#| fig-cap: Log odds of interracial marriage between White, Black, and White-Black partners
 
 mar_data |>
   calculate_lor_model(c("White", "Black", "White-Black")) |>
