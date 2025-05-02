@@ -13,7 +13,8 @@ packages = c(
   "tidymodels", "poissonreg", # for tidyd modeling
   "ggrepel", # plotting extras
   "marginaleffects", # for computing log-odds from models
-  "modelsummary","gt" # for table output
+  "modelsummary","gt", # for table output
+  "tidycensus"
 )
 
 package.check <- lapply(packages, FUN = function(x) {
