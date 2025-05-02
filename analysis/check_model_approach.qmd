@@ -697,7 +697,12 @@ calculate_lor_model <- function(model_data,
   
   # run the model
   model <- glm(formula_model, data = model_data, family = poisson)
+
+  return(model)
+}
   
+extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
+
   # identify results that are missing due to zero values
   missing <- coef(model) |> 
     enframe(name = "variable", value = "coef") |>
@@ -709,10 +714,15 @@ calculate_lor_model <- function(model_data,
            missing = TRUE) |>
     select(term, year, missing)
     
+  # get variables we want
+  vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
+    str_remove("TRUE$")
+  
   marg <- avg_slopes(model, 
-                     variables = str_subset(mar_terms, "^inter_"),
-                     by = "year",
-                     type = "link") |>
+                     variables = vars,
+                     by = by,
+                     type = "link",
+                     vcov = se) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year))) |> 
     left_join(missing) |>
@@ -747,6 +757,7 @@ mar_data <- census |>
 selected_groups <- c("White", "Black", "AIAN", "API", "Hispanic")
 mar_data |>
   calculate_lor_model(selected_groups) |>
+  extract_marg_effects() |>
   filter(str_detect(term, "_white_")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -764,6 +775,7 @@ mar_data |>
 
 mar_data |>
   calculate_lor_model(selected_groups) |>
+  extract_marg_effects() |>
   filter(str_detect(term, "_aian")) |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -781,6 +793,7 @@ mar_data |>
 
 mar_data |>
   calculate_lor_model(c("White", "Black", "White/Black")) |>
+  extract_marg_effects() |>
   ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
