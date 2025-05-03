@@ -1114,7 +1114,7 @@ marg_bw_educ <- census |>
 
 marg_bw |>
   bind_rows(marg_bw_educ) |>
-  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = type))+
+  ggplot(aes(x = year, y = exp(estimate), color = type))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = type),
               alpha = 0.3, color = NA)+
@@ -1138,7 +1138,7 @@ marg_bw_region <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Black"), conditional_var = "region") |>
   extract_marg_effects(by = c("region", "year")) |>
-  mutate(type = "region")
+  mutate(controls = "none")
 
 marg_bw_educ_region <- census |>
   # restrict age of husbands to get recent marriages
@@ -1150,16 +1150,15 @@ marg_bw_educ_region <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Black"), control_var = "educ", 
                       conditional_var = "region") |>
-  extract_marg_effects(by = c("region", "year")) |>
-  mutate(type = "educ. controls+region")
+  extract_marg_effects(by = c("region", "year"), se = FALSE) |>
+  mutate(controls = "education")
 
 marg_bw_region |>
   bind_rows(marg_bw_educ_region) |>
-  ggplot(aes(x = as.numeric(paste(year)), y = exp(estimate), color = region,
-             linetype = type))+
+  mutate(controls = factor(controls, levels = c("none", "education"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = region,
+             linetype = controls))+
   geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
-              alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+

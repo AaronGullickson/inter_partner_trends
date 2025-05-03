@@ -16,7 +16,7 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00142.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00143.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
@@ -28,18 +28,18 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00142.dat.gz"),
                                             HISPAN = 95,
                                             HISP1970 = 107,
                                             BPL = c(99, 101),
-                                            EDUC = c(108, 109),
+                                            EDUCD = c(110, 112),
                                             SEX_SP = 116,
                                             AGE_SP = c(117, 119),
                                             RACED_SP = c(120, 122),
                                             HISPAN_SP = 123,
                                             HISP1970_SP = 127,
                                             BPL_SP = c(124, 126),
-                                            EDUC_SP = c(128, 129),
+                                            EDUCD_SP = c(130, 132),
                                             QRACE = 114,
                                             QHISPAN = 113,
-                                            QRACE_SP = 131,
-                                            QHISPAN_SP = 130),
+                                            QRACE_SP = 134,
+                                            QHISPAN_SP = 133),
                    col_types = cols(.default = "i", HHWT = "d"))
 ```
 
@@ -139,12 +139,11 @@ code_race <- function(raced, hispan, year) {
                     "Black-AIAN", "Black-API"))
 }
 
-# TODO: really should used educd but will need to re-DL to get it for spouse
-code_educ <- function(educ) {
+code_educ <- function(educd) {
   education <- case_when(
-    educ < 6 ~ "LHS",
-    educ == 6 ~ "HS",
-    educ < 10 ~ "SC",
+    educd < 62 ~ "LHS",
+    educd < 70 ~ "HS",
+    educd < 101 ~ "SC",
     TRUE ~ "C"
   )
   
@@ -157,8 +156,8 @@ code_educ <- function(educ) {
 census <- census |>
   mutate(race_husband = code_race(RACED, HISPAN, YEAR),
          race_wife = code_race(RACED_SP, HISPAN_SP, YEAR), 
-         educ_husband = code_educ(EDUC),
-         educ_wife = code_educ(EDUC_SP),
+         educ_husband = code_educ(EDUCD),
+         educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
          region = case_when(
@@ -193,7 +192,10 @@ census <- census |>
   filter(!is.na(race_husband) & !is.na(race_wife))
 
 table(census$YEAR, census$year)
-table(census$EDUC, census$educ_husband)
+table(census$EDUCD, census$educ_husband)
+table(census$EDUCD_SP, census$educ_wife)
+table(census$educ_husband, census$educ_wife)
+
 
 table(census$race_husband)
 table(census$race_wife)
