@@ -130,3 +130,14 @@ extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
   
   return(marg)
 }
+
+
+get_intermar_names <- function(x) {
+  x |>
+    str_remove("^inter_") |>
+    str_replace("_", " ") |>
+    str_to_title() |>
+    str_replace("Api", "API") |>
+    str_replace("Aian", "AIAN") |>
+    str_replace(" ", "/")
+}

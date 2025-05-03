@@ -1164,3 +1164,120 @@ marg_bw_region |>
   scale_y_log10()+
   theme_bw()
 ```
+
+
+## Overall Trends
+
+Lets look at the change in interracial marriage across all single race groups from the perspective of each group.
+
+```{r}
+#| label: calculate-single-trends
+
+marg_single <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  extract_marg_effects() |>
+  mutate(term = get_intermar_names(term))
+```
+
+```{r}
+#| label: fig-intermar-single-overall
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White partner
+#|    - Black partner
+#|    - AIAN partner
+#|    - API partner
+#|    - Hispanic partner
+
+
+palette <- c(
+  "White/Black"    = "#E69F00", # rich orange
+  "White/AIAN"     = "#009E73", # teal green
+  "White/API"      = "#CC79A7", # muted magenta
+  "White/Hispanic" = "#661100", # deep rust
+  "Black/AIAN"     = "#A65628", # warm brown
+  "Black/API"      = "#74AA99", # muted cyan (not primary blue)
+  "Black/Hispanic" = "#882255", # deep burgundy
+  "AIAN/API"       = "#56B4E9", # desaturated turquoise
+  "AIAN/Hispanic"  = "#AA4499", # dusty rose
+  "API/Hispanic"   = "#117733" # forest green
+)
+
+lims <- exp(c(min(marg_single$estimate-2*marg_single$std.error),
+              max(marg_single$estimate+2*marg_single$std.error)))
+
+marg_single |>
+  filter(str_detect(term, "White")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single |>
+  filter(str_detect(term, "Black")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single |>
+  filter(str_detect(term, "AIAN")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single |>
+  filter(str_detect(term, "API")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single |>
+  filter(str_detect(term, "Hispanic")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
+
+
