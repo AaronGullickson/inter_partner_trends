@@ -1281,3 +1281,141 @@ marg_single |>
 ```
 
 
+### How much does composition matter?
+
+```{r}
+#| label: fig-adjust-composition
+#| fig-cap: Comparison of the odds of interracial marriage involving a white partner based on compositional adjustment at the state and Census division level
+
+marg_wb_state <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), 
+                      composition_var = "state") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wb_division <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Black"), 
+                      composition_var = "division") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wi_state <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "AIAN"), 
+                      composition_var = "state") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wi_division <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "AIAN"), 
+                      composition_var = "division") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wa_state <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "API"), 
+                      composition_var = "state") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wa_division <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "API"), 
+                      composition_var = "division") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wh_state <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Hispanic"), 
+                      composition_var = "state") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_wh_division <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  calculate_lor_model(c("White", "Hispanic"), 
+                      composition_var = "division") |>
+  extract_marg_effects(se = FALSE) |>
+  mutate(term = get_intermar_names(term))
+
+marg_white_state <- marg_wb_state |>
+  bind_rows(marg_wi_state) |>
+  bind_rows(marg_wa_state) |>
+  bind_rows(marg_wh_state) |>
+  mutate(composition = "state")
+
+marg_white_division <- marg_wb_division |>
+  bind_rows(marg_wi_division) |>
+  bind_rows(marg_wa_division) |>
+  bind_rows(marg_wh_division) |>
+  mutate(composition = "division")
+
+marg_single |>
+  filter(str_detect(term, "White")) |>
+  mutate(composition = "none") |>
+  bind_rows(marg_white_state) |>
+  bind_rows(marg_white_division) |>
+  mutate(term = factor(term,
+                       levels = c("White/Black", "White/AIAN", "White/API",
+                                  "White/Hispanic")),
+         composition = factor(composition, 
+                              levels = c("none", "division", "state"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_point(size = 0.5)+
+  geom_line()+
+  facet_wrap(~term)+
+  theme_bw()
+```
