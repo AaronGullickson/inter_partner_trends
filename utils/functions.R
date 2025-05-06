@@ -126,7 +126,9 @@ extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
     mutate(year = as.numeric(paste(year))) |> 
     left_join(missing) |>
     filter(is.na(missing)) |>
-    select(-missing)
+    select(-missing) |>
+    # don't change term names until after the merge with missing
+    mutate(term = get_intermar_names(term))
   
   return(marg)
 }
