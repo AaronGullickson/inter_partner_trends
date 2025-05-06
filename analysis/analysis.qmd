@@ -96,7 +96,7 @@ log(tab_bw["White", "Black"]) + log(tab_bw["Black", "White"])-
   log(tab_bw["White", "White"])-log(tab_bw["Black", "Black"])
 ```
 
-You can see that this simplify reverses the sign on the log scale.
+Inverting on the original scale simply reverses the sign on the log scale (which will be fairly obvious to those familiar with how logarithms work).
 
 We can also calculate standard errors for this log odds ratio parameter:
 
@@ -177,14 +177,14 @@ mar_data
 
 I can fit this with a saturated log-linear model:
 
-$$\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}$$
+$$\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}^{HR:WR}$$
 
 ```{r}
 model <- glm(freq ~ race_husband * race_wife, data = mar_data, family = poisson)
 summary(model)
 ```
 
-The parameter of interest is the single $\lambda_{ij}$ which is given by the interaction term. This term is identical to the cross-product measuring endogamy above and the standard error is also the same.
+The parameter of interest is the single $\lambda_{ij}^{HR:WR}$ term which is given by the interaction term. This term is identical to the cross-product measuring endogamy above and the standard error is also the same.
 
 I would prefer to estimate exogamy rather than endogamy. I can do this by re-parameterizing the interaction term. There are a couple ways to do this for the two-group case, but I will do it by putting a dummy on the $F_{12}$ case of a White husband and a Black wife.
 
@@ -212,7 +212,23 @@ The reason this works can be seen by working out the logged cross-product value 
 
 $$\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta X_{ij}$$
 
-where $X_{ij}$ is my dummy variable. Plugging all of the appropriate values into the cross-product formula above will demonstrate that all terms except $\beta$ cancel out. 
+Where:
+
+$$X_{ij} = \begin{cases}
+1 & \text{if i = 1 and j = 2 (White husband/Black wife)}\\
+0 & \text{else}
+\end{cases}
+$$
+
+Plugging all of the appropriate values into the cross-product formula above will demonstrate that all terms except $\beta$ cancel out. 
+
+$$
+\begin{align}
+\log(F_{21})+\log(F_{12})-\log(F_{11})-\log(F_{22}) & = \\
+\lambda+\lambda_2^{HR}+\lambda_1^{WR}+\lambda+\lambda_1^{HR}+\lambda_2^{WR}+\beta-\lambda-\lambda_1^{HR}-\lambda_1^{WR}-\lambda-\lambda_2^{HR}-\lambda_2^{WR} & = \\
+\cancel{\lambda}+\cancel{\lambda_2^{HR}}+\cancel{\lambda_1^{WR}}+\cancel{\lambda}+\cancel{\lambda_1^{HR}}+\cancel{\lambda_2^{WR}}+\beta-\cancel{\lambda}-\cancel{\lambda_1^{HR}}-\cancel{\lambda_1^{WR}}-\cancel{\lambda}-\cancel{\lambda_2^{HR}}-\cancel{\lambda_2^{WR}} = & \beta \\
+\end{align}
+$$
 
 Note that I have saturated the entire model (there are no more degrees of freedom). The gender difference in intermarriage between black and white spouses is absorbed into the marginal distributions here. This can be demonstrated by calculating the log ratio of black woman/white man pairings to black man/white woman pairings:
 
@@ -489,9 +505,9 @@ The models produce identical results for both the estimates and the standard err
 
 Now, I want to observe how these parameters change over time, which is the key goal of the research proejct. I can add this to the model by simply interacting all the existing variables with a year variable. Essentially, I want to esimate this model:
 
-$$\log(F_{ijt})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_t^T+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\beta_{ijt}+\alpha_{ijt}$$
+$$\log(F_{ijt})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_t^T+\lambda_{it}^{HR:T}+\lambda_{jt}^{WR:T}+\beta_{ijt}+\alpha_{ijt}$$
 
-The model includes saturated terms to account for time and each partner's race ($\lambda_{it}^{HRT}$ and $\lambda_{jt}^{WRT}$) and each $\beta$ and $\alpha$ value is additionally distinguished by a time component. In practice the $\beta_{ijt}$ and $\alpha_{ijt}$ can be estimated by interacting the time variable with the intermarriage parameters.
+The model includes saturated terms to account for time and each partner's race ($\lambda_{it}^{HR:T}$ and $\lambda_{jt}^{WR:T}$) and each $\beta$ and $\alpha$ value is additionally distinguished by a time component. In practice the $\beta_{ijt}$ and $\alpha_{ijt}$ can be estimated by interacting the time variable with the intermarriage parameters.
 
 ```{r}
 mar_data <- census_age |>
@@ -671,7 +687,7 @@ To adjust for compositional issues, we need to allow the race of husband and wif
 
 $$
 \begin{align}
-\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HRK}+\lambda_{jk}^{WRK}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{ikt}^{HRKT}+\lambda_{jkt}^{WRKT}\\
+\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HR:K}+\lambda_{jk}^{WR:K}+\lambda_{it}^{HR:T}+\lambda_{jt}^{WR:T}+\lambda_{ikt}^{HR:K:T}+\lambda_{jkt}^{WR:K:T}\\
  & +\beta_{ijt}+\alpha_{ijt}
 \end{align}
 $$
@@ -764,7 +780,7 @@ We can also calculate log odds ratios separately by some other covariate, which 
 
 $$
 \begin{align}
-\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HRK}+\lambda_{jk}^{WRK}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{ikt}^{HRKT}+\lambda_{jkt}^{WRKT}\\
+\log(F_{ijkt}) = & \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^K+\lambda_t^T+\lambda_{ik}^{HR:K}+\lambda_{jk}^{WR:K}+\lambda_{it}^{HR:T}+\lambda_{jt}^{WR:T}+\lambda_{ikt}^{HR:K:T}+\lambda_{jkt}^{WR:K:T}\\
  & +\beta_{ijkt}+\alpha_{ijkt}
 \end{align}
 $$
@@ -871,8 +887,8 @@ We can also try to control for other spousal characteristics that might vary acr
 $$
 \begin{align}
 \log(F_{ijklt})=&\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_k^{HE}+\lambda_l^{WE}+\lambda_t^T+\\
-&\lambda_{ik}^{HRHE}+\lambda_{jl}^{WRWE}+\lambda_{it}^{HRT}+\lambda_{jt}^{WRT}+\lambda_{kt}^{HET}+\lambda_{lt}^{WET}+\\
-&\lambda_{ikt}^{HRHET}+\lambda_{jlt}^{WRHET}+\lambda_{kl}^{HEWE}+\lambda_{klt}^{HEWET}+\\
+&\lambda_{ik}^{HR:HE}+\lambda_{jl}^{WR:WE}+\lambda_{it}^{HR:T}+\lambda_{jt}^{WR:T}+\lambda_{kt}^{HE:T}+\lambda_{lt}^{WE:T}+\\
+&\lambda_{ikt}^{HR:HE:T}+\lambda_{jlt}^{WR:WE:T}+\lambda_{kl}^{HE:WE}+\lambda_{klt}^{HE:WE:T}+\\
 &\beta_{ijt}+\alpha_{ijt}
 \end{align}
 $$
@@ -979,7 +995,7 @@ Lets look at all the intermarriage patterns involving White partners.
 #| fig-cap: Log odds of interracial marriage with White partners
 
 marg_single |>
-  filter(str_detect(term, "_white_")) |>
+  filter(str_detect(term, "White")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -997,7 +1013,7 @@ How about those involving AIAN partners?
 #| fig-cap: Log odds of interracial marriage with AIAN partners
 
 marg_single |>
-  filter(str_detect(term, "_aian")) |>
+  filter(str_detect(term, "AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -1182,8 +1198,7 @@ marg_single <- census |>
   summarize(freq = n()) |>
   ungroup() |>
   calculate_lor_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
-  extract_marg_effects() |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects()
 ```
 
 ```{r}
@@ -1297,8 +1312,7 @@ marg_wb_state <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Black"), 
                       composition_var = "state") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wb_division <- census |>
   # restrict age of husbands to get recent marriages
@@ -1310,8 +1324,7 @@ marg_wb_division <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Black"), 
                       composition_var = "division") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wi_state <- census |>
   # restrict age of husbands to get recent marriages
@@ -1323,8 +1336,7 @@ marg_wi_state <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "AIAN"), 
                       composition_var = "state") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wi_division <- census |>
   # restrict age of husbands to get recent marriages
@@ -1336,8 +1348,7 @@ marg_wi_division <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "AIAN"), 
                       composition_var = "division") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wa_state <- census |>
   # restrict age of husbands to get recent marriages
@@ -1349,8 +1360,7 @@ marg_wa_state <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "API"), 
                       composition_var = "state") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wa_division <- census |>
   # restrict age of husbands to get recent marriages
@@ -1362,8 +1372,7 @@ marg_wa_division <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "API"), 
                       composition_var = "division") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wh_state <- census |>
   # restrict age of husbands to get recent marriages
@@ -1375,8 +1384,7 @@ marg_wh_state <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Hispanic"), 
                       composition_var = "state") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_wh_division <- census |>
   # restrict age of husbands to get recent marriages
@@ -1388,8 +1396,7 @@ marg_wh_division <- census |>
   ungroup() |>
   calculate_lor_model(c("White", "Hispanic"), 
                       composition_var = "division") |>
-  extract_marg_effects(se = FALSE) |>
-  mutate(term = get_intermar_names(term))
+  extract_marg_effects(se = FALSE)
 
 marg_white_state <- marg_wb_state |>
   bind_rows(marg_wi_state) |>
