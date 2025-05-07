@@ -64,7 +64,7 @@ calculate_lor_model <- function(model_data,
   formula_model <- paste0("(", 
                           formula_model, 
                           ")*(",
-                          paste(c("year", conditional_var), collapse = "*"),
+                          paste(c(conditional_var, "year"), collapse = "*"),
                           ")")
   if(!is.null(control_var)) {
     formula_control <- paste(c(paste0("race_husband*", control_var, "_husband"),
@@ -111,7 +111,8 @@ extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
            year = as.numeric(str_sub(variable, start = -4)),
            year = if_else(is.na(year), 2000, year),
            missing = TRUE) |>
-    select(term, year, missing)
+    select(term, year, missing) |>
+    distinct()
   
   # get variables we want
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
