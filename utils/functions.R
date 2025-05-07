@@ -102,15 +102,17 @@ calculate_lor_model <- function(model_data,
 
 extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
   
-  # identify results that are missing due to zero values
   missing <- coef(model) |> 
     enframe(name = "variable", value = "coef") |>
     filter(is.na(coef), 
-           str_detect(variable, "^inter_")) |>
-    mutate(term = str_split_i(variable, "TRUE", 1),
+           # in some cases, the dropped variable might be the gender_ case
+           str_detect(variable, "^inter_|^gender_")) |>
+    mutate(term = str_remove(str_split_i(variable, ":", 1), "TRUE"),
+           # change name of gender_ to inter_ to facilitate linking
+           term = str_replace(term, "gender_", "inter_"),
            year = as.numeric(str_sub(variable, start = -4)),
            year = if_else(is.na(year), 2000, year),
-           missing = TRUE) |>
+           missing = TRUE)  |>
     select(term, year, missing) |>
     distinct()
   
