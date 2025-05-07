@@ -1184,6 +1184,48 @@ marg_bw_region |>
 ```
 
 
+##### Speed tests
+
+```{r}
+
+mar_data <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, region, year) |>
+  summarize(freq = n()) |>
+  ungroup()
+
+marg_bw_region <- mar_data |>
+  calculate_lor_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                      conditional_var = "region") |>
+  extract_marg_effects(by = c("region", "year"))
+
+
+tic()
+marg_bw_region <- mar_data |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               conditional_var = "region",
+               by = c("region", "year"))
+toc()
+
+marg_bw_region <- mar_data |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               conditional_var = "region",
+               by = c("region", "year"))
+
+tic()
+marg_bw_region <- mar_data |>
+  estimate_lor(c("White", "Black", "AIAN"), 
+               conditional_var = "region",
+               pairwise = TRUE)
+toc()
+
+
+
+```
+
 ## Overall Trends
 
 Lets look at the change in interracial marriage across all single race groups from the perspective of each group.
@@ -1199,7 +1241,7 @@ marg_single <- census |>
   group_by(race_husband, race_wife, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))j
 ```
 
 ```{r}

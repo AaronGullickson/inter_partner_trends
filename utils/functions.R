@@ -13,14 +13,28 @@ estimate_lor <- function(model_data,
                          conditional_var = NULL,
                          control_var = NULL,
                          by = c("year"),
-                         se = TRUE) {
+                         se = TRUE,
+                         pairwise = FALSE) {
   
-  
-  model_data |>
-    calculate_lor_model(selected_groups, composition_var, conditional_var,
-                        control_var) |>
-    extract_marg_effects(by, se)
-  
+  # in cases with large number of groups or composition/control variable
+  # with lots of categories, it will be faster to estimate each pairwise
+  # comparison and then combine them together than to estimate the full model
+  if(pairwise) {
+    groups <- get_permutations(selected_groups)
+    pmap(groups, function(group1, group2) {
+      model_data |>
+        calculate_lor_model(c(group1, group2), 
+                            composition_var, conditional_var, control_var)
+    }) |>
+      map(extract_marg_effects, by, se) |>
+      bind_rows()
+  } else {
+    # otherwise do them altogether
+    model_data |>
+      calculate_lor_model(selected_groups, composition_var, conditional_var,
+                          control_var) |>
+      extract_marg_effects(by, se)
+  }
 }
 
 
@@ -162,4 +176,23 @@ get_intermar_names <- function(x) {
     str_replace("Api", "API") |>
     str_replace("Aian", "AIAN") |>
     str_replace(" ", "/")
+}
+
+get_permutations <- function(groups) {
+  
+  permutations <- NULL
+  for(i in 1:(length(groups)-1)) {
+    for(j in (i+1):length(groups)) {
+      if(i == j) {
+        next
+      }
+      group1 <- groups[i]
+      group2 <- groups[j]
+      permutations <- permutations |>
+        bind_rows(tibble(group1, group2))
+    }
+  }
+  
+  return(permutations)
+  
 }

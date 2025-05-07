@@ -15,7 +15,8 @@ packages = c(
   "marginaleffects", # for computing log-odds from models
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
-  "MoMAColors" # for fun
+  "MoMAColors", # for fun
+  "tictoc" # for testing speed
 )
 
 package.check <- lapply(packages, FUN = function(x) {
