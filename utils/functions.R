@@ -4,6 +4,26 @@
 
 # Modeling functions ------------------------------------------------------
 
+
+# an overarching function that combines calculate_lor_model and 
+# extract_marg_effects
+estimate_lor <- function(model_data,
+                         selected_groups, 
+                         composition_var = NULL,
+                         conditional_var = NULL,
+                         control_var = NULL,
+                         by = c("year"),
+                         se = TRUE) {
+  
+  
+  model_data |>
+    calculate_lor_model(selected_groups, composition_var, conditional_var,
+                        control_var) |>
+    extract_marg_effects(by, se)
+  
+}
+
+
 calculate_lor_model <- function(model_data, 
                                 selected_groups,
                                 composition_var = NULL,

@@ -984,8 +984,7 @@ Lets now use this to estimate a model for all the single-race groups.
 
 ```{r}
 marg_single <- mar_data |>
-  calculate_lor_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
-  extract_marg_effects()
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
 ```
 
 Lets look at all the intermarriage patterns involving White partners.
@@ -1031,8 +1030,7 @@ Now lets look include a multiracial group.
 #| fig-cap: Log odds of interracial marriage between White, Black, and White-Black partners
 
 mar_data |>
-  calculate_lor_model(c("White", "Black", "White-Black")) |>
-  extract_marg_effects() |>
+  estimate_lor(c("White", "Black", "White-Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -1057,8 +1055,9 @@ census |>
   group_by(race_husband, race_wife, region, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black"), conditional_var = "region") |>
-  extract_marg_effects(by = c("region", "year")) |>
+  estimate_lor(c("White", "Black"), 
+               conditional_var = "region", 
+               by = c("region", "year")) |>
   ggplot(aes(x = year, y = exp(estimate), color = region))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
@@ -1083,8 +1082,10 @@ census |>
   group_by(race_husband, race_wife, division, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black"), conditional_var = "division") |>
-  extract_marg_effects(by = c("division", "year"), se = FALSE) |>
+  estimate_lor(c("White", "Black"), 
+               conditional_var = "division",
+               by = c("division", "year"), 
+               se = FALSE) |>
   mutate(division = factor(division, 
                            levels = c("New England", "Middle Atlantic",
                                       "South Atlantic", "West South Central",
@@ -1111,8 +1112,7 @@ Now lets control for education.
 #| fig-cap: Log odds of interracial marriage between White and Black partners, with and without controls for partner education
 
 marg_bw <- mar_data |>
-  calculate_lor_model(c("White", "Black")) |>
-  extract_marg_effects() |>
+  estimate_lor(c("White", "Black")) |>
   mutate(type = "no controls")
 
 marg_bw_educ <- census |>
@@ -1123,8 +1123,7 @@ marg_bw_educ <- census |>
   group_by(race_husband, race_wife, educ_husband, educ_wife, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black"), control_var = "educ") |>
-  extract_marg_effects() |>
+  estimate_lor(c("White", "Black"), control_var = "educ") |>
   mutate(type = "educ. controls")
 
 
@@ -1152,8 +1151,9 @@ marg_bw_region <- census |>
   group_by(race_husband, race_wife, region, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black"), conditional_var = "region") |>
-  extract_marg_effects(by = c("region", "year")) |>
+  estimate_lor(c("White", "Black"), 
+               conditional_var = "region",
+               by = c("region", "year")) |>
   mutate(controls = "none")
 
 marg_bw_educ_region <- census |>
@@ -1164,9 +1164,11 @@ marg_bw_educ_region <- census |>
   group_by(race_husband, race_wife, educ_husband, educ_wife, region, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black"), control_var = "educ", 
-                      conditional_var = "region") |>
-  extract_marg_effects(by = c("region", "year"), se = FALSE) |>
+  estimate_lor(c("White", "Black"), 
+               control_var = "educ", 
+               conditional_var = "region",
+               by = c("region", "year"),
+               se = FALSE) |>
   mutate(controls = "education")
 
 marg_bw_region |>
@@ -1197,8 +1199,7 @@ marg_single <- census |>
   group_by(race_husband, race_wife, year) |>
   summarize(freq = n()) |>
   ungroup() |>
-  calculate_lor_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
-  extract_marg_effects()
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
 ```
 
 ```{r}
