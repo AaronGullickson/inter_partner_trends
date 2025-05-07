@@ -20,10 +20,21 @@ estimate_lor <- function(model_data,
            race_wife %in% selected_groups) |>
     mutate(year = as.factor(year))
   
-  # hunt for zero values to identify bad estimates later
-  zero_values <- model_data |>
-    filter(freq == 0) |>
-    mutate(term = NA_character_)
+  # hunt for zero values to identify bad estimates later. We first need to 
+  # aggregate data, ignoring compositional and control variables
+  if(is.null(conditional_var)) {
+    zero_values <- model_data |>
+      group_by(race_husband, race_wife, year) |>
+      summarize(freq = sum(freq)) |>
+      filter(freq == 0) |>
+      mutate(term = NA_character_)
+  } else {
+    zero_values <- model_data |>
+      group_by(race_husband, race_wife, year, !!sym(conditional_var)) |>
+      summarize(freq = sum(freq)) |>
+      filter(freq == 0) |>
+      mutate(term = NA_character_)
+  }
   
   # now remove zero values from the data or they will mess up the models
   model_data <- model_data |>
