@@ -23,7 +23,7 @@ estimate_lor <- function(model_data,
   # hunt for zero values to identify bad estimates later
   zero_values <- model_data |>
     filter(freq == 0) |>
-    mutate(term = NA)
+    mutate(term = NA_character_)
   
   # now remove zero values from the data or they will mess up the models
   model_data <- model_data |>
