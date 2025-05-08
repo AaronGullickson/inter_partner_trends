@@ -10,7 +10,23 @@ estimate_lor <- function(model_data,
                          conditional_var = NULL,
                          control_var = NULL,
                          by = c("year"),
-                         se = TRUE) {
+                         se = TRUE,
+                         pairwise = FALSE) {
+  
+  
+  # In some complex cases, running each pairwise comparison separately
+  # will be faster than running a single model
+  if(pairwise) {
+    groups <- get_permutations(selected_groups)
+    results <- pmap(groups, function(group1, group2) {
+      model_data |>
+        estimate_lor(c(group1, group2), 
+                     composition_var, conditional_var, control_var,
+                     by, se, pairwise = FALSE)
+    }) |>
+      bind_rows()
+    return(results)
+  }
   
   ## prepare model data ##
   
@@ -180,4 +196,23 @@ get_intermar_names <- function(x) {
     str_replace_all("aian", "AIAN") |>
     str_replace(" ", "/") |>
     str_replace_all("\\.", "-")
+}
+
+get_permutations <- function(groups) {
+  
+  permutations <- NULL
+  for(i in 1:(length(groups)-1)) {
+    for(j in (i+1):length(groups)) {
+      if(i == j) {
+        next
+      }
+      group1 <- groups[i]
+      group2 <- groups[j]
+      permutations <- permutations |>
+        bind_rows(tibble(group1, group2))
+    }
+  }
+  
+  return(permutations)
+  
 }
