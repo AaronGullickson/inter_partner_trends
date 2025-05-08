@@ -42,6 +42,7 @@ estimate_lor <- function(model_data,
     zero_values <- model_data |>
       group_by(race_husband, race_wife, year) |>
       summarize(freq = sum(freq)) |>
+      ungroup() |>
       filter(freq == 0) |>
       mutate(term = NA_character_)
   } else {
@@ -49,6 +50,7 @@ estimate_lor <- function(model_data,
       group_by(race_husband, race_wife, year, !!sym(conditional_var)) |>
       summarize(freq = sum(freq)) |>
       filter(freq == 0) |>
+      ungroup() |>
       mutate(term = NA_character_)
   }
   
@@ -171,7 +173,7 @@ estimate_lor <- function(model_data,
   # a highly unlikely prospect in our data, although somehthing to be 
   # alert for if we parse into very small categories.
   zero_values <- zero_values |>
-    select(-race_husband, -race_wife) |>
+    select(-race_husband, -race_wife, -freq) |>
     distinct() |>
     mutate(missing = TRUE,
            year = as.numeric(paste(year)))
