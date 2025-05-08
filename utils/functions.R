@@ -4,17 +4,41 @@
 
 # Modeling functions ------------------------------------------------------
 
-calculate_lor_model <- function(model_data, 
-                                selected_groups,
-                                composition_var = NULL,
-                                conditional_var = NULL,
-                                control_var = NULL) {
+estimate_lor <- function(model_data, 
+                         selected_groups,
+                         composition_var = NULL,
+                         conditional_var = NULL,
+                         control_var = NULL,
+                         by = c("year"),
+                         se = TRUE) {
+  
+  ## prepare model data ##
   
   # trim down the data to selected groups and frequency counts greater than zero
   model_data <- model_data |>
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
     mutate(year = as.factor(year))
+  
+  # hunt for zero values to identify bad estimates later. We first need to 
+  # aggregate data, ignoring compositional and control variables
+  if(is.null(conditional_var)) {
+    zero_values <- model_data |>
+      group_by(race_husband, race_wife, year) |>
+      summarize(freq = sum(freq)) |>
+      filter(freq == 0) |>
+      mutate(term = NA_character_)
+  } else {
+    zero_values <- model_data |>
+      group_by(race_husband, race_wife, year, !!sym(conditional_var)) |>
+      summarize(freq = sum(freq)) |>
+      filter(freq == 0) |>
+      mutate(term = NA_character_)
+  }
+  
+  # now remove zero values from the data or they will mess up the models
+  model_data <- model_data |>
+    filter(freq > 0)
   
   # create required variables
   for(i in 1:(length(selected_groups)-1)) {
@@ -45,10 +69,24 @@ calculate_lor_model <- function(model_data,
             )
           )
       }
+      
+      # while we are here, lets also construct the intermarriage label
+      # for the zero cases
+      zero_values <- zero_values |>
+        mutate(
+          term = case_when(
+            (race_husband == race1 & 
+               race_wife == race2) | 
+              (race_husband == race2 & 
+                 race_wife == race1) ~ paste(race1, race2, sep = "/"),
+            TRUE ~ term
+          )
+        )
     }
   }
   
-  # create formula
+  ## create formula ##
+  
   formula_model <- "(race_husband+race_wife)"
   if(!is.null(composition_var)) {
     formula_model <- paste0(formula_model,
@@ -94,29 +132,10 @@ calculate_lor_model <- function(model_data,
   }
   formula_model <- reformulate(formula_model, "freq")
   
-  # run the model
+  ## run the model ##
   model <- glm(formula_model, data = model_data, family = poisson)
   
-  return(model)
-}
-
-extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
-  
-  missing <- coef(model) |> 
-    enframe(name = "variable", value = "coef") |>
-    filter(is.na(coef), 
-           # in some cases, the dropped variable might be the gender_ case
-           str_detect(variable, "^inter_|^gender_")) |>
-    mutate(term = str_remove(str_split_i(variable, ":", 1), "TRUE"),
-           # change name of gender_ to inter_ to facilitate linking
-           term = str_replace(term, "gender_", "inter_"),
-           year = as.numeric(str_sub(variable, start = -4)),
-           year = if_else(is.na(year), 2000, year),
-           missing = TRUE)  |>
-    select(term, year, missing) |>
-    distinct()
-  
-  # get variables we want
+  ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
@@ -126,12 +145,25 @@ extract_marg_effects <- function(model, by = c("year"), se = TRUE) {
                      type = "link",
                      vcov = se) |>
     as_tibble() |>
-    mutate(year = as.numeric(paste(year))) |> 
-    left_join(missing) |>
+    mutate(year = as.numeric(paste(year)),
+           term = get_intermar_names(term))
+  
+  ## integrate information about zero cases and remove ##
+  # NOTE: There is still some small chance that if we have a zero count 
+  # on an endogamy cell (e.g. White/White) but not on either exogamy cell,
+  # we would fail to remove the case when it should be. However, this is
+  # a highly unlikely prospect in our data, although somehthing to be 
+  # alert for if we parse into very small categories.
+  zero_values <- zero_values |>
+    select(-race_husband, -race_wife) |>
+    distinct() |>
+    mutate(missing = TRUE,
+           year = as.numeric(paste(year)))
+  
+  marg <- marg |> 
+    left_join(zero_values) |>
     filter(is.na(missing)) |>
-    select(-missing) |>
-    # don't change term names until after the merge with missing
-    mutate(term = get_intermar_names(term))
+    select(-missing)
   
   return(marg)
 }
@@ -141,8 +173,11 @@ get_intermar_names <- function(x) {
   x |>
     str_remove("^inter_") |>
     str_replace("_", " ") |>
-    str_to_title() |>
-    str_replace("Api", "API") |>
-    str_replace("Aian", "AIAN") |>
-    str_replace(" ", "/")
+    str_replace_all("white", "White") |>
+    str_replace_all("black", "Black") |>
+    str_replace_all("hispanic", "Hispanic") |>
+    str_replace_all("api", "API") |>
+    str_replace_all("aian", "AIAN") |>
+    str_replace(" ", "/") |>
+    str_replace_all("\\.", "-")
 }
