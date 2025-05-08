@@ -149,6 +149,11 @@ estimate_lor <- function(model_data,
            term = get_intermar_names(term))
   
   ## integrate information about zero cases and remove ##
+  # NOTE: There is still some small chance that if we have a zero count 
+  # on an endogamy cell (e.g. White/White) but not on either exogamy cell,
+  # we would fail to remove the case when it should be. However, this is
+  # a highly unlikely prospect in our data, although somehthing to be 
+  # alert for if we parse into very small categories.
   zero_values <- zero_values |>
     select(-race_husband, -race_wife) |>
     distinct() |>
