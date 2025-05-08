@@ -1299,9 +1299,10 @@ marg_single |>
 
 ```{r}
 #| label: fig-adjust-composition
-#| fig-cap: Comparison of the odds of interracial marriage involving a white partner based on compositional adjustment at the state and Census division level
+#| fig-cap: Comparison of the odds of interracial marriage over time based on compositional adjustment at the state and Census division level
+#| fig-height: 8
 
-marg_wb_state <- census |>
+marg_state <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 25 & age_husband <= 34) |>
   mutate(year = factor(year),
@@ -1309,115 +1310,30 @@ marg_wb_state <- census |>
   group_by(race_husband, race_wife, state, year, .drop = FALSE) |>
   summarize(freq = n()) |>
   ungroup() |>
-  estimate_lor(c("White", "Black"), 
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
                composition_var = "state",
-               se = FALSE)
-
-marg_wb_division <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, division, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "Black"), 
-               composition_var = "division",
-               se = FALSE)
-
-marg_wi_state <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, state, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "AIAN"), 
-               composition_var = "state",
-               se = FALSE)
-
-marg_wi_division <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, division, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "AIAN"), 
-               composition_var = "division",
-               se = FALSE)
-
-marg_wa_state <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, state, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "API"), 
-               composition_var = "state",
-               se = FALSE)
-
-marg_wa_division <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, division, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "API"), 
-               composition_var = "division",
-               se = FALSE)
-
-marg_wh_state <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, state, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "Hispanic"), 
-               composition_var = "state",
-               se = FALSE)
-
-marg_wh_division <- census |>
-  # restrict age of husbands to get recent marriages
-  filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
-  group_by(race_husband, race_wife, division, year, .drop = FALSE) |>
-  summarize(freq = n()) |>
-  ungroup() |>
-  estimate_lor(c("White", "Hispanic"), 
-               composition_var = "division",
-               se = FALSE)
-
-marg_white_state <- marg_wb_state |>
-  bind_rows(marg_wi_state) |>
-  bind_rows(marg_wa_state) |>
-  bind_rows(marg_wh_state) |>
+               se = FALSE, 
+               pairwise = TRUE) |>
   mutate(composition = "state")
 
-marg_white_division <- marg_wb_division |>
-  bind_rows(marg_wi_division) |>
-  bind_rows(marg_wa_division) |>
-  bind_rows(marg_wh_division) |>
+marg_division <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000")) |>
+  group_by(race_husband, race_wife, division, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               composition_var = "division",
+               se = FALSE) |>
   mutate(composition = "division")
 
 marg_single |>
-  filter(str_detect(term, "White")) |>
   mutate(composition = "none") |>
-  bind_rows(marg_white_state) |>
-  bind_rows(marg_white_division) |>
-  mutate(term = factor(term,
-                       levels = c("White/Black", "White/AIAN", "White/API",
-                                  "White/Hispanic")),
-         composition = factor(composition, 
+  bind_rows(marg_state) |>
+  bind_rows(marg_division) |>
+  mutate(composition = factor(composition, 
                               levels = c("none", "division", "state"))) |>
   ggplot(aes(x = year, y = estimate, color = composition))+
   geom_point(size = 0.5)+
