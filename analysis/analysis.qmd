@@ -6,6 +6,11 @@ execute:
   echo: true
 ---
 
+```{r}
+#| label: timestamp-start
+
+timestamp()
+```
 
 ```{r}
 #| label: setup
@@ -1340,4 +1345,10 @@ marg_single |>
   geom_line()+
   facet_wrap(~term)+
   theme_bw()
+```
+
+```{r}
+#| label: timestamp-start
+
+timestamp()
 ```
