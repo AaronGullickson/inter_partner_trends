@@ -1305,6 +1305,154 @@ marg_single |>
   theme_bw()
 ```
 
+### Sensitivity to age restriction
+
+```{r}
+
+marg_single_ageh2024 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 20 & age_husband <= 24) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "20-24", age_spouse = "husband")
+
+marg_single_ageh2529 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 25 & age_husband <= 29) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "25-29", age_spouse = "husband")
+
+marg_single_ageh2029 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 20 & age_husband <= 29) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "20-29", age_spouse = "husband")
+
+marg_single_ageh3039 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_husband >= 30 & age_husband <= 39) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "30-39", age_spouse = "husband")
+
+marg_single_agew2024 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_wife >= 20 & age_wife <= 24) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "20-24", age_spouse = "wife")
+
+marg_single_agew2529 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_wife >= 25 & age_wife <= 29) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "25-29", age_spouse = "wife")
+
+marg_single_agew2029 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_wife >= 20 & age_wife <= 29) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "20-29", age_spouse = "wife")
+
+
+marg_single_agew2534 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_wife >= 25 & age_wife <= 29) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "25-34", age_spouse = "wife")
+
+marg_single_agew3039 <- census |>
+  # restrict age of husbands to get recent marriages
+  filter(age_wife >= 30 & age_wife <= 39) |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(age_restriction = "30-39", age_spouse = "wife")
+```
+
+```{r}
+marg_single |>
+  mutate(age_spouse = "husband") |>
+  bind_rows(marg_single_agew2534) |>
+  ggplot(aes(x = year, y = estimate, color = age_spouse))+
+  geom_point(size = 0.5, alpha = 0.5)+
+  geom_line(alpha = 0.5)+
+  facet_wrap(~term)+
+  theme_bw()
+```
+
+```{r}
+marg_single_ageh2029 |>
+  bind_rows(marg_single_agew2029) |>
+  ggplot(aes(x = year, y = estimate, color = age_spouse))+
+  geom_point(size = 0.5, alpha = 0.5)+
+  geom_line(alpha = 0.5)+
+  facet_wrap(~term)+
+  theme_bw()
+```
+```{r}
+marg_single_ageh3039 |>
+  bind_rows(marg_single_agew3039) |>
+  ggplot(aes(x = year, y = estimate, color = age_spouse))+
+  geom_point(size = 0.5, alpha = 0.5)+
+  geom_line(alpha = 0.5)+
+  facet_wrap(~term)+
+  theme_bw()
+```
+
+
+```{r}
+marg_single |>
+  mutate(age_restriction = "25-34") |>
+  #bind_rows(marg_single_ageh2024) |>
+  #bind_rows(marg_single_ageh2529) |>
+  bind_rows(marg_single_ageh2029) |>
+  bind_rows(marg_single_ageh3039) |>
+  ggplot(aes(x = year, y = estimate, color = age_restriction))+
+  geom_point(size = 0.5, alpha = 0.7)+
+  geom_line(alpha = 0.7)+
+  facet_wrap(~term)+
+  scale_color_viridis_d()+
+  theme_bw()
+
+```
+
+```{r}
+marg_single_agew2534 |>
+  #bind_rows(marg_single_agew2024) |>
+  #bind_rows(marg_single_agew2529) |>
+  bind_rows(marg_single_agew2029) |>
+  bind_rows(marg_single_agew3039) |>
+  ggplot(aes(x = year, y = estimate, color = age_restriction))+
+  geom_point(size = 0.5, alpha = 0.7)+
+  geom_line(alpha = 0.7)+
+  facet_wrap(~term)+
+  scale_color_viridis_d()+ 
+  theme_bw()
+
+```
 
 ### How much does composition matter?
 
