@@ -1189,6 +1189,14 @@ marg_bw_region |>
 
 ## Overall Trends
 
+```{r}
+#| label: relevel-age
+
+census <- census |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000"))
+```
+
 Lets look at the change in interracial marriage across all single race groups from the perspective of each group.
 
 ```{r}
@@ -1197,8 +1205,6 @@ Lets look at the change in interracial marriage across all single race groups fr
 marg_single <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
   group_by(race_husband, race_wife, year, .drop = FALSE) |>
   summarize(freq = n()) |>
   ungroup() |>
@@ -1310,8 +1316,6 @@ marg_single |>
 marg_state <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 25 & age_husband <= 34) |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000")) |>
   group_by(race_husband, race_wife, state, year, .drop = FALSE) |>
   summarize(freq = n()) |>
   ungroup() |>
