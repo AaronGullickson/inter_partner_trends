@@ -16,7 +16,7 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00143.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00144.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
@@ -24,22 +24,23 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00143.dat.gz"),
                                             STATEFIP = c(57, 58),
                                             SEX = 86,
                                             AGE = c(87, 89),
-                                            RACED = c(92, 94),
-                                            HISPAN = 95,
-                                            HISP1970 = 107,
-                                            BPL = c(99, 101),
-                                            EDUCD = c(110, 112),
-                                            SEX_SP = 116,
-                                            AGE_SP = c(117, 119),
-                                            RACED_SP = c(120, 122),
-                                            HISPAN_SP = 123,
-                                            HISP1970_SP = 127,
-                                            BPL_SP = c(124, 126),
-                                            EDUCD_SP = c(130, 132),
-                                            QRACE = 114,
-                                            QHISPAN = 113,
-                                            QRACE_SP = 134,
-                                            QHISPAN_SP = 133),
+                                            YRMARR = c(91, 94),
+                                            RACED = c(96, 98),
+                                            HISPAN = 99,
+                                            HISP1970 = 111,
+                                            BPL = c(103, 105),
+                                            EDUCD = c(114, 116),
+                                            SEX_SP = 120,
+                                            AGE_SP = c(121, 123),
+                                            RACED_SP = c(124, 126),
+                                            HISPAN_SP = 127,
+                                            HISP1970_SP = 131,
+                                            BPL_SP = c(128, 130),
+                                            EDUCD_SP = c(134, 136),
+                                            QRACE = 118,
+                                            QHISPAN = 117,
+                                            QRACE_SP = 138,
+                                            QHISPAN_SP = 137),
                    col_types = cols(.default = "i", HHWT = "d"))
 ```
 
@@ -160,6 +161,7 @@ census <- census |>
          educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
+         dur_mar = YEAR-YRMARR,
          region = case_when(
            REGION %in% c(11, 12) ~ "NE",
            REGION %in% c(21, 22) ~ "MW",
@@ -215,7 +217,8 @@ Now lets save the data.
 census <- census |> 
   select(race_husband, race_wife, 
          educ_husband, educ_wife, 
-         age_husband, age_wife,
+         age_husband, age_wife, 
+         dur_mar,
          state, division, region, year)
          
 
