@@ -1,6 +1,22 @@
 # functions.R
 
 
+# Globals -----------------------------------------------------------------
+
+PAIRINGS <- c("White/Black",
+              "White/AIAN",
+              "White/API",
+              "White/Hispanic",
+              "Black/AIAN",
+              "Black/API",
+              "Black/Hispanic",
+              "AIAN/API",
+              "AIAN/Hispanic",
+              "API/Hispanic",
+              "White/White-Black",
+              "White/White-AIAN",
+              "White/White-API")
+
 
 # Modeling functions ------------------------------------------------------
 
@@ -181,7 +197,8 @@ estimate_lor <- function(model_data,
   marg <- marg |> 
     left_join(zero_values) |>
     filter(is.na(missing)) |>
-    select(-missing)
+    select(-missing) |>
+    mutate(term = factor(term, levels = PAIRINGS))
   
   return(marg)
 }
