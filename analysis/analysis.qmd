@@ -1408,7 +1408,7 @@ marg_single |>
   bind_rows(marg_single_agew2534) |>
   mutate(time_restriction = paste(age_restriction, age_spouse)) |>
   bind_rows(marg_single_dur5) |>
-  filter(year %in% marg_single_dur5$year) |>
+  #filter(year %in% marg_single_dur5$year) |>
   ggplot(aes(x = year, y = estimate, color = time_restriction))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = time_restriction),
               alpha = 0.3, color = NA)+
