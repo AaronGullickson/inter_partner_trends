@@ -16,7 +16,7 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00144.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00145.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
@@ -24,23 +24,27 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00144.dat.gz"),
                                             STATEFIP = c(57, 58),
                                             SEX = 86,
                                             AGE = c(87, 89),
-                                            YRMARR = c(91, 94),
-                                            RACED = c(96, 98),
-                                            HISPAN = 99,
-                                            HISP1970 = 111,
-                                            BPL = c(103, 105),
-                                            EDUCD = c(114, 116),
-                                            SEX_SP = 120,
-                                            AGE_SP = c(121, 123),
-                                            RACED_SP = c(124, 126),
-                                            HISPAN_SP = 127,
-                                            HISP1970_SP = 131,
-                                            BPL_SP = c(128, 130),
-                                            EDUCD_SP = c(134, 136),
-                                            QRACE = 118,
-                                            QHISPAN = 117,
-                                            QRACE_SP = 138,
-                                            QHISPAN_SP = 137),
+                                            MARRNO = 91,
+                                            YRMARR = c(92, 95),
+                                            AGEMARR = c(96, 97),
+                                            RACED = c(99, 101),
+                                            HISPAN = 102,
+                                            HISP1970 = 114,
+                                            BPL = c(106, 108),
+                                            EDUCD = c(117, 119),
+                                            SEX_SP = 123,
+                                            AGE_SP = c(124, 126),
+                                            MARRNO_SP = 127,
+                                            AGEMARR_SP = c(128, 129),
+                                            RACED_SP = c(130, 132),
+                                            HISPAN_SP = 133,
+                                            HISP1970_SP = 137,
+                                            BPL_SP = c(134, 136),
+                                            EDUCD_SP = c(140, 142),
+                                            QRACE = 121,
+                                            QHISPAN = 120,
+                                            QRACE_SP = 144,
+                                            QHISPAN_SP = 143),
                    col_types = cols(.default = "i", HHWT = "d"))
 ```
 
@@ -95,6 +99,10 @@ summary(census$AGE_SP)
 
 summary(census$AGE)
 summary(census$AGE_SP)
+
+# lets restrict this to min 15 just like men
+census <- census |>
+  filter(AGE_SP >= 15)
 ```
 
 Lets merge in data from `tidycensus` to get state names.
@@ -161,7 +169,12 @@ census <- census |>
          educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
-         dur_mar = YEAR-YRMARR,
+         dur_mar = case_when(
+           YEAR >= 2008 ~ YEAR-YRMARR,
+           YEAR <= 1980 & MARRNO == 1 ~ AGE-AGEMARR,
+           YEAR <= 1980 & MARRNO_SP == 1 ~ AGE_SP-AGEMARR_SP,
+           TRUE ~ NA
+         ),
          region = case_when(
            REGION %in% c(11, 12) ~ "NE",
            REGION %in% c(21, 22) ~ "MW",
@@ -201,6 +214,12 @@ table(census$educ_husband, census$educ_wife)
 
 table(census$race_husband)
 table(census$race_wife)
+
+census |>
+  group_by(YEAR) |>
+  summarize(mean_dur_mar = mean(dur_mar, na.rm = TRUE),
+            min_dur_mar = min(dur_mar, na.rm = TRUE))
+
 ```
 
 
