@@ -262,6 +262,16 @@ prop_age_year_dur |>
   group_by(YEAR) |>
   summarize(sum = sum(prop_dur))
 
+prop_age_year_dur |>
+  group_by(YEAR) |>
+  summarize(mean_age_husband = sum(age_husband*prop_dur),
+            mean_age_wife = sum(age_wife*prop_dur)) |>
+  pivot_longer(cols = starts_with("mean_age_"), names_prefix = "mean_age_",
+               names_to = "spouse", values_to = "mean_age") |>
+  ggplot(aes(x = YEAR, y = mean_age, color = spouse))+
+  geom_line()+
+  geom_point()
+
 weighting <- left_join(prop_age_year, prop_age_year_dur) |>
   mutate(weight_age = prop_dur / prop_total,
          weight_age = ifelse(is.na(weight_age), 0, weight_age))
@@ -280,7 +290,6 @@ weighting |>
 
 census <- census |>
   left_join(weighting)
-
 
 census |>
   filter(year == "1960") |>
