@@ -1311,12 +1311,19 @@ marg_single |>
 
 marg_single_dur5 <- census |>
   # restrict age of husbands to get recent marriages
-  filter(dur_mar <= 5) |>
+  filter(dur_mar <= 1) |>
   group_by(race_husband, race_wife, year, .drop = FALSE) |>
   summarize(freq = n()) |>
   ungroup() |>
   estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
   mutate(time_restriction = "5 year duration")
+
+marg_single_aweighted <- census |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = sum(weight_age)) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(time_restriction = "age weighted")
 
 marg_single_ageh2024 <- census |>
   # restrict age of husbands to get recent marriages
@@ -1402,7 +1409,6 @@ marg_single_agew3039 <- census |>
 ```
 
 ```{r}
-
 marg_single |>
   mutate(age_restriction = "25-34", age_spouse = "husband") |>
   bind_rows(marg_single_agew2534) |>
@@ -1421,131 +1427,12 @@ marg_single |>
 ```
 
 ```{r}
-census |>
-  filter(dur_mar <= 5) |>
-  group_by(year) |>
-  summarize(ageh_p25 = quantile(age_husband, 0.25),
-            ageh_median = median(age_husband),
-            ageh_p75 = quantile(age_husband, 0.75),
-            agew_p25 = quantile(age_wife, 0.25),
-            agew_median = median(age_wife),
-            agew_p75 = quantile(age_wife, 0.75)) |>
-  gt()
-
-```
-
-Could I use ASEC data to create age weights? Lets try that with what we have from 2008 on.
-
-```{r}
-counts_age_year <- census |>
-  filter(year %in% c("2008", "2011", "2014", "2017")) |>
-  group_by(age_husband, age_wife, year) |>
-  summarize(n = n())
-
-counts_year <- census |>
-  filter(year %in% c("2008", "2011", "2014", "2017")) |>
-  group_by(year) |>
-  summarize(total = n())
-
-prop_age_year <- counts_age_year |>
-  left_join(counts_year) |>
-  mutate(prop_total = n / total) |>
-  select(-n, -total)
-
-counts_age_year_dur <- census |>
-  filter(year %in% c("2008", "2011", "2014", "2017") & dur_mar <= 5) |>
-  group_by(age_husband, age_wife, year) |>
-  summarize(n = n())
-
-counts_year_dur <- census |>
-  filter(year %in% c("2008", "2011", "2014", "2017") & dur_mar <= 5) |>
-  group_by(year) |>
-  summarize(total = n())
-
-prop_age_year_dur <- counts_age_year_dur |>
-  left_join(counts_year_dur) |>
-  mutate(prop_dur = n / total) |>
-  select(-n, -total)
-
-# some checks
-prop_age_year |>
-  group_by(year) |>
-  summarize(sum = sum(prop_total))
-
-prop_age_year_dur |>
-  group_by(year) |>
-  summarize(sum = sum(prop_dur))
-
-weighting <- left_join(prop_age_year, prop_age_year_dur) |>
-  mutate(aweight = prop_dur / prop_total,
-         aweight = ifelse(is.na(aweight), 0, aweight))
-
-# need to center aweight mean on 1 in each year
-weighting <- weighting |>
-  group_by(year) |>
-  summarize(mean = mean(aweight)) |>
-  right_join(weighting) |>
-  mutate(aweight = aweight / mean) |>
-  select(age_husband, age_wife, year, aweight)
-
-weighting |>
-  group_by(year) |>
-  summarize(mean = mean(aweight))
-
-temp <- census |>
-  left_join(weighting)
-
-temp |>
-  filter(year == "2008") |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 5),
-                 alpha = 0.7, fill = "navy", binwidth = 1)+
-  theme_bw()
-
-temp |>
-  filter(year == "2008") |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 1, aes(weight = aweight))+
-  theme_bw()
-
-temp |>
-  filter(year == "2008") |>
-  ggplot(aes(x = age_wife, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 5),
-                 alpha = 0.7, fill = "navy", binwidth = 1)+
-  theme_bw()
-
-temp |>
-  filter(year == "2008") |>
-  ggplot(aes(x = age_wife, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 1, aes(weight = aweight))+
-  theme_bw()
-
-
-
-```
-
-
-```{r}
-marg_single_aweighted <- census |>
-  left_join(weighting) |>
-  group_by(race_husband, race_wife, year, .drop = FALSE) |>
-  summarize(freq = sum(aweight)) |>
-  ungroup() |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
-  mutate(time_restriction = "age weighted")
-```
-```{r}
 marg_single |>
   mutate(age_restriction = "25-34", age_spouse = "husband") |>
   mutate(time_restriction = paste(age_restriction, age_spouse)) |>
   bind_rows(marg_single_dur5) |>
   bind_rows(marg_single_aweighted) |>
-  filter(year %in% marg_single_dur5$year) |>
+  #filter(year %in% marg_single_dur5$year) |>
   ggplot(aes(x = year, y = estimate, color = time_restriction))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = time_restriction),
               alpha = 0.3, color = NA)+
@@ -1556,8 +1443,6 @@ marg_single |>
   scale_fill_manual(values = c("navy", "#ffbf00", "red"))+
   theme_bw()
 ```
-
-
 
 ```{r}
 
