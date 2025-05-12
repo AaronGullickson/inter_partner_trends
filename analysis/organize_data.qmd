@@ -313,52 +313,116 @@ census |>
 
 
 ```{r}
+library(ot)
 library(transport)
 
-temp1980 <- prop_age_year_dur |> filter(YEAR == 1980) |>
-  select(-YEAR) |>
-  rename(prop1980 = prop_dur)
 
-temp2008 <- prop_age_year_dur |> filter(YEAR == 2008) |>
-  select(-YEAR) |>
-  rename(prop2008 = prop_dur)
-
-temp <- full_join(temp1980, temp2008) |>
-  mutate(prop1980 = ifelse(is.na(prop1980), 0, prop1980),
-         prop2008 = ifelse(is.na(prop2008), 0, prop2008))
-
-grid_matrix <- cbind(temp$age_husband, temp$age_wife)
-wpp_1988 <- wpp(grid_matrix, temp$prop1980)
-wpp_2008 <- wpp(grid_matrix, temp$prop2008)
-ot_plan <- transport(wpp_1988, wpp_2008, p = 2)
-
-# Interpolate along the plan (e.g., halfway)
-alpha <- (1990-1980)/(2008-1980)
-interp_from <- grid_matrix[ot_plan$from, ]
-interp_to   <- grid_matrix[ot_plan$to, ]
-interp_points <- (1 - alpha) * interp_from + alpha * interp_to
-interp_mass <- ot_plan$mass
-
-interp_df <- data.frame(interp_points)
-names(interp_df) <- c("age_husband", "age_wife")
-interp_df$mass <- interp_mass
-
-interp_summary <- interp_df |>
-  group_by(age_husband = round(age_husband, 0),
-           age_wife = round(age_wife, 0)) |>
-  summarise(mass = sum(mass), .groups = "drop")
-
-sum(interp_summary$age_husband * interp_summary$mass)
-sum(interp_summary$age_wife * interp_summary$mass)
-
-ggplot(interp_summary, aes(x = age_husband))+
-  geom_histogram(data = temp1980, binwidth = 1, alpha = 0.6, fill = "red", 
-                 aes(weight = prop1980))+
-  geom_histogram(data = temp2008, binwidth = 1, alpha = 0.6, fill = "navy", 
-                 aes(weight = prop2008))+
-  geom_histogram(binwidth = 1, alpha = 0.6, fill = "grey20", aes(weight = mass))
+create_age_group <- function(age) {
   
+  # rather than categorical, we will use midpoints. For the open ended 
+  # categories we will just go 5 above and 2 below.
+  age_group <- case_when(
+    age < 20 ~ 18,
+    age < 25 ~ 22.5,
+    age < 30 ~ 27.5,
+    age < 35 ~ 32.5,
+    age < 40 ~ 37.5,
+    age < 45 ~ 42.5,
+    age < 50 ~ 47.5,
+    age < 55 ~ 52.5,
+    age >= 55 ~ 57.5,
+    TRUE ~ NA
+  )
+  
+  return(age_group)
+  
+}
 
+temp <- census |>
+  filter(dur_mar <= 1) |>
+  # create 5 year age groups corresponding to 1960 data with an open ended
+  # category at each end for under 20 and 55 and older
+  mutate(age_husband = create_age_group(age_husband),
+         age_wife = create_age_group(age_wife))
+
+prop_age_year <- temp |>
+  group_by(age_husband, age_wife, YEAR) |>
+  summarize(n_dur = n()) |>
+  ungroup()
+
+prop_age_year <- temp |>
+  group_by(YEAR) |>
+  summarize(n_total = n()) |>
+  ungroup() |>
+  right_join(prop_age_year) |>
+  mutate(prop = n_dur / n_total) |>
+  select(age_husband, age_wife, YEAR, prop)
+  
+# check sums to 1 in each year
+prop_age_year |>
+  group_by(YEAR) |>
+  summarize(sum(prop))
+
+age_grid <- prop_age_year |>
+  filter(YEAR == 2008) |>
+  select(age_husband, age_wife)
+
+dist_1980 <- prop_age_year |> 
+  filter(YEAR == 1980) |>
+  pull(prop)
+
+dist_2008 <- prop_age_year |> 
+  filter(YEAR == 2008) |>
+  pull(prop)
+
+# Cost matrix (Euclidean distance between each pair of ages)
+cost_matrix <- as.matrix(dist(age_grid, method = "euclidean"))
+
+ot_plan <- transport(dist_1980, dist_2008, costm = cost_matrix, p = 2)
+
+# Interpolation factor for year 2000
+alpha <- (2007 - 1980) / (2008 - 1980)  
+
+# Interpolate linearly between the distributions
+interp_dist <- (1 - alpha) * dist_1980 + alpha * dist_2008
+
+# Prepare data for plotting
+df <- age_grid |>
+  as_tibble() |>
+  mutate(prop_1980 = dist_1980,
+         prop_2008 = dist_2008,
+         prop_interp = interp_dist)
+
+ggplot(df, aes(x = age_husband)) +
+  geom_histogram(aes(weight = prop_1980), binwidth = 5, fill = "red", alpha = 0.5) +
+  geom_histogram(aes(weight = prop_2008), binwidth = 5, fill = "blue", alpha = 0.5) +
+  geom_histogram(aes(weight = prop_interp), binwidth = 5, fill = "black", alpha = 0.5) +
+  labs(title = "Interpolated Distribution of Age of Husbands",
+       x = "Age of Husband", y = "Proportion")
+
+ggplot(df, aes(x = age_wife)) +
+  geom_histogram(aes(weight = prop_1980), binwidth = 5, fill = "red", alpha = 0.5) +
+  geom_histogram(aes(weight = prop_2008), binwidth = 5, fill = "blue", alpha = 0.5) +
+  geom_histogram(aes(weight = prop_interp), binwidth = 5, fill = "black", alpha = 0.5) +
+  labs(title = "Interpolated Distribution of Age of Wives",
+       x = "Age of wife", y = "Proportion")
+
+sum(df$age_husband * df$prop_1980)
+sum(df$age_husband * df$prop_interp)
+sum(df$age_husband * df$prop_2008)
+
+sum(df$age_wife * df$prop_1980)
+sum(df$age_wife * df$prop_interp)
+sum(df$age_wife * df$prop_2008)
+
+df |> 
+  pivot_longer(cols = starts_with("prop_"), names_prefix = "prop_",
+               names_to = "year", values_to = "prop") |>
+  ggplot(aes(x = age_husband, y = age_wife, fill = prop)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  facet_wrap(~year)+
+  labs(x = "Husband Age Group", y = "Wife Age Group")
 
 ```
 
