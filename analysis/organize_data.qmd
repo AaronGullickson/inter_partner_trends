@@ -162,6 +162,27 @@ code_educ <- function(educd) {
   return(education)
 }
 
+create_age_group <- function(age) {
+  
+  # rather than categorical, we will use midpoints. For the open ended 
+  # categories we will just go 5 above and 2 below.
+  age_group <- case_when(
+    age < 20 ~ 18,
+    age < 25 ~ 22.5,
+    age < 30 ~ 27.5,
+    age < 35 ~ 32.5,
+    age < 40 ~ 37.5,
+    age < 45 ~ 42.5,
+    age < 50 ~ 47.5,
+    age < 55 ~ 52.5,
+    age >= 55 ~ 57.5,
+    TRUE ~ NA
+  )
+  
+  return(age_group)
+  
+}
+
 census <- census |>
   mutate(race_husband = code_race(RACED, HISPAN, YEAR),
          race_wife = code_race(RACED_SP, HISPAN_SP, YEAR), 
@@ -169,6 +190,8 @@ census <- census |>
          educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
+         age_group_husband = create_age_group(age_husband),
+         age_group_wife = create_age_group(age_wife),
          dur_mar = case_when(
            YEAR >= 2008 ~ YEAR-YRMARR,
            YEAR <= 1980 & MARRNO == 1 ~ AGE-AGEMARR,
@@ -225,135 +248,21 @@ census |>
 Ok, now lets create age weights based on recent marriages.
 
 ```{r}
-counts_age_year <- census |>
-  group_by(age_husband, age_wife, YEAR) |>
-  summarize(n = n())
 
-counts_year <- census |>
-  group_by(YEAR) |>
-  summarize(total = n())
-
-prop_age_year <- counts_age_year |>
-  left_join(counts_year) |>
-  mutate(prop_total = n / total) |>
-  select(-n, -total)
-
-counts_age_year_dur <- census |>
-  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
-  group_by(age_husband, age_wife, YEAR) |>
-  summarize(n = n())
-
-counts_year_dur <- census |>
-  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
-  group_by(YEAR) |>
-  summarize(total = n())
-
-prop_age_year_dur <- counts_age_year_dur |>
-  left_join(counts_year_dur) |>
-  mutate(prop_dur = n / total) |>
-  select(-n, -total)
-
-# some checks
-prop_age_year |>
-  group_by(YEAR) |>
-  summarize(sum = sum(prop_total))
-
-prop_age_year_dur |>
-  group_by(YEAR) |>
-  summarize(sum = sum(prop_dur))
-
-prop_age_year_dur |>
-  group_by(YEAR) |>
-  summarize(mean_age_husband = sum(age_husband*prop_dur),
-            mean_age_wife = sum(age_wife*prop_dur)) |>
-  pivot_longer(cols = starts_with("mean_age_"), names_prefix = "mean_age_",
-               names_to = "spouse", values_to = "mean_age") |>
-  ggplot(aes(x = YEAR, y = mean_age, color = spouse))+
-  geom_line()+
-  geom_point()
-
-weighting <- left_join(prop_age_year, prop_age_year_dur) |>
-  mutate(weight_age = prop_dur / prop_total,
-         weight_age = ifelse(is.na(weight_age), 0, weight_age))
-
-# need to center weight_age mean on 1 in each year
-weighting <- weighting |>
-  group_by(YEAR) |>
-  summarize(mean = mean(weight_age)) |>
-  right_join(weighting) |>
-  mutate(weight_age = weight_age / mean) |>
-  select(age_husband, age_wife, YEAR, weight_age)
-
-weighting |>
-  group_by(YEAR) |>
-  summarize(mean = mean(weight_age))
-
-census <- census |>
-  left_join(weighting)
-
-census |>
-  filter(year == "1960") |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(data = filter(census, year == "1960" & 
-                                 dur_mar <= 1 & MARRNO == 1 & MARRNO_SP == 1),
-                 alpha = 0.7, fill = "navy", binwidth = 1)+
-  theme_bw()
-
-census |>
-  filter(year == "2008") |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 1, 
-                 aes(weight = weight_age))+
-  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
-               fill = NA, color = "navy", linetype = 2, binwidth = 1)+
-  theme_bw()
-```
-
-
-```{r}
-
-create_age_group <- function(age) {
-  
-  # rather than categorical, we will use midpoints. For the open ended 
-  # categories we will just go 5 above and 2 below.
-  age_group <- case_when(
-    age < 20 ~ 18,
-    age < 25 ~ 22.5,
-    age < 30 ~ 27.5,
-    age < 35 ~ 32.5,
-    age < 40 ~ 37.5,
-    age < 45 ~ 42.5,
-    age < 50 ~ 47.5,
-    age < 55 ~ 52.5,
-    age >= 55 ~ 57.5,
-    TRUE ~ NA
-  )
-  
-  return(age_group)
-  
-}
-
-temp <- census |>
+prop_age_year_recent <- census |>
   filter(dur_mar <= 1) |>
-  # create 5 year age groups corresponding to 1960 data with an open ended
-  # category at each end for under 20 and 55 and older
-  mutate(age_husband = create_age_group(age_husband),
-         age_wife = create_age_group(age_wife))
-
-prop_age_year_recent <- temp |>
-  group_by(age_husband, age_wife, YEAR) |>
+  group_by(age_group_husband, age_group_wife, YEAR) |>
   summarize(n_dur = n()) |>
   ungroup()
 
-prop_age_year_recent <- temp |>
+prop_age_year_recent <- census |>
+  filter(dur_mar <= 1) |>
   group_by(YEAR) |>
   summarize(n_total = n()) |>
   ungroup() |>
   right_join(prop_age_year_recent) |>
   mutate(prop = n_dur / n_total) |>
-  select(age_husband, age_wife, YEAR, prop)
+  select(age_group_husband, age_group_wife, YEAR, prop)
   
 # check sums to 1 in each year
 prop_age_year_recent |>
@@ -381,7 +290,7 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
   # put into same format as prop_age_year_recent
   prop_age_year_recent |>
     filter(YEAR == year_end) |>
-    select(age_husband, age_wife) |>
+    select(age_group_husband, age_group_wife) |>
     mutate(YEAR = year_interp,
            prop = dist_interp)
 }
@@ -398,10 +307,10 @@ prop_age_year_recent <- map(years_interp, interpolate_age_dist, 1980, 2008) |>
   bind_rows() |>
   bind_rows(prop_age_year_recent)
 
-temp <- prop_age_year |>
+temp <- prop_age_year_recent |>
   group_by(YEAR) |>
-  summarize(mean_age_husband = sum(age_husband * prop),
-            mean_age_wife = sum(age_wife * prop),
+  summarize(mean_age_husband = sum(age_group_husband * prop),
+            mean_age_wife = sum(age_group_wife * prop),
             age_diff = mean_age_husband - mean_age_wife) |>
   ungroup() |>
   mutate(imputed = YEAR %in% years_interp)
@@ -421,30 +330,89 @@ ggplot(temp, aes(x = YEAR, y = age_diff))+
   geom_point(aes(color = imputed))+
   theme_bw()
 
-prop_age_year |>
+prop_age_year_recent |>
   filter(YEAR %in% c(1980, 1990, 2000, 2004, 2008)) |>
   mutate(YEAR = factor(YEAR)) |>
-  ggplot(aes(x = age_husband, fill = YEAR, group = YEAR, weight = prop))+
+  ggplot(aes(x = age_group_husband, fill = YEAR, group = YEAR, weight = prop))+
   geom_histogram(aes(weight = prop), binwidth = 5, alpha = 0.5, 
                  position = "identity")+
   theme_bw()
 
-prop_age_year |>
+prop_age_year_recent |>
   filter(YEAR %in% c(1980, 1990, 2000, 2004, 2008)) |>
   mutate(YEAR = factor(YEAR)) |>
-  ggplot(aes(x = age_wife, fill = YEAR, group = YEAR, weight = prop))+
+  ggplot(aes(x = age_group_wife, fill = YEAR, group = YEAR, weight = prop))+
   geom_histogram(aes(weight = prop), binwidth = 5, alpha = 0.5, 
                  position = "identity")+
   theme_bw()
 
-prop_age_year |>
+prop_age_year_recent |>
   bind_rows(temp) |>
   filter(YEAR %in% c(1980, 1990, 2000, 2004, 2008)) |>
-  ggplot(aes(x = age_husband, y = age_wife, fill = prop)) +
+  ggplot(aes(x = age_group_husband, y = age_group_wife, fill = prop)) +
   geom_tile() +
   scale_fill_viridis_c(direction = -1) +
   facet_wrap(~YEAR)+
   labs(x = "Husband Age Group", y = "Wife Age Group")
+```
+
+```{r}
+
+prop_age_year <- census |>
+  group_by(age_group_husband, age_group_wife, YEAR) |>
+  summarize(n_dur = n()) |>
+  ungroup()
+
+prop_age_year <- census |>
+  group_by(YEAR) |>
+  summarize(n_total = n()) |>
+  ungroup() |>
+  right_join(prop_age_year) |>
+  mutate(prop_total = n_dur / n_total) |>
+  select(age_group_husband, age_group_wife, YEAR, prop_total)
+
+prop_age_year |>
+  group_by(YEAR) |>
+  summarize(sum = sum(prop_total))
+
+weighting <- full_join(prop_age_year, prop_age_year_recent) |>
+  mutate(weight_age = prop / prop_total,
+         weight_age = ifelse(is.na(weight_age), 0, weight_age))
+
+# need to center weight_age mean on 1 in each year
+weighting <- weighting |>
+  group_by(YEAR) |>
+  summarize(mean = mean(weight_age)) |>
+  right_join(weighting) |>
+  mutate(weight_age = weight_age / mean) |>
+  select(age_group_husband, age_group_wife, YEAR, weight_age)
+
+weighting |>
+  group_by(YEAR) |>
+  summarize(mean = mean(weight_age))
+
+census <- census |>
+  left_join(weighting)
+
+census |>
+  filter(year == "1960") |>
+  ggplot(aes(x = age_group_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 5)+
+  geom_histogram(data = filter(census, year == "1960" & 
+                                 dur_mar <= 1 & MARRNO == 1 & MARRNO_SP == 1),
+                 alpha = 0.7, fill = "navy", binwidth = 5)+
+  theme_bw()
+
+census |>
+  filter(year == "2008") |>
+  ggplot(aes(x = age_group_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 5)+
+  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 5, 
+                 aes(weight = weight_age))+
+  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
+               fill = NA, color = "black", linetype = 2, 
+               binwidth = 5)+
+  theme_bw()
 ```
 
 Now lets save the data.
