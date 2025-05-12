@@ -311,6 +311,57 @@ census |>
   theme_bw()
 ```
 
+
+```{r}
+library(transport)
+
+temp1980 <- prop_age_year_dur |> filter(YEAR == 1980) |>
+  select(-YEAR) |>
+  rename(prop1980 = prop_dur)
+
+temp2008 <- prop_age_year_dur |> filter(YEAR == 2008) |>
+  select(-YEAR) |>
+  rename(prop2008 = prop_dur)
+
+temp <- full_join(temp1980, temp2008) |>
+  mutate(prop1980 = ifelse(is.na(prop1980), 0, prop1980),
+         prop2008 = ifelse(is.na(prop2008), 0, prop2008))
+
+grid_matrix <- cbind(temp$age_husband, temp$age_wife)
+wpp_1988 <- wpp(grid_matrix, temp$prop1980)
+wpp_2008 <- wpp(grid_matrix, temp$prop2008)
+ot_plan <- transport(wpp_1988, wpp_2008, p = 2)
+
+# Interpolate along the plan (e.g., halfway)
+alpha <- (1990-1980)/(2008-1980)
+interp_from <- grid_matrix[ot_plan$from, ]
+interp_to   <- grid_matrix[ot_plan$to, ]
+interp_points <- (1 - alpha) * interp_from + alpha * interp_to
+interp_mass <- ot_plan$mass
+
+interp_df <- data.frame(interp_points)
+names(interp_df) <- c("age_husband", "age_wife")
+interp_df$mass <- interp_mass
+
+interp_summary <- interp_df |>
+  group_by(age_husband = round(age_husband, 0),
+           age_wife = round(age_wife, 0)) |>
+  summarise(mass = sum(mass), .groups = "drop")
+
+sum(interp_summary$age_husband * interp_summary$mass)
+sum(interp_summary$age_wife * interp_summary$mass)
+
+ggplot(interp_summary, aes(x = age_husband))+
+  geom_histogram(data = temp1980, binwidth = 1, alpha = 0.6, fill = "red", 
+                 aes(weight = prop1980))+
+  geom_histogram(data = temp2008, binwidth = 1, alpha = 0.6, fill = "navy", 
+                 aes(weight = prop2008))+
+  geom_histogram(binwidth = 1, alpha = 0.6, fill = "grey20", aes(weight = mass))
+  
+
+
+```
+
 Now lets save the data.
 
 ```{r}
