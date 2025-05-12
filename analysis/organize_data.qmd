@@ -222,13 +222,85 @@ census |>
 
 ```
 
+Ok, now lets create age weights based on recent marriages.
 
 ```{r}
-#| label: create-master-tab
-#| eval: false
-tab_mar <- table(census$race_husband, census$race_wife, census$year)
-```
+counts_age_year <- census |>
+  group_by(age_husband, age_wife, YEAR) |>
+  summarize(n = n())
 
+counts_year <- census |>
+  group_by(YEAR) |>
+  summarize(total = n())
+
+prop_age_year <- counts_age_year |>
+  left_join(counts_year) |>
+  mutate(prop_total = n / total) |>
+  select(-n, -total)
+
+counts_age_year_dur <- census |>
+  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
+  group_by(age_husband, age_wife, YEAR) |>
+  summarize(n = n())
+
+counts_year_dur <- census |>
+  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
+  group_by(YEAR) |>
+  summarize(total = n())
+
+prop_age_year_dur <- counts_age_year_dur |>
+  left_join(counts_year_dur) |>
+  mutate(prop_dur = n / total) |>
+  select(-n, -total)
+
+# some checks
+prop_age_year |>
+  group_by(YEAR) |>
+  summarize(sum = sum(prop_total))
+
+prop_age_year_dur |>
+  group_by(YEAR) |>
+  summarize(sum = sum(prop_dur))
+
+weighting <- left_join(prop_age_year, prop_age_year_dur) |>
+  mutate(weight_age = prop_dur / prop_total,
+         weight_age = ifelse(is.na(weight_age), 0, weight_age))
+
+# need to center weight_age mean on 1 in each year
+weighting <- weighting |>
+  group_by(YEAR) |>
+  summarize(mean = mean(weight_age)) |>
+  right_join(weighting) |>
+  mutate(weight_age = weight_age / mean) |>
+  select(age_husband, age_wife, YEAR, weight_age)
+
+weighting |>
+  group_by(YEAR) |>
+  summarize(mean = mean(weight_age))
+
+census <- census |>
+  left_join(weighting)
+
+
+census |>
+  filter(year == "1960") |>
+  ggplot(aes(x = age_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
+  geom_histogram(data = filter(census, year == "1960" & 
+                                 dur_mar <= 1 & MARRNO == 1 & MARRNO_SP == 1),
+                 alpha = 0.7, fill = "navy", binwidth = 1)+
+  theme_bw()
+
+census |>
+  filter(year == "2008") |>
+  ggplot(aes(x = age_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
+  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 1, 
+                 aes(weight = weight_age))+
+  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
+               fill = NA, color = "navy", linetype = 2, binwidth = 1)+
+  theme_bw()
+```
 
 Now lets save the data.
 
@@ -237,7 +309,7 @@ census <- census |>
   select(race_husband, race_wife, 
          educ_husband, educ_wife, 
          age_husband, age_wife, 
-         dur_mar,
+         dur_mar, weight_age, 
          state, division, region, year)
          
 
