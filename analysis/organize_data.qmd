@@ -276,13 +276,98 @@ convert_age_string <- function(x) {
   
  x <- x |> str_remove("^wife_|^husband_")
  x <- ifelse(str_detect(x, "under_18"), "17", x)
+ x <- ifelse(str_detect(x, "under_20"), "18", x)
  x <- ifelse(str_detect(x, "65_over"), "65", x)
+ x <- ifelse(str_detect(x, "55_over"), "55", x)
  x <- x |>str_split_i("_", 1)
  
  x <- as.numeric(x)
  create_age_group(x)
     
 }
+```
+
+```{r}
+#| label: read-1960-vsus
+
+# this ones a mess - its split up by single, widowed, and divorced wives, but
+# the age groups for widowed and divorced start with under 35 and under 25, 
+# respectively. I think the way to handle this will be to distribut the values
+# in this cell in the same proportions as for the single cells
+
+vsus1960_single <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Single Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1960_widowed <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Widowed Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1960_divorced <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Divorced Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+# ok first lets distribute the widowed cases
+wife_ages <- c("wife_under_20", "wife_20_24", "wife_25_29", "wife_30_34")
+for(husb_age in unique(vsus1960_single$husband_age)) {
+  x <- vsus1960_single |> 
+    filter(husband_age == husb_age & wife_age %in% wife_ages) |>
+    pull(freq)
+  p <- x/sum(x)
+  freq <- vsus1960_widowed |>
+    filter(husband_age == husb_age & wife_age == "wife_under_35") |>
+    pull(freq)
+  freq <- freq*p
+  vsus1960_widowed <- vsus1960_widowed |>
+    bind_rows(tibble(wife_age = wife_ages, husband_age = husb_age, freq = freq))
+}
+# now remove the under_35 cases
+vsus1960_widowed <- vsus1960_widowed |>
+  filter(wife_age != "wife_under_35")
+
+# now divorced
+wife_ages <- c("wife_under_20", "wife_20_24")
+for(husb_age in unique(vsus1960_single$husband_age)) {
+  x <- vsus1960_single |> 
+    filter(husband_age == husb_age & wife_age %in% wife_ages) |>
+    pull(freq)
+  p <- x/sum(x)
+  freq <- vsus1960_divorced |>
+    filter(husband_age == husb_age & wife_age == "wife_under_25") |>
+    pull(freq)
+  freq <- freq*p
+  vsus1960_divorced <- vsus1960_divorced |>
+    bind_rows(tibble(wife_age = wife_ages, husband_age = husb_age, freq = freq))
+}
+# now remove the under_35 cases
+vsus1960_divorced <- vsus1960_divorced |>
+  filter(wife_age != "wife_under_25")
+
+# now combine them together and continue processing
+vsus1960 <- vsus1960_single |>
+  bind_rows(vsus1960_widowed) |>
+  bind_rows(vsus1960_divorced) |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(freq = sum(freq)) |>
+  ungroup() |>
+  mutate(prop = freq / sum(freq), YEAR = 1960) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1960 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1960) |>
+  bind_rows(vsus1960)
 ```
 
 
@@ -304,7 +389,7 @@ vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   mutate(YEAR = 1970) |>
   select(age_group_husband, age_group_wife, YEAR, prop)
 
-# remove existing 1980 data and replace with this one
+# remove existing 1970 data and replace with this one
 prop_age_year_recent <- prop_age_year_recent |>
   filter(YEAR != 1970) |>
   bind_rows(vsus1970)
@@ -378,9 +463,8 @@ vsus1988 <- vsus1988 |>
          YEAR = 1988) |>
   select(age_group_husband, age_group_wife, YEAR, prop)
 
-# remove existing 1980 data and replace with this one
+# add 1988 data to full age prop data
 prop_age_year_recent <- prop_age_year_recent |>
-  filter(YEAR != 1988) |>
   bind_rows(vsus1988)
 ```
 
