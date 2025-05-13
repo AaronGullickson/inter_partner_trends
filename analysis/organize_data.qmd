@@ -679,21 +679,14 @@ weighting <- full_join(prop_age_year, prop_age_year_recent) |>
   mutate(weight_age = prop / prop_total,
          weight_age = ifelse(is.na(weight_age), 0, weight_age))
 
-# need to center weight_age mean on 1 in each year
-weighting <- weighting |>
-  group_by(YEAR) |>
-  summarize(mean = mean(weight_age)) |>
-  right_join(weighting) |>
-  mutate(weight_age = weight_age / mean) |>
-  select(age_group_husband, age_group_wife, YEAR, weight_age)
+census <- census |>
+  left_join(weighting)
 
-weighting |>
+# confirm that the mean weight in each year is 1
+census |>
   group_by(YEAR) |>
   summarize(mean = mean(weight_age)) |>
   gt()
-
-census <- census |>
-  left_join(weighting)
 ```
 
 As a test case, lets see how the weights adjust the distribution in 2008.
