@@ -1325,6 +1325,13 @@ marg_single_aweighted <- census |>
   estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
   mutate(time_restriction = "age weighted")
 
+marg_single_everybody <- census |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(time_restriction = "none")
+
 marg_single_ageh2024 <- census |>
   # restrict age of husbands to get recent marriages
   filter(age_husband >= 20 & age_husband <= 24) |>
@@ -1443,6 +1450,22 @@ marg_single |>
   scale_fill_manual(values = c("navy", "#ffbf00", "red"))+
   theme_bw()
 ```
+
+```{r}
+marg_single_everybody |>
+  bind_rows(marg_single_dur5) |>
+  bind_rows(marg_single_aweighted) |>
+  ggplot(aes(x = year, y = estimate, color = time_restriction))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = time_restriction),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("navy", "#ffbf00", "red"))+
+  scale_fill_manual(values = c("navy", "#ffbf00", "red"))+
+  theme_bw()
+```
+
 
 ```{r}
 
