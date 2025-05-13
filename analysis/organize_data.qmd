@@ -160,10 +160,8 @@ create_age_group <- function(age) {
     age < 25 ~ 22.5,  # 20-24
     age < 30 ~ 27.5,  # 25-29
     age < 35 ~ 32.5,  # 30-34
-    age < 40 ~ 37.5,  # 35-39
-    age < 45 ~ 42.5,  # 40-44
-    age < 50 ~ 47.5,  # 45-49
-    age < 55 ~ 52.5,  # 50-54
+    age < 45 ~ 40,    # 35-44
+    age < 55 ~ 50,    # 45-54
     age >= 55 ~ 57.5, # 55+
     TRUE ~ NA
   )
@@ -288,7 +286,8 @@ convert_age_string <- function(x) {
 ```
 
 ```{r}
-# read 1980 data
+#| label: read-1980-vsus
+
 vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
                        sheet = "Table 1-28 1980 VSUS") |>
   filter(wife_age != "wife_total") |>
@@ -308,6 +307,56 @@ vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
 prop_age_year_recent <- prop_age_year_recent |>
   filter(YEAR != 1980) |>
   bind_rows(vsus1980)
+```
+
+```{r}
+#| label: read-1988-vsus
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, White Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Black Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Other Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Spouses not stated, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- vsus1988 |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(freq = sum(freq)) |>
+  ungroup() |>
+  mutate(prop = freq / sum(freq), 
+         YEAR = 1988) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1980 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1988) |>
+  bind_rows(vsus1988)
 ```
 
 
@@ -350,7 +399,7 @@ Now we can do the interpolation for the missing years and add them to our full j
 
 # ok lets now interpolate all needed years by what we have
 years_interp <- c(1990, 2000:2007)
-prop_age_year_recent <- map(years_interp, interpolate_age_dist, 1980, 2008) |>
+prop_age_year_recent <- map(years_interp, interpolate_age_dist, 1988, 2008) |>
   bind_rows() |>
   bind_rows(prop_age_year_recent)
 ```
