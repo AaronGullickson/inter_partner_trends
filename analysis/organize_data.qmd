@@ -285,6 +285,31 @@ convert_age_string <- function(x) {
 }
 ```
 
+
+```{r}
+#| label: read-1970-vsus
+
+vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                       sheet = "Table 1-28 1970 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age),
+         prop = freq / sum(freq)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(prop = sum(prop)) |>
+  ungroup() |>
+  mutate(YEAR = 1970) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1980 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1970) |>
+  bind_rows(vsus1970)
+```
+
 ```{r}
 #| label: read-1980-vsus
 
