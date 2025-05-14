@@ -52,7 +52,7 @@ bootstrap_model <- function(ind_data,
     
     result <- ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      estimate_lor(selected_groups, se = FALSE, conditional_var = "region")
+      estimate_lor(selected_groups, se = FALSE, ...)
     
     return(result)
   })
