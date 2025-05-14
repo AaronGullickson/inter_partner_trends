@@ -49,8 +49,7 @@ bootstrap_model <- function(ind_data,
     model_data <- ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
       group_by(!!!syms(vars), .drop = FALSE) |>
-      summarize(wfreq = sum(weight_age), freq = n()) |>
-      ungroup()
+      summarize(wfreq = sum(weight_age), freq = n(), .groups = "drop")
     
     if(use_weights) {
       model_data <- model_data |> mutate(freq = wfreq)
@@ -118,14 +117,13 @@ estimate_lor <- function(model_data,
   if(is.null(conditional_var)) {
     zero_values <- model_data |>
       group_by(race_husband, race_wife, year) |>
-      summarize(freq = sum(freq)) |>
-      ungroup() |>
+      summarize(freq = sum(freq), .groups = "drop") |>
       filter(freq == 0) |>
       mutate(term = NA_character_)
   } else {
     zero_values <- model_data |>
       group_by(race_husband, race_wife, year, !!sym(conditional_var)) |>
-      summarize(freq = sum(freq)) |>
+      summarize(freq = sum(freq), .groups = "drop") |>
       filter(freq == 0) |>
       ungroup() |>
       mutate(term = NA_character_)
@@ -237,11 +235,14 @@ estimate_lor <- function(model_data,
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
-  marg <- avg_slopes(model, 
-                     variables = vars,
-                     by = c(conditional_var, "year"),
-                     type = "link",
-                     vcov = se) |>
+  # suppress warnings because we know some coefficients might be missing
+  marg <- suppressWarnings(
+    avg_slopes(model, 
+               variables = vars,
+               by = c(conditional_var, "year"),
+               type = "link",
+               vcov = se)
+    ) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
@@ -259,7 +260,7 @@ estimate_lor <- function(model_data,
            year = as.numeric(paste(year)))
   
   marg <- marg |> 
-    left_join(zero_values) |>
+    left_join(zero_values, by = c("term", "year", conditional_var)) |>
     filter(is.na(missing)) |>
     select(-missing) |>
     mutate(term = factor(term, levels = PAIRINGS))
