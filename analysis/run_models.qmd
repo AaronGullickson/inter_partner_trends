@@ -42,10 +42,47 @@ census <- census |>
 B <- 50
 ```
 
+# Model set up
 
-Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups
+We use the function `estimate_lor` to estimate our key intermarriage log odds ratio parameters. At a basic level, all we need to feed in to this function is the couple level Census/ACS data and a vector of the names of racial groups we want to include. All pairings of this vector will be estimated in the model. In some cases, the user may want to manually restrict the Census/ACS data (e.g. by age) before piping it into `estimate_lor`.
+
+The default model will not include any composition, conditional, or control variables, but this can be modified with the following argument:
+
+`composition_var`
+: This is a variable or vector of variables that will adjust the marginal distributions of race for compositional effects, such as state or region.
+
+`conditional_var`
+: This is a variable or vector of variables that will be interacted with the intermarriage parameters to allow the log odds ratios to vary by both year and this variable, such as calculating different log odds ratios by region. There is not need to also specify this variable as `composition_var`.
+
+`control_var`
+: These should be the first part of spouse specific variables where we want to control for assortative mating. For example, if we use "educ" here, the function would look for and `educ_husband` and `educ_wife` variable and adjust for their association with race and their interaction, applying this over time and the `composition_var` as well. 
+
+In total, the full structure of the formula for the `glm` will look like this:
+
+```
+freq~((race_husband+race_wife)*(composition_var)+(intermar_parameters))*(year*conditional_var)+
+     ((race_husband*conrol_husband+race_wife*control_wife)*(composition_var)*(conditional_var)+
+      control_husband*control_wife)*year
+```
+
+## Speeding up performance
+
+For simple models, the processing time is quite quick, but for more complex models it can grow exponentially. The calculation of standard errors by `marginaleffects` can slow things down. To produce results without standard errors and confidence intervals, use `se = FALSE`. Note that when using the bootstrap methods below, this is automatically set to `FALSE` and inference measures are calculated via the bootstrap. In certain cases, this can make the bootstrap method faster or equivalent to the base approach where SEs are being calculated.
+
+Reducing the number of selected groups can also speed up overall model time. Setting `pairwise = TRUE` will break the full model into a set of models with only two groups and estimate them separately. The results will be the same, but this can improve speed in more complex cases with more than two groups, without the user having to manually enter each pairwise case. However, in simpler models, this approach will be slower.
+
+## Weighting and Bootstrapping
+
+By default, the `estimate_lor` will use the sum of the age weights as the frequency dependent variable for the models. This can be set to raw frequency counts with `use_weights = FALSE` although in this case, unless further restrictions by age are made by the user, the entire stock of marriages will be included and equally weighted.
+
+When using age weights, the default standard errors created by `estimate_lor` will not be correct because they do not take account of the variability in the weights. Estimating correct SEs by sample design is not easy in this case, so instead I use a bootstrap technique to derive inference estimates that are more accurate. This is defined by a `bootstrap_model` wrapper function that can take all the same arguments as `estimate_lor`. The number of bootstrap samples is defined by `B` which is determined at the top of this document. For most exploratory purposes a small `B` will speed up computation and seems to work pretty well, but for final products, this should be increased substantially.
+
+Because we are estimating each model `B` times, computation time is substantially increased, although we get some savings back by not having to estimate SEs for each model. Still, be careful about estimating super complex models by bootstrap.
+
+Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups.
 
 ```{r}
+#| label: model-time-benchmarks
 
 tic()
 marg_single <- census |>
@@ -55,19 +92,234 @@ toc()
 tic()
 marg_single_bs <- census |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
-                  show_progress = TRUE)
+                  show_progress = FALSE)
 toc()
+```
+
+Thats not too bad. Lets compare the estimates from bootstrapping to the glm estimates where `B` is `r B`.
+
+```{r}
+#| label: fig-compare-bootstrap-analytical
+#| fig-cap: Comparison of bootstrapped parameters to GLM model parameters
+#| fig-height: 8
 
 marg_single |>
   bind_rows(marg_single_bs) |>
   ggplot(aes(x = year, y = estimate, color = type))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = type),
               alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5)+
   facet_wrap(~term, scales = "free_y")+
   scale_color_manual(values = c("navy", "red"))+
   scale_fill_manual(values = c("navy","red"))+
+  theme_bw()
+```
+
+The results are extremely close. Note that the bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
+
+# Age Restrictions
+
+How does the age weighting compare to 
+
+- a model that restricts by certain age segments? 
+- a model that takes the unweighted total stock of marriages?
+- a model that takes recent duration marriages?
+
+```{r}
+#| label: estimate-age-restricted-models
+
+marg_single_age_h2029 <- census |>
+  filter(age_husband >= 20 & age_husband < 30) |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  mutate(restriction = "husband 20-29")
+
+marg_single_age_h2534 <- census |>
+  filter(age_husband >= 25 & age_husband < 35) |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  mutate(restriction = "husband 25-34")
+
+marg_single_age_w2029 <- census |>
+  filter(age_wife >= 20 & age_wife < 30) |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  mutate(restriction = "wife 20-29")
+
+marg_single_age_w2534 <- census |>
+  filter(age_wife >= 25 & age_wife < 35) |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  mutate(restriction = "wife 25-34")
+
+marg_single_unweighted <- census |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  mutate(restriction = "full unweighted")
+
+marg_single_dur5 <- census |>
+  filter(dur_mar <= 5) |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               use_weights = FALSE) |>
+  # need to add missing values from 1990-2007 to get lines to break
+  bind_rows(expand_grid(term = unique(marg_single_bs$term), 
+                        year = c(1990, 2000:2007))) |>
+  mutate(restriction = "marriage duration <5")
+  
+```
+
+```{r}
+#| label: fig-compare-restrictions-husband
+#| fig-cap: Comparison of model parameters under different types of sample restrictions
+
+marg_single_bs |>
+  mutate(restriction = "full weighted") |>
+  bind_rows(marg_single_age_h2029) |>
+  bind_rows(marg_single_age_h2534) |>
+  bind_rows(marg_single_unweighted) |>
+  bind_rows(marg_single_dur5) |>
+  ggplot(aes(x = year, y = estimate, color = restriction))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("darkorange", "red", "darkgreen", "skyblue", "gold"))+
+  scale_fill_manual(values = c("darkorange", "red", "darkgreen", "skyblue", "gold"))+
+  theme_bw()
+
+```
+
+```{r}
+#| label: fig-compare-restrictions-spouses
+#| fig-cap: Comparison of model parameters restricting husband's vs. wive's age
+
+marg_single_age_w2029 |>
+  bind_rows(marg_single_age_w2534) |>
+  bind_rows(marg_single_age_h2029) |>
+  bind_rows(marg_single_age_h2534) |>
+  ggplot(aes(x = year, y = estimate, color = restriction))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("darkgreen", "navy", "lightgreen", "skyblue", "gold"))+
+  scale_fill_manual(values = c("darkgreen", "navy", "lightgreen", "skyblue", "gold"))+
+  theme_bw()
+
+```
+
+```{r}
+#| label: fig-compare-restrictions-two
+#| fig-cap: Comparison of model parameters from weighted model to recent marriages
+
+marg_single_bs |>
+  mutate(restriction = "full weighted") |>
+  bind_rows(marg_single_dur5) |>
+  ggplot(aes(x = year, y = estimate, color = restriction))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("navy", "red"))+
+  scale_fill_manual(values = c("navy", "red"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-intermar-single-overall
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White partner
+#|    - Black partner
+#|    - AIAN partner
+#|    - API partner
+#|    - Hispanic partner
+
+
+palette <- c(
+  "White/Black"    = "#E69F00", # rich orange
+  "White/AIAN"     = "#009E73", # teal green
+  "White/API"      = "#CC79A7", # muted magenta
+  "White/Hispanic" = "#661100", # deep rust
+  "Black/AIAN"     = "#A65628", # warm brown
+  "Black/API"      = "#74AA99", # muted cyan (not primary blue)
+  "Black/Hispanic" = "#882255", # deep burgundy
+  "AIAN/API"       = "#56B4E9", # desaturated turquoise
+  "AIAN/Hispanic"  = "#AA4499", # dusty rose
+  "API/Hispanic"   = "#117733" # forest green
+)
+
+lims <- exp(c(min(marg_single_bs$estimate-2*marg_single_bs$std.error),
+              max(marg_single_bs$estimate+2*marg_single_bs$std.error)))
+
+marg_single_bs |>
+  filter(str_detect(term, "White")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single_bs |>
+  filter(str_detect(term, "Black")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single_bs |>
+  filter(str_detect(term, "AIAN")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single_bs |>
+  filter(str_detect(term, "API")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_single_bs |>
+  filter(str_detect(term, "Hispanic")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
 ```
 
@@ -142,7 +394,6 @@ marg_single_by_region_bs |>
   theme_bw()
 ```
 
-```
 
 ```{r}
 #| label: timestamp-end
