@@ -25,7 +25,7 @@ B <- 10
 
 # Modeling functions ------------------------------------------------------
 
-#marg <- bootstrap_model(census, c("White", "Black"), composition_var = "region")
+marg <- bootstrap_model(census, c("White", "Black"))
 
 bootstrap_model <- function(ind_data, 
                             selected_groups,
@@ -66,20 +66,21 @@ bootstrap_model <- function(ind_data,
                    se = FALSE, ...)
   })
   
-  # TODO: there may be cases where certain terms are dropped in some cases
-  # and not others, so I should probably be joining these rather than binding
-  # the estimates
-  estimates <- map(results, function(result) {
-    result$estimate
-  }) |> bind_cols()
+  # do a full join here in case some terms are missing in some samples
+  results <- reduce(results, 
+                      full_join, 
+                      by = c("term", "contrast", "year", conditional_var))
   
-  results[[1]] |>
-    select(-estimate) |>
+  estimates <- results |> 
+    select(starts_with("estimate"))
+  
+  results |>
+    select(-starts_with("estimate")) |>
     bind_cols(tibble(
-      estimate = apply(estimates, 1, mean),
-      std.error = apply(estimates, 1, sd),
-      conf.low = apply(estimates, 1, quantile, 0.025),
-      conf.high = apply(estimates, 1, quantile, 0.975)
+      estimate = apply(estimates, 1, mean, na.rm = TRUE),
+      std.error = apply(estimates, 1, sd, na.rm = TRUE),
+      conf.low = apply(estimates, 1, quantile, 0.025, na.rm = TRUE),
+      conf.high = apply(estimates, 1, quantile, 0.975, na.rm = TRUE)
     ))
 }
 
