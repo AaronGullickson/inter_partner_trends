@@ -49,19 +49,16 @@ Lets compare processing time of bootstrapped vs non-bootstrapped model for singl
 
 tic()
 marg_single <- census |>
-  group_by(race_husband, race_wife, year, .drop = FALSE) |>
-  summarize(freq = sum(weight_age), .groups = "drop") |>
   estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
 toc()
 
 tic()
 marg_single_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
-  mutate(type = "bootstrap")
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+                  show_progress = TRUE)
 toc()
 
 marg_single |>
-  mutate(type = "glm") |>
   bind_rows(marg_single_bs) |>
   ggplot(aes(x = year, y = estimate, color = type))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = type),
@@ -77,11 +74,11 @@ marg_single |>
 How long does it take to run state based model for one pairing?
 
 ```{r}
+#| eval: false
 tic()
 marg_wb_state_bs <- census |>
   bootstrap_model(c("White", "Black"), composition_var = "state",
-                  show_progress = TRUE) |>
-  mutate(type = "bootstrap")
+                  show_progress = TRUE)
 toc()
 
 ```
@@ -94,8 +91,7 @@ How long does a division model take?
 tic()
 marg_wb_division_bs <- census |>
   bootstrap_model(c("White", "Black"), composition_var = "division",
-                  show_progress = TRUE) |>
-  mutate(type = "bootstrap")
+                  show_progress = TRUE)
 toc()
 
 ```
@@ -103,23 +99,23 @@ toc()
 So much faster. 
 
 ```{r}
-marg_wb_state_bs <- marg_wb_state_bs |>
-  mutate(composition = "state")
+tic()
+marg_single_division_bs <- census |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "division",
+                  show_progress = TRUE)
+toc()
 
-marg_wb_bs <- marg_single_bs |>
-  filter(term == "White/Black") |>
-  mutate(composition = "none")
-
-marg_wb_division_bs |>
-  mutate(composition = "division") |>
-  bind_rows(marg_wb_state_bs) |>
-  bind_rows(marg_wb_bs) |>
+marg_single_bs |>
+  mutate(composition = "none") |>
+  bind_rows(marg_single_division_bs) |>
   mutate(factor(composition, levels = c("none", "division", "state"))) |>
   ggplot(aes(x = year, y = estimate, color = composition))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = composition),
               alpha = 0.3, color = NA)+
   geom_point(alpha = 0.5)+
   geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
   scale_color_manual(values = c("gold", "navy", "red"))+
   scale_fill_manual(values = c("gold", "navy","red"))+
   theme_bw()
@@ -134,17 +130,6 @@ marg_single_by_region_bs <- census |>
   mutate(type = "bootstrap")
 toc()
 
-tic()
-marg_single_by_region <- census |>
-  group_by(race_husband, race_wife, region, year, .drop = FALSE) |>
-  summarize(freq = sum(weight_age), .groups = "drop") |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"),
-               conditional_var = "region")
-toc()
-
-```
-
-```{r}
 marg_single_by_region_bs |>
   ggplot(aes(x = year, y = estimate, color = region))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = region),
@@ -155,7 +140,6 @@ marg_single_by_region_bs |>
   scale_color_manual(values = c("darkgreen", "gold", "navy", "red"))+
   scale_fill_manual(values = c("darkgreen", "gold", "navy","red"))+
   theme_bw()
-
 ```
 
 ```
