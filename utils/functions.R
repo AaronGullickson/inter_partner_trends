@@ -17,16 +17,78 @@ PAIRINGS <- c("White/Black",
               "White/White-AIAN",
               "White/White-API")
 
+# number of bootstrap samples
+# TODO: this is way too low for final analysis, but should be sufficient for
+# preliminary runs where we just want a reasonably close estimate
+B <- 10
+
 
 # Modeling functions ------------------------------------------------------
 
-estimate_lor <- function(model_data, 
+bootstrap_model <- function(ind_data, 
+                            selected_groups,
+                            show_progress = FALSE,
+                            ...) {
+  
+  if(show_progress) {
+    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
+                           total = B + 2)
+    pb$tick(0)
+  }
+  
+  # filter out unnecessary groups for later speed improvements
+  # estimate_lor does this but it will be faster to bootstrap sample a 
+  # smaller individual dataset
+  if(show_progress) {
+    pb$tick()
+  }
+  ind_data <- ind_data |>
+    filter(race_husband %in% selected_groups,
+           race_wife %in% selected_groups) |>
+    mutate(race_husband = fct_drop(race_husband),
+           race_wife = fct_drop(race_wife))
+  
+  results <- map(1:B, function(i) {
+    if(show_progress) {
+      pb$tick()
+    }
+    
+    result <- ind_data |>
+      slice_sample(n = nrow(ind_data), replace = TRUE) |>
+      estimate_lor(selected_groups, se = FALSE, ...)
+    
+    return(result)
+  })
+  
+  if(show_progress) {
+    pb$tick()
+  }
+  # do a full join here in case some terms are missing in some samples
+  by_vars <- colnames(results[[1]])
+  by_vars <- by_vars[by_vars != "estimate"]
+  results <- reduce(results, full_join, by = by_vars)
+  
+  estimates <- results |> 
+    select(starts_with("estimate"))
+  
+  results |>
+    select(-starts_with("estimate")) |>
+    bind_cols(tibble(
+      estimate = apply(estimates, 1, mean, na.rm = TRUE),
+      std.error = apply(estimates, 1, sd, na.rm = TRUE),
+      conf.low = apply(estimates, 1, quantile, 0.025, na.rm = TRUE),
+      conf.high = apply(estimates, 1, quantile, 0.975, na.rm = TRUE)
+    )) |>
+    mutate(type = "bootstrap")
+}
+
+estimate_lor <- function(ind_data, 
                          selected_groups,
                          composition_var = NULL,
                          conditional_var = NULL,
                          control_var = NULL,
-                         by = c("year"),
                          se = TRUE,
+                         use_weights = TRUE,
                          pairwise = FALSE) {
   
   
@@ -35,40 +97,42 @@ estimate_lor <- function(model_data,
   if(pairwise) {
     groups <- get_permutations(selected_groups)
     results <- pmap(groups, function(group1, group2) {
-      model_data |>
+      ind_data |>
         estimate_lor(c(group1, group2), 
                      composition_var, conditional_var, control_var,
-                     by, se, pairwise = FALSE)
+                     se, use_weights, pairwise = FALSE)
     }) |>
       bind_rows()
     return(results)
   }
   
   ## prepare model data ##
+  controls <- NULL
+  if(!is.null(control_var)) {
+    controls <- paste0(control_var, c("_husband", "_wife"))
+  }                     
+  grouping_vars <- c("race_husband", "race_wife", "year", 
+                     composition_var, conditional_var, controls)
+  sum_var <- ifelse(use_weights, "weight_age", "unity")
   
-  # trim down the data to selected groups and frequency counts greater than zero
-  model_data <- model_data |>
+  model_data <- ind_data |>
+    # trim to just selected groups and drop unused factor levels
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
-    mutate(year = as.factor(year))
+    mutate(race_husband = fct_drop(race_husband),
+           race_wife = fct_drop(race_wife)) |>
+    group_by(!!!syms(grouping_vars), .drop = FALSE) |>
+    mutate(unity = 1) |>
+    summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
-  if(is.null(conditional_var)) {
-    zero_values <- model_data |>
-      group_by(race_husband, race_wife, year) |>
-      summarize(freq = sum(freq)) |>
-      ungroup() |>
-      filter(freq == 0) |>
-      mutate(term = NA_character_)
-  } else {
-    zero_values <- model_data |>
-      group_by(race_husband, race_wife, year, !!sym(conditional_var)) |>
-      summarize(freq = sum(freq)) |>
-      filter(freq == 0) |>
-      ungroup() |>
-      mutate(term = NA_character_)
-  }
+  grouping_vars <- c("race_husband", "race_wife", "year", conditional_var)
+  zero_values <- model_data |>
+    group_by(!!!syms(grouping_vars)) |>
+    summarize(freq = sum(freq), .groups = "drop") |>
+    filter(freq == 0 & race_husband != race_wife) |>
+    mutate(term = NA_character_)
   
   # now remove zero values from the data or they will mess up the models
   model_data <- model_data |>
@@ -167,17 +231,23 @@ estimate_lor <- function(model_data,
   formula_model <- reformulate(formula_model, "freq")
   
   ## run the model ##
-  model <- glm(formula_model, data = model_data, family = poisson)
-  
-  ## get marginal effects of variables we want ##
+  # turn off warnings about non-integer poisson - we know because of weights
+  model <- suppressWarnings(
+    glm(formula_model, data = model_data, family = poisson)
+  )
+
+   ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
-  marg <- avg_slopes(model, 
-                     variables = vars,
-                     by = by,
-                     type = "link",
-                     vcov = se) |>
+  # suppress warnings because we know some coefficients might be missing
+  marg <- suppressWarnings(
+    avg_slopes(model, 
+               variables = vars,
+               by = c(conditional_var, "year"),
+               type = "link",
+               vcov = se)
+    ) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
@@ -195,10 +265,27 @@ estimate_lor <- function(model_data,
            year = as.numeric(paste(year)))
   
   marg <- marg |> 
-    left_join(zero_values) |>
+    left_join(zero_values, by = c("term", "year", conditional_var)) |>
     filter(is.na(missing)) |>
     select(-missing) |>
     mutate(term = factor(term, levels = PAIRINGS))
+  
+  # add some additional information here and clean up
+  marg <- marg |>
+    select(-contrast) |>
+    mutate(type = "glm",
+           age_weighted = use_weights,
+           composition = ifelse(is.null(composition_var),
+                                "none",
+                                paste(composition_var, collapse = ",")),
+           control = ifelse(is.null(control_var),
+                            "none",
+                            paste(control_var, collapse = ",")))
+  
+  if(se) {
+    marg <- marg |>
+      select(-statistic, -p.value, -s.value)
+  }
   
   return(marg)
 }

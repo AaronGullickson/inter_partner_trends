@@ -13,6 +13,8 @@ source(here("utils","functions.R"))
 
 This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. Reliable data on Hispanic identification is not available until 1980. IPUMS does provide a Hispanic identifier for earlier years that is primarily based on surnames, but this cannot be used by for interracial marriage because the identifier is the same for spouses. The 1970 data do contain responses to the first Hispanicity question on Form 1, but these responses have been shown to be inconsistent with later responses from 1980 on. We did test this response, and found a substantial decrease in Hispanic intermarriage from 1970 to 1980 that is inconsisten with general trends.
 
+## Read in ACS Data
+
 ```{r}
 #| label: read-data
 
@@ -61,18 +63,7 @@ census <- census |>
 table(census$SEX, census$SEX_SP)
 ```
 
-Replace HISPAN with HISP1970 for the 1970 data (actuall don't do this).
-
-```{r}
-#| label: restrict-1970
-#| eval: false
-
-census <- census |>
-  mutate(HISPAN = ifelse(YEAR == 1970, HISP1970, HISPAN),
-         HISPAN_SP = ifelse(YEAR == 1970, HISP1970_SP, HISPAN_SP))
-```
-
-Restrict both spouses to native born status
+Restrict both spouses to native born status:
 
 ```{r}
 #| label: restrict-nativity
@@ -89,7 +80,7 @@ census |>
   summary()
 ```
 
-Lets check the ages of men and women. We won't chane age here however.
+Lets check the ages of men and women. We won't change age here however.
 
 ```{r}
 #| label: check-age
@@ -99,10 +90,6 @@ summary(census$AGE_SP)
 
 summary(census$AGE)
 summary(census$AGE_SP)
-
-# lets restrict this to min 15 just like men
-census <- census |>
-  filter(AGE_SP >= 15)
 ```
 
 Lets merge in data from `tidycensus` to get state names.
@@ -115,7 +102,6 @@ census <- fips_codes |>
   distinct() |>
   right_join(census)
 ```
-Hmmm, a bit troubling on the minimum values, but we will leave them be for this analysis.
 
 Ok, now we are ready to code race.
 
@@ -148,6 +134,7 @@ code_race <- function(raced, hispan, year) {
                     "Black-AIAN", "Black-API"))
 }
 
+# also create a function for education
 code_educ <- function(educd) {
   education <- case_when(
     educd < 62 ~ "LHS",
@@ -162,6 +149,27 @@ code_educ <- function(educd) {
   return(education)
 }
 
+# for the age weighting, we will need five year age groups. Just code
+# by the midpoint so we can calculate means
+create_age_group <- function(age) {
+  
+  # rather than categorical, we will use midpoints. For the open ended 
+  # categories we will just go 5 above and 2 below.
+  age_group <- case_when(
+    age < 20 ~ 18,    # less than 20
+    age < 25 ~ 22.5,  # 20-24
+    age < 30 ~ 27.5,  # 25-29
+    age < 35 ~ 32.5,  # 30-34
+    age < 45 ~ 40,    # 35-44
+    age < 55 ~ 50,    # 45-54
+    age >= 55 ~ 57.5, # 55+
+    TRUE ~ NA
+  )
+  
+  return(age_group)
+  
+}
+
 census <- census |>
   mutate(race_husband = code_race(RACED, HISPAN, YEAR),
          race_wife = code_race(RACED_SP, HISPAN_SP, YEAR), 
@@ -169,6 +177,8 @@ census <- census |>
          educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
+         age_group_husband = create_age_group(age_husband),
+         age_group_wife = create_age_group(age_wife),
          dur_mar = case_when(
            YEAR >= 2008 ~ YEAR-YRMARR,
            YEAR <= 1980 & MARRNO == 1 ~ AGE-AGEMARR,
@@ -205,6 +215,12 @@ census <- census |>
   filter(YEAR != 2019) |>
   # remove other and other multiracial
   filter(!is.na(race_husband) & !is.na(race_wife))
+```
+
+Lets check ourselves.
+
+```{r}
+#| label: data-coding-checks
 
 table(census$YEAR, census$year)
 table(census$EDUCD, census$educ_husband)
@@ -218,89 +234,480 @@ table(census$race_wife)
 census |>
   group_by(YEAR) |>
   summarize(mean_dur_mar = mean(dur_mar, na.rm = TRUE),
-            min_dur_mar = min(dur_mar, na.rm = TRUE))
+            min_dur_mar = min(dur_mar, na.rm = TRUE)) |>
+  gt()
 
 ```
 
-Ok, now lets create age weights based on recent marriages.
+## Calculate age weights
+
+We want to calculate age weights that weight each couple by the joint age distribution to mimic an age distribution similar to recently married couples. To do this we need to first calculate the joint distribution of recent marriages. For now, we will do this based on data for years where we have information on marriage timing. <!-- TODO: Replace 1960-1980 with vital stats tables from 1960-1988 because these only consider first marriages -->
 
 ```{r}
-counts_age_year <- census |>
-  group_by(age_husband, age_wife, YEAR) |>
-  summarize(n = n())
+#| label: calculate-joint-age-distribution
 
-counts_year <- census |>
+# long format table of joint distribution of spouse's age by year
+prop_age_year_recent <- census |>
+  filter(dur_mar <= 1) |>
+  group_by(age_group_husband, age_group_wife, YEAR) |>
+  summarize(n_dur = n()) |>
+  ungroup()
+
+prop_age_year_recent <- census |>
+  filter(dur_mar <= 1) |>
   group_by(YEAR) |>
-  summarize(total = n())
-
-prop_age_year <- counts_age_year |>
-  left_join(counts_year) |>
-  mutate(prop_total = n / total) |>
-  select(-n, -total)
-
-counts_age_year_dur <- census |>
-  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
-  group_by(age_husband, age_wife, YEAR) |>
-  summarize(n = n())
-
-counts_year_dur <- census |>
-  filter(dur_mar <= 1 & (YEAR > 1980 | (MARRNO == 1 & MARRNO_SP == 1))) |>
+  summarize(n_total = n()) |>
+  ungroup() |>
+  right_join(prop_age_year_recent) |>
+  mutate(prop = n_dur / n_total) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+  
+# check sums to 1 in each year
+prop_age_year_recent |>
   group_by(YEAR) |>
-  summarize(total = n())
+  summarize(sum(prop)) |>
+  gt()
+```
 
-prop_age_year_dur <- counts_age_year_dur |>
-  left_join(counts_year_dur) |>
-  mutate(prop_dur = n / total) |>
-  select(-n, -total)
+```{r}
+gs4_deauth()
 
-# some checks
+convert_age_string <- function(x) {
+  
+ x <- x |> str_remove("^wife_|^husband_")
+ x <- ifelse(str_detect(x, "under_18"), "17", x)
+ x <- ifelse(str_detect(x, "under_20"), "18", x)
+ x <- ifelse(str_detect(x, "65_over"), "65", x)
+ x <- ifelse(str_detect(x, "55_over"), "55", x)
+ x <- x |>str_split_i("_", 1)
+ 
+ x <- as.numeric(x)
+ create_age_group(x)
+    
+}
+```
+
+```{r}
+#| label: read-1960-vsus
+
+# this ones a mess - its split up by single, widowed, and divorced wives, but
+# the age groups for widowed and divorced start with under 35 and under 25, 
+# respectively. I think the way to handle this will be to distribut the values
+# in this cell in the same proportions as for the single cells
+
+vsus1960_single <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Single Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1960_widowed <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Widowed Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1960_divorced <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                              sheet = "Table 2-18 Divorced Bride 1960 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+# ok first lets distribute the widowed cases
+wife_ages <- c("wife_under_20", "wife_20_24", "wife_25_29", "wife_30_34")
+for(husb_age in unique(vsus1960_single$husband_age)) {
+  x <- vsus1960_single |> 
+    filter(husband_age == husb_age & wife_age %in% wife_ages) |>
+    pull(freq)
+  p <- x/sum(x)
+  freq <- vsus1960_widowed |>
+    filter(husband_age == husb_age & wife_age == "wife_under_35") |>
+    pull(freq)
+  freq <- freq*p
+  vsus1960_widowed <- vsus1960_widowed |>
+    bind_rows(tibble(wife_age = wife_ages, husband_age = husb_age, freq = freq))
+}
+# now remove the under_35 cases
+vsus1960_widowed <- vsus1960_widowed |>
+  filter(wife_age != "wife_under_35")
+
+# now divorced
+wife_ages <- c("wife_under_20", "wife_20_24")
+for(husb_age in unique(vsus1960_single$husband_age)) {
+  x <- vsus1960_single |> 
+    filter(husband_age == husb_age & wife_age %in% wife_ages) |>
+    pull(freq)
+  p <- x/sum(x)
+  freq <- vsus1960_divorced |>
+    filter(husband_age == husb_age & wife_age == "wife_under_25") |>
+    pull(freq)
+  freq <- freq*p
+  vsus1960_divorced <- vsus1960_divorced |>
+    bind_rows(tibble(wife_age = wife_ages, husband_age = husb_age, freq = freq))
+}
+# now remove the under_35 cases
+vsus1960_divorced <- vsus1960_divorced |>
+  filter(wife_age != "wife_under_25")
+
+# now combine them together and continue processing
+vsus1960 <- vsus1960_single |>
+  bind_rows(vsus1960_widowed) |>
+  bind_rows(vsus1960_divorced) |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(freq = sum(freq)) |>
+  ungroup() |>
+  mutate(prop = freq / sum(freq), YEAR = 1960) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1960 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1960) |>
+  bind_rows(vsus1960)
+```
+
+
+```{r}
+#| label: read-1970-vsus
+
+vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                       sheet = "Table 1-28 1970 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age),
+         prop = freq / sum(freq)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(prop = sum(prop)) |>
+  ungroup() |>
+  mutate(YEAR = 1970) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1970 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1970) |>
+  bind_rows(vsus1970)
+```
+
+```{r}
+#| label: read-1980-vsus
+
+vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                       sheet = "Table 1-28 1980 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age),
+         prop = freq / sum(freq)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(prop = sum(prop)) |>
+  ungroup() |>
+  mutate(YEAR = 1980) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# remove existing 1980 data and replace with this one
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(YEAR != 1980) |>
+  bind_rows(vsus1980)
+```
+
+```{r}
+#| label: read-1988-vsus
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, White Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq")
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Black Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Other Spouses, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
+                             sheet = "Table 1-20, Spouses not stated, 1988 VSUS") |>
+  filter(wife_age != "wife_total") |>
+  select(!husband_total) |>
+  pivot_longer(cols = starts_with("husband_"),
+               names_to = "husband_age", values_to = "freq") |>
+  bind_rows(vsus1988)
+
+vsus1988 <- vsus1988 |>
+  mutate(age_group_husband = convert_age_string(husband_age),
+         age_group_wife = convert_age_string(wife_age)) |>
+  group_by(age_group_husband, age_group_wife) |>
+  summarize(freq = sum(freq)) |>
+  ungroup() |>
+  mutate(prop = freq / sum(freq), 
+         YEAR = 1988) |>
+  select(age_group_husband, age_group_wife, YEAR, prop)
+
+# add 1988 data to full age prop data
+prop_age_year_recent <- prop_age_year_recent |>
+  bind_rows(vsus1988)
+```
+
+
+We have no information on duration between 1980 and 2008, so we will need to interpolate the joint distribution. After experimenting with more advanced techniques, we found that a simpler linear interpolation actually provided the best fit. Lets first create a function to interpolate.
+
+```{r}
+#| label: function-interpolation
+
+# create function to interpolate
+interpolate_age_dist <- function(year_interp, year_start, year_end) {
+
+  # starting and end distributions
+  dist_start <- prop_age_year_recent |> 
+    filter(YEAR == year_start) |>
+    pull(prop)
+  
+  dist_end <- prop_age_year_recent |> 
+    filter(YEAR == year_end) |>
+    pull(prop)
+  
+  # simple linear interpolation outperforms more complex methods
+  alpha <- (year_interp - year_start) / (year_end - year_start)  
+
+  # Interpolate linearly between the distributions
+  dist_interp <- (1 - alpha) * dist_start + alpha * dist_end
+  
+  # put into same format as prop_age_year_recent
+  prop_age_year_recent |>
+    filter(YEAR == year_end) |>
+    select(age_group_husband, age_group_wife) |>
+    mutate(YEAR = year_interp,
+           prop = dist_interp)
+}
+```
+
+Now we can do the interpolation for the missing years and add them to our full joint distribution data.
+
+```{r}
+#| label: age-interpolation
+
+# ok lets now interpolate all needed years by what we have
+years_interp <- c(1990, 2000:2007)
+prop_age_year_recent <- map(years_interp, interpolate_age_dist, 1988, 2008) |>
+  bind_rows() |>
+  bind_rows(prop_age_year_recent)
+```
+
+And lets check these to make sure they look reasonable with some figures.
+
+```{r}
+#| label: fig-summary-age-dist
+#| fig-cap: Summary measures of age distribution of spouses, interpolated and non-interpolated data
+#| layout-ncol: 1
+#| fig-subcap:
+#|   - Mean age of husbands
+#|   - Mean age of wives
+#|   - Spousal Age gap
+
+temp <- prop_age_year_recent |>
+  group_by(YEAR) |>
+  summarize(mean_age_husband = sum(age_group_husband * prop),
+            mean_age_wife = sum(age_group_wife * prop),
+            age_diff = mean_age_husband - mean_age_wife) |>
+  ungroup() |>
+  mutate(interpolated = YEAR %in% years_interp)
+
+ggplot(temp, aes(x = YEAR, y = mean_age_husband))+
+  geom_line()+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean husband's age")+
+  theme_bw()
+
+ggplot(temp, aes(x = YEAR, y = mean_age_wife))+
+  geom_line()+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean wife's age")+
+  theme_bw()
+
+ggplot(temp, aes(x = YEAR, y = age_diff))+
+  geom_line()+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean husband's age - mean wife's age")+
+  theme_bw()
+```
+
+
+```{r}
+#| label: fig-age-dist
+#| fig-cap: Distribution of spouse's age over time, including real and interpolated cases
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - Husbands
+#|   - Wives
+
+prop_age_year_recent |>
+  filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  group_by(age_group_husband, YEAR) |>
+  summarise(prop = sum(prop)) |>
+  mutate(YEAR = factor(YEAR),
+         age_group_husband = case_when(
+           age_group_husband < 20 ~ "Under 20",
+           age_group_husband < 25 ~ "20-24",
+           age_group_husband < 30 ~ "25-29",
+           age_group_husband < 35 ~ "30-34",
+           age_group_husband < 45 ~ "35-44",
+           age_group_husband < 55 ~ "45-54",
+           age_group_husband >= 55 ~ "55+",
+         ),
+         age_group_husband = factor(
+           age_group_husband,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         )) |>
+  ggplot(aes(x = age_group_husband, fill = YEAR, group = YEAR, y = prop))+
+  geom_col(alpha = 0.5, position = "identity", width = 1)+
+  labs(x = "age of husband")+
+  theme_bw()
+
+prop_age_year_recent |>
+  filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  group_by(age_group_wife, YEAR) |>
+  summarise(prop = sum(prop)) |>
+  mutate(YEAR = factor(YEAR),
+         age_group_wife = case_when(
+           age_group_wife < 20 ~ "Under 20",
+           age_group_wife < 25 ~ "20-24",
+           age_group_wife < 30 ~ "25-29",
+           age_group_wife < 35 ~ "30-34",
+           age_group_wife < 45 ~ "35-44",
+           age_group_wife < 55 ~ "45-54",
+           age_group_wife >= 55 ~ "55+",
+         ),
+         age_group_wife = factor(
+           age_group_wife,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         )) |>
+  ggplot(aes(x = age_group_wife, fill = YEAR, group = YEAR, y = prop))+
+  geom_col(alpha = 0.5, position = "identity", width = 1)+
+  labs(x = "age of wife")+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-age-dist-tile
+#| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
+prop_age_year_recent |>
+  filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  mutate(age_group_husband = case_when(
+           age_group_husband < 20 ~ "Under 20",
+           age_group_husband < 25 ~ "20-24",
+           age_group_husband < 30 ~ "25-29",
+           age_group_husband < 35 ~ "30-34",
+           age_group_husband < 45 ~ "35-44",
+           age_group_husband < 55 ~ "45-54",
+           age_group_husband >= 55 ~ "55+",
+         ),
+         age_group_husband = factor(
+           age_group_husband,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         ),
+         age_group_wife = case_when(
+           age_group_wife < 20 ~ "Under 20",
+           age_group_wife < 25 ~ "20-24",
+           age_group_wife < 30 ~ "25-29",
+           age_group_wife < 35 ~ "30-34",
+           age_group_wife < 45 ~ "35-44",
+           age_group_wife < 55 ~ "45-54",
+           age_group_wife >= 55 ~ "55+",
+         ),
+         age_group_wife = factor(
+           age_group_wife,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         )) |>
+  ggplot(aes(x = age_group_husband, y = age_group_wife, fill = prop)) +
+  geom_tile() +
+  scale_fill_viridis_c(direction = -1) +
+  facet_wrap(~YEAR)+
+  labs(x = "husband's age", y = "wife's age", fill = "joint p")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Now that we have the joint distribution of age for recent marriages, we can compute the same proportions across all extant marriages and then use the ratio of the proportions to get the weights, the same as for post-stratification weights.
+
+
+```{r}
+#| label: calculate-weights
+
+prop_age_year <- census |>
+  group_by(age_group_husband, age_group_wife, YEAR) |>
+  summarize(n_dur = n()) |>
+  ungroup()
+
+prop_age_year <- census |>
+  group_by(YEAR) |>
+  summarize(n_total = n()) |>
+  ungroup() |>
+  right_join(prop_age_year) |>
+  mutate(prop_total = n_dur / n_total) |>
+  select(age_group_husband, age_group_wife, YEAR, prop_total)
+
 prop_age_year |>
   group_by(YEAR) |>
-  summarize(sum = sum(prop_total))
+  summarize(sum = sum(prop_total)) |>
+  gt()
 
-prop_age_year_dur |>
-  group_by(YEAR) |>
-  summarize(sum = sum(prop_dur))
-
-weighting <- left_join(prop_age_year, prop_age_year_dur) |>
-  mutate(weight_age = prop_dur / prop_total,
+weighting <- full_join(prop_age_year, prop_age_year_recent) |>
+  mutate(weight_age = prop / prop_total,
          weight_age = ifelse(is.na(weight_age), 0, weight_age))
-
-# need to center weight_age mean on 1 in each year
-weighting <- weighting |>
-  group_by(YEAR) |>
-  summarize(mean = mean(weight_age)) |>
-  right_join(weighting) |>
-  mutate(weight_age = weight_age / mean) |>
-  select(age_husband, age_wife, YEAR, weight_age)
-
-weighting |>
-  group_by(YEAR) |>
-  summarize(mean = mean(weight_age))
 
 census <- census |>
   left_join(weighting)
 
-
+# confirm that the mean weight in each year is 1
 census |>
-  filter(year == "1960") |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(data = filter(census, year == "1960" & 
-                                 dur_mar <= 1 & MARRNO == 1 & MARRNO_SP == 1),
-                 alpha = 0.7, fill = "navy", binwidth = 1)+
-  theme_bw()
+  group_by(YEAR) |>
+  summarize(mean = mean(weight_age)) |>
+  gt()
+```
+
+As a test case, lets see how the weights adjust the distribution in 2008.
+
+```{r}
+#| label: fig-age-weights-hist
+#| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the green histogram applies age weights to the full distribution to bring them in line with recent marriages.
 
 census |>
   filter(year == "2008") |>
   ggplot(aes(x = age_husband, y = after_stat(density)))+
   geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(alpha = 0.7, fill = "darkgreen", binwidth = 1, 
+  geom_histogram(alpha = 0.7, fill = "navy", binwidth = 1, 
                  aes(weight = weight_age))+
   geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
-               fill = NA, color = "navy", linetype = 2, binwidth = 1)+
+               fill = NA, color = "black", linetype = 2, 
+               binwidth = 1)+
   theme_bw()
 ```
+
+## Save the data
 
 Now lets save the data.
 
