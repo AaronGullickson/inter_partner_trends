@@ -30,20 +30,23 @@ bootstrap_model <- function(ind_data,
                             show_progress = FALSE,
                             ...) {
   
+  if(show_progress) {
+    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
+                           total = B + 2)
+    pb$tick(0)
+  }
+  
   # filter out unnecessary groups for later speed improvements
   # estimate_lor does this but it will be faster to bootstrap sample a 
   # smaller individual dataset
+  if(show_progress) {
+    pb$tick()
+  }
   ind_data <- ind_data |>
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
-  
-  if(show_progress) {
-    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = B)
-    pb$tick(0)
-  }
   
   results <- map(1:B, function(i) {
     if(show_progress) {
@@ -57,6 +60,9 @@ bootstrap_model <- function(ind_data,
     return(result)
   })
   
+  if(show_progress) {
+    pb$tick()
+  }
   # do a full join here in case some terms are missing in some samples
   by_vars <- colnames(results[[1]])
   by_vars <- by_vars[by_vars != "estimate"]
