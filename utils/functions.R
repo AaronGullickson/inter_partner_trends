@@ -97,10 +97,10 @@ estimate_lor <- function(ind_data,
   if(pairwise) {
     groups <- get_permutations(selected_groups)
     results <- pmap(groups, function(group1, group2) {
-      model_data |>
+      ind_data |>
         estimate_lor(c(group1, group2), 
                      composition_var, conditional_var, control_var,
-                     by, se, pairwise = FALSE)
+                     se, use_weights, pairwise = FALSE)
     }) |>
       bind_rows()
     return(results)
