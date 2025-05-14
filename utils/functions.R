@@ -34,9 +34,14 @@ bootstrap_model <- function(ind_data,
                             show_progress = FALSE,
                             ...) {
   
+  # filter out unnecessary groups for later speed improvements
+  # estimate_lor does this but it will be faster to bootstrap sample a 
+  # smaller individual dataset
   ind_data <- ind_data |>
     filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups)
+           race_wife %in% selected_groups) |>
+    mutate(race_husband = fct_drop(race_husband),
+           race_wife = fct_drop(race_wife))
   
   # determine variables for group_by
   controls <- NULL
@@ -119,7 +124,7 @@ estimate_lor <- function(model_data,
   
   ## prepare model data ##
   
-  # trim down the data to selected groups and frequency counts greater than zero
+  # trim down the data to selected groups
   model_data <- model_data |>
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
