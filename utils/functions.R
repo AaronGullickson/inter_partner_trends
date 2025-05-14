@@ -78,7 +78,8 @@ bootstrap_model <- function(ind_data,
       std.error = apply(estimates, 1, sd, na.rm = TRUE),
       conf.low = apply(estimates, 1, quantile, 0.025, na.rm = TRUE),
       conf.high = apply(estimates, 1, quantile, 0.975, na.rm = TRUE)
-    ))
+    )) |>
+    mutate(type = "bootstrap")
 }
 
 estimate_lor <- function(ind_data, 
@@ -268,6 +269,23 @@ estimate_lor <- function(ind_data,
     filter(is.na(missing)) |>
     select(-missing) |>
     mutate(term = factor(term, levels = PAIRINGS))
+  
+  # add some additional information here and clean up
+  marg <- marg |>
+    select(-contrast) |>
+    mutate(type = "glm",
+           age_weighted = use_weights,
+           composition = ifelse(is.null(composition_var),
+                                "none",
+                                paste(composition_var, collapse = ",")),
+           control = ifelse(is.null(control_var),
+                            "none",
+                            paste(control_var, collapse = ",")))
+  
+  if(se) {
+    marg <- marg |>
+      select(-statistic, -p.value, -s.value)
+  }
   
   return(marg)
 }
