@@ -229,6 +229,60 @@ marg_single_bs |>
   theme_bw()
 ```
 
+# Compositional Factors
+
+Lets adjust for state, division, and region. For state, we will need to do it without SE or bootstrapping for sanity.
+
+```{r}
+#| label: estimate-geo-compositional-models
+
+tic()
+marg_single_state <- census |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+               composition_var = "state", se = FALSE, pairwise = TRUE)
+toc()
+
+tic()
+marg_single_division_bs <- census |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "division",
+                  show_progress = FALSE)
+toc()
+
+tic()
+marg_single_region_bs <- census |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "region",
+                  show_progress = FALSE)
+toc()
+```
+
+```{r}
+#| label: fig-compare-composition
+#| fig-cap: Comparison of model parameters from models with different geographic composition adjustments
+
+marg_single_bs |>
+  bind_rows(marg_single_state) |>
+  bind_rows(marg_single_division_bs) |>
+  bind_rows(marg_single_region_bs) |>
+  mutate(composition = factor(composition, 
+                              levels = c("none", "region", "division", "state"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term)+
+  scale_color_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
+  scale_fill_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
+  theme_bw()
+
+```
+
+# Overall Trends
+
+
+
 ```{r}
 #| label: fig-intermar-single-overall
 #| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse
@@ -254,10 +308,9 @@ palette <- c(
   "API/Hispanic"   = "#117733" # forest green
 )
 
-lims <- exp(c(min(marg_single_bs$estimate-2*marg_single_bs$std.error),
-              max(marg_single_bs$estimate+2*marg_single_bs$std.error)))
+lims <- exp(c(min(marg_single_division_bs$conf.low), max(marg_single_division_bs$conf.high)))
 
-marg_single_bs |>
+marg_single_division_bs |>
   filter(str_detect(term, "White")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -270,7 +323,7 @@ marg_single_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_bs |>
+marg_single_division_bs |>
   filter(str_detect(term, "Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -283,7 +336,7 @@ marg_single_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_bs |>
+marg_single_division_bs |>
   filter(str_detect(term, "AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -296,7 +349,7 @@ marg_single_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_bs |>
+marg_single_division_bs |>
   filter(str_detect(term, "API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -309,7 +362,7 @@ marg_single_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_bs |>
+marg_single_division_bs |>
   filter(str_detect(term, "Hispanic")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -323,76 +376,7 @@ marg_single_bs |>
   theme_bw()
 ```
 
-How long does it take to run state based model for one pairing?
 
-```{r}
-#| eval: false
-tic()
-marg_wb_state_bs <- census |>
-  bootstrap_model(c("White", "Black"), composition_var = "state",
-                  show_progress = TRUE)
-toc()
-
-```
-
-About 6.5 minutes with $B = 10$, so for all ten single race pairings, this should take about 65 minutes. Each additional 10 B is going to add an hour basically. 
-
-How long does a division model take?
-
-```{r}
-tic()
-marg_wb_division_bs <- census |>
-  bootstrap_model(c("White", "Black"), composition_var = "division",
-                  show_progress = TRUE)
-toc()
-
-```
-
-So much faster. 
-
-```{r}
-tic()
-marg_single_division_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
-                  composition_var = "division",
-                  show_progress = TRUE)
-toc()
-
-marg_single_bs |>
-  mutate(composition = "none") |>
-  bind_rows(marg_single_division_bs) |>
-  mutate(factor(composition, levels = c("none", "division", "state"))) |>
-  ggplot(aes(x = year, y = estimate, color = composition))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = composition),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("gold", "navy", "red"))+
-  scale_fill_manual(values = c("gold", "navy","red"))+
-  theme_bw()
-```
-
-```{r}
-tic()
-marg_single_by_region_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
-                  conditional_var = "region",
-                  show_progress = TRUE) |>
-  mutate(type = "bootstrap")
-toc()
-
-marg_single_by_region_bs |>
-  ggplot(aes(x = year, y = estimate, color = region))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = region),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term)+
-  scale_color_manual(values = c("darkgreen", "gold", "navy", "red"))+
-  scale_fill_manual(values = c("darkgreen", "gold", "navy","red"))+
-  theme_bw()
-```
 
 
 ```{r}
