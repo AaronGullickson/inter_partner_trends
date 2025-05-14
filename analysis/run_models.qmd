@@ -75,7 +75,7 @@ How long does it take to run state based model for one pairing?
 
 ```{r}
 tic()
-marg_single_state_bs <- census |>
+marg_wb_state_bs <- census |>
   bootstrap_model(c("White", "Black"), composition_var = "state",
                   show_progress = TRUE) |>
   mutate(type = "bootstrap")
@@ -84,6 +84,43 @@ toc()
 ```
 
 About 6.5 minutes with $B = 10$, so for all ten single race pairings, this should take about 65 minutes. Each additional 10 B is going to add an hour basically. 
+
+How long does a division model take?
+
+```{r}
+tic()
+marg_wb_division_bs <- census |>
+  bootstrap_model(c("White", "Black"), composition_var = "division",
+                  show_progress = TRUE) |>
+  mutate(type = "bootstrap")
+toc()
+
+```
+
+So much faster. 
+
+```{r}
+marg_wb_state_bs <- marg_wb_state_bs |>
+  mutate(composition = "state")
+
+marg_wb_bs <- marg_single_bs |>
+  filter(term == "White/Black") |>
+  mutate(composition = "none")
+
+marg_wb_division_bs |>
+  mutate(composition = "division") |>
+  bind_rows(marg_wb_state_bs) |>
+  bind_rows(marg_wb_bs) |>
+  mutate(factor(composition, levels = c("none", "division", "state"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = composition),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  scale_color_manual(values = c("gold", "navy", "red"))+
+  scale_fill_manual(values = c("gold", "navy","red"))+
+  theme_bw()
+```
 
 ```{r}
 #| label: timestamp-end
