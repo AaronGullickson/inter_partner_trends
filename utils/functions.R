@@ -17,15 +17,77 @@ PAIRINGS <- c("White/Black",
               "White/White-AIAN",
               "White/White-API")
 
+# number of bootstrap samples
+# TODO: this is way too low for final analysis, but should be sufficient for
+# preliminary runs where we just want a reasonably close estimate
+B <- 10
+
 
 # Modeling functions ------------------------------------------------------
+
+#marg <- bootstrap_model(census, c("White", "Black"), composition_var = "region")
+
+bootstrap_model <- function(ind_data, 
+                            selected_groups,
+                            composition_var = NULL,
+                            conditional_var = NULL,
+                            control_var = NULL,
+                            use_weights = TRUE, 
+                            ...) {
+  
+  ind_data <- ind_data |>
+    filter(race_husband %in% selected_groups,
+           race_wife %in% selected_groups)
+  
+  # determine variables for group_by
+  controls <- NULL
+  if(!is.null(control_var)) {
+    controls <- paste0(control_var, c("_husband", "_wife"))
+  }                     
+  vars <- c("race_husband", "race_wife", "year", 
+            composition_var, conditional_var, controls)
+  
+  results <- map(1:B, function(i) {
+    model_data <- ind_data |>
+      slice_sample(n = nrow(ind_data), replace = TRUE) |>
+      group_by(!!!syms(vars), .drop = FALSE) |>
+      summarize(wfreq = sum(weight_age), freq = n()) |>
+      ungroup()
+    
+    if(use_weights) {
+      model_data <- model_data |> mutate(freq = wfreq)
+    }
+    
+    model_data |>
+      estimate_lor(selected_groups, 
+                   composition_var = composition_var,
+                   conditional_var = conditional_var,
+                   control_var = control_var,
+                   se = FALSE, ...)
+  })
+  
+  # TODO: there may be cases where certain terms are dropped in some cases
+  # and not others, so I should probably be joining these rather than binding
+  # the estimates
+  estimates <- map(results, function(result) {
+    result$estimate
+  }) |> bind_cols()
+  
+  results[[1]] |>
+    select(-estimate) |>
+    bind_cols(tibble(
+      estimate = apply(estimates, 1, mean),
+      std.error = apply(estimates, 1, sd),
+      conf.low = apply(estimates, 1, quantile, 0.025),
+      conf.high = apply(estimates, 1, quantile, 0.975)
+    ))
+}
 
 estimate_lor <- function(model_data, 
                          selected_groups,
                          composition_var = NULL,
                          conditional_var = NULL,
                          control_var = NULL,
-                         by = c("year"),
                          se = TRUE,
                          pairwise = FALSE) {
   
@@ -169,13 +231,14 @@ estimate_lor <- function(model_data,
   ## run the model ##
   model <- glm(formula_model, data = model_data, family = poisson)
   
-  ## get marginal effects of variables we want ##
+  
+   ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
   marg <- avg_slopes(model, 
                      variables = vars,
-                     by = by,
+                     by = c(conditional_var, "year"),
                      type = "link",
                      vcov = se) |>
     as_tibble() |>
