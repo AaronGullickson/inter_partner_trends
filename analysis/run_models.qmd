@@ -1,0 +1,80 @@
+---
+title: "Run Models"
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: timestamp-start
+
+timestamp()
+```
+
+```{r}
+#| label: setup
+#| include: false
+library(here)
+source(here("utils","check_packages.R"))
+source(here("utils","functions.R"))
+```
+
+
+```{r}
+#| label: prepare-data
+#| include: false
+
+load(here("data", "data_constructed", "individ_data.RData"))
+
+# relevel age
+census <- census |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000"))
+```
+
+```{r}
+#| label: set-globals
+
+# number of bootstrap samples
+B <- 100
+```
+
+
+Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups
+
+```{r}
+
+tic()
+marg_single <- census |>
+  group_by(race_husband, race_wife, year, .drop = FALSE) |>
+  summarize(freq = sum(weight_age)) |>
+  ungroup() |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
+toc()
+
+tic()
+marg_single_bs <- census |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(type = "bootstrap")
+toc()
+
+marg_single |>
+  mutate(type = "glm") |>
+  bind_rows(marg_single_bs) |>
+  ggplot(aes(x = year, y = estimate, color = type))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = type),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("navy", "red"))+
+  scale_fill_manual(values = c("navy","red"))+
+  theme_bw()
+```
+
+
+```{r}
+#| label: timestamp-end
+
+timestamp()
+```
