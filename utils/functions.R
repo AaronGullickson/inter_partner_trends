@@ -27,10 +27,6 @@ B <- 10
 
 bootstrap_model <- function(ind_data, 
                             selected_groups,
-                            composition_var = NULL,
-                            conditional_var = NULL,
-                            control_var = NULL,
-                            use_weights = TRUE, 
                             show_progress = FALSE,
                             ...) {
   
@@ -43,14 +39,6 @@ bootstrap_model <- function(ind_data,
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
   
-  # determine variables for group_by
-  controls <- NULL
-  if(!is.null(control_var)) {
-    controls <- paste0(control_var, c("_husband", "_wife"))
-  }                     
-  vars <- c("race_husband", "race_wife", "year", 
-            composition_var, conditional_var, controls)
-  
   if(show_progress) {
     pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
                            total = B)
@@ -58,33 +46,21 @@ bootstrap_model <- function(ind_data,
   }
   
   results <- map(1:B, function(i) {
-    model_data <- ind_data |>
-      slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      group_by(!!!syms(vars), .drop = FALSE) |>
-      summarize(wfreq = sum(weight_age), freq = n(), .groups = "drop")
-    
-    if(use_weights) {
-      model_data <- model_data |> mutate(freq = wfreq)
-    }
-    
-    result <- model_data |>
-      estimate_lor(selected_groups, 
-                   composition_var = composition_var,
-                   conditional_var = conditional_var,
-                   control_var = control_var,
-                   se = FALSE, ...)
-    
     if(show_progress) {
       pb$tick()
     }
+    
+    result <- ind_data |>
+      slice_sample(n = nrow(ind_data), replace = TRUE) |>
+      estimate_lor(selected_groups, se = FALSE, conditional_var = "region")
     
     return(result)
   })
   
   # do a full join here in case some terms are missing in some samples
-  results <- reduce(results, 
-                      full_join, 
-                      by = c("term", "contrast", "year", conditional_var))
+  by_vars <- colnames(results[[1]])
+  by_vars <- by_vars[by_vars != "estimate"]
+  results <- reduce(results, full_join, by = by_vars)
   
   estimates <- results |> 
     select(starts_with("estimate"))
@@ -99,12 +75,13 @@ bootstrap_model <- function(ind_data,
     ))
 }
 
-estimate_lor <- function(model_data, 
+estimate_lor <- function(ind_data, 
                          selected_groups,
                          composition_var = NULL,
                          conditional_var = NULL,
                          control_var = NULL,
                          se = TRUE,
+                         use_weights = TRUE,
                          pairwise = FALSE) {
   
   
@@ -123,18 +100,29 @@ estimate_lor <- function(model_data,
   }
   
   ## prepare model data ##
+  controls <- NULL
+  if(!is.null(control_var)) {
+    controls <- paste0(control_var, c("_husband", "_wife"))
+  }                     
+  grouping_vars <- c("race_husband", "race_wife", "year", 
+                     composition_var, conditional_var, controls)
+  sum_var <- ifelse(use_weights, "weight_age", "unity")
   
-  # trim down the data to selected groups
-  model_data <- model_data |>
+  model_data <- ind_data |>
+    # trim to just selected groups and drop unused factor levels
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
-    mutate(year = as.factor(year))
+    mutate(race_husband = fct_drop(race_husband),
+           race_wife = fct_drop(race_wife)) |>
+    group_by(!!!syms(grouping_vars), .drop = FALSE) |>
+    mutate(unity = 1) |>
+    summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
-  vars <- c("race_husband", "race_wife", "year", conditional_var)
+  grouping_vars <- c("race_husband", "race_wife", "year", conditional_var)
   zero_values <- model_data |>
-    group_by(!!!syms(vars)) |>
+    group_by(!!!syms(grouping_vars)) |>
     summarize(freq = sum(freq), .groups = "drop") |>
     filter(freq == 0 & race_husband != race_wife) |>
     mutate(term = NA_character_)
