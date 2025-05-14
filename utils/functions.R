@@ -25,8 +25,6 @@ B <- 10
 
 # Modeling functions ------------------------------------------------------
 
-marg <- bootstrap_model(census, c("White", "Black"))
-
 bootstrap_model <- function(ind_data, 
                             selected_groups,
                             composition_var = NULL,
