@@ -10,12 +10,12 @@ packages = c(
   "knitr", # for processing quarto
   "readr","haven", "googlesheets4", # I/O
   "tidyverse","lubridate","broom", #tidyverse and friends
-  "tidymodels", "poissonreg", # for tidyd modeling
   "ggrepel", # plotting extras
   "marginaleffects", # for computing log-odds from models
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
-  "MoMAColors" # for fun
+  "MoMAColors", # for fun
+  "tictoc" # for tracking processing time
 )
 
 package.check <- lapply(packages, FUN = function(x) {
