@@ -26,17 +26,20 @@ source(here("utils","functions.R"))
 
 load(here("data", "data_constructed", "individ_data.RData"))
 
-# relevel age
+# relevel year and factor up anything that might go into models
 census <- census |>
   mutate(year = factor(year),
-         year = relevel(year, "2000"))
+         year = relevel(year, "2000"),
+         region = factor(region),
+         division = factor(division),
+         state = factor(state))
 ```
 
 ```{r}
 #| label: set-globals
 
 # number of bootstrap samples
-B <- 10
+B <- 50
 ```
 
 
@@ -120,6 +123,41 @@ marg_wb_division_bs |>
   scale_color_manual(values = c("gold", "navy", "red"))+
   scale_fill_manual(values = c("gold", "navy","red"))+
   theme_bw()
+```
+
+```{r}
+tic()
+marg_single_by_region_bs <- census |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  conditional_var = "region",
+                  show_progress = TRUE) |>
+  mutate(type = "bootstrap")
+toc()
+
+tic()
+marg_single_by_region <- census |>
+  group_by(race_husband, race_wife, region, year, .drop = FALSE) |>
+  summarize(freq = sum(weight_age), .groups = "drop") |>
+  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"),
+               conditional_var = "region")
+toc()
+
+```
+
+```{r}
+marg_single_by_region_bs |>
+  ggplot(aes(x = year, y = estimate, color = region))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = region),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term)+
+  scale_color_manual(values = c("darkgreen", "gold", "navy", "red"))+
+  scale_fill_manual(values = c("darkgreen", "gold", "navy","red"))+
+  theme_bw()
+
+```
+
 ```
 
 ```{r}
