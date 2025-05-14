@@ -15,7 +15,7 @@ packages = c(
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
   "MoMAColors", # for fun
-  "tictoc" # for tracking processing time
+  "tictoc", "progress" # for tracking processing time
 )
 
 package.check <- lapply(packages, FUN = function(x) {

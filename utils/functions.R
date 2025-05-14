@@ -31,6 +31,7 @@ bootstrap_model <- function(ind_data,
                             conditional_var = NULL,
                             control_var = NULL,
                             use_weights = TRUE, 
+                            show_progress = FALSE,
                             ...) {
   
   ind_data <- ind_data |>
@@ -45,6 +46,12 @@ bootstrap_model <- function(ind_data,
   vars <- c("race_husband", "race_wife", "year", 
             composition_var, conditional_var, controls)
   
+  if(show_progress) {
+    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
+                           total = B)
+    pb$tick(0)
+  }
+  
   results <- map(1:B, function(i) {
     model_data <- ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
@@ -55,12 +62,18 @@ bootstrap_model <- function(ind_data,
       model_data <- model_data |> mutate(freq = wfreq)
     }
     
-    model_data |>
+    result <- model_data |>
       estimate_lor(selected_groups, 
                    composition_var = composition_var,
                    conditional_var = conditional_var,
                    control_var = control_var,
                    se = FALSE, ...)
+    
+    if(show_progress) {
+      pb$tick()
+    }
+    
+    return(result)
   })
   
   # do a full join here in case some terms are missing in some samples
