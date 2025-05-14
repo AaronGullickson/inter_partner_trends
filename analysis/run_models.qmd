@@ -36,7 +36,7 @@ census <- census |>
 #| label: set-globals
 
 # number of bootstrap samples
-B <- 100
+B <- 10
 ```
 
 
@@ -47,8 +47,7 @@ Lets compare processing time of bootstrapped vs non-bootstrapped model for singl
 tic()
 marg_single <- census |>
   group_by(race_husband, race_wife, year, .drop = FALSE) |>
-  summarize(freq = sum(weight_age)) |>
-  ungroup() |>
+  summarize(freq = sum(weight_age), .groups = "drop") |>
   estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
 toc()
 
@@ -72,6 +71,19 @@ marg_single |>
   theme_bw()
 ```
 
+How long does it take to run state based model for one pairing?
+
+```{r}
+tic()
+marg_single_state_bs <- census |>
+  bootstrap_model(c("White", "Black"), composition_var = "state",
+                  show_progress = TRUE) |>
+  mutate(type = "bootstrap")
+toc()
+
+```
+
+About 6.5 minutes with $B = 10$, so for all ten single race pairings, this should take about 65 minutes. Each additional 10 B is going to add an hour basically. 
 
 ```{r}
 #| label: timestamp-end
