@@ -8,6 +8,7 @@ execute:
 
 ```{r}
 #| label: timestamp-start
+#| echo: false
 
 timestamp()
 ```
@@ -945,6 +946,7 @@ marg_wb_educ |>
 
 ```{r}
 #| label: timestamp-end
+#| echo: false
 
 timestamp()
 ```

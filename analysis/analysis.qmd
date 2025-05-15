@@ -7,6 +7,7 @@ execute:
 
 ```{r}
 #| label: timestamp-start
+#| echo: false
 
 timestamp()
 ```
@@ -379,6 +380,7 @@ marg_single_division_bs |>
 
 ```{r}
 #| label: timestamp-end
+#| echo: false
 
 timestamp()
 ```
