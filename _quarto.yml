@@ -8,6 +8,7 @@ project:
   render:
     # if analysis is split into multiple docs, add them here
     - analysis/organize_data.qmd
+    - analysis/model_justification.qmd
     - analysis/analysis.qmd
     - paper/
     - presentation/
