@@ -296,16 +296,16 @@ marg_single_bs |>
 
 
 palette <- c(
-  "White/Black"    = "#E69F00", # rich orange
-  "White/AIAN"     = "#009E73", # teal green
-  "White/API"      = "#CC79A7", # muted magenta
-  "White/Hispanic" = "#661100", # deep rust
-  "Black/AIAN"     = "#A65628", # warm brown
-  "Black/API"      = "#74AA99", # muted cyan (not primary blue)
-  "Black/Hispanic" = "#882255", # deep burgundy
-  "AIAN/API"       = "#56B4E9", # desaturated turquoise
-  "AIAN/Hispanic"  = "#AA4499", # dusty rose
-  "API/Hispanic"   = "#117733" # forest green
+  "White/Black"          = "#E69F00", # rich orange
+  "White/Indigenous"     = "#009E73", # teal green
+  "White/Asian"          = "#CC79A7", # muted magenta
+  "White/Hispanic"       = "#661100", # deep rust
+  "Black/Indigenous"     = "#A65628", # warm brown
+  "Black/Asian"          = "#74AA99", # muted cyan (not primary blue)
+  "Black/Hispanic"       = "#882255", # deep burgundy
+  "Indigenous/Asian"     = "#56B4E9", # desaturated turquoise
+  "Indigenous/Hispanic"  = "#AA4499", # dusty rose
+  "Asian/Hispanic"       = "#117733"  # forest green
 )
 
 lims <- exp(c(min(marg_single_division_bs$conf.low), max(marg_single_division_bs$conf.high)))

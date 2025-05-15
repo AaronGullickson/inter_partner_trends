@@ -4,18 +4,18 @@
 # Globals -----------------------------------------------------------------
 
 PAIRINGS <- c("White/Black",
-              "White/AIAN",
-              "White/API",
+              "White/Indigenous",
+              "White/Asian",
               "White/Hispanic",
-              "Black/AIAN",
-              "Black/API",
+              "Black/Indigenous",
+              "Black/Asian",
               "Black/Hispanic",
-              "AIAN/API",
-              "AIAN/Hispanic",
-              "API/Hispanic",
+              "Indigenous/Asian",
+              "Indigenous/Hispanic",
+              "Asian/Hispanic",
               "White/White-Black",
-              "White/White-AIAN",
-              "White/White-API")
+              "White/White-Indigenous",
+              "White/White-Asian")
 
 # number of bootstrap samples
 # TODO: this is way too low for final analysis, but should be sufficient for
