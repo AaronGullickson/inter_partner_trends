@@ -4,18 +4,18 @@
 # Globals -----------------------------------------------------------------
 
 PAIRINGS <- c("White/Black",
-              "White/AIAN",
-              "White/API",
+              "White/Indigenous",
+              "White/Asian",
               "White/Hispanic",
-              "Black/AIAN",
-              "Black/API",
+              "Black/Indigenous",
+              "Black/Asian",
               "Black/Hispanic",
-              "AIAN/API",
-              "AIAN/Hispanic",
-              "API/Hispanic",
+              "Indigenous/Asian",
+              "Indigenous/Hispanic",
+              "Asian/Hispanic",
               "White/White-Black",
-              "White/White-AIAN",
-              "White/White-API")
+              "White/White-Indigenous",
+              "White/White-Asian")
 
 # number of bootstrap samples
 # TODO: this is way too low for final analysis, but should be sufficient for
@@ -299,7 +299,9 @@ get_intermar_names <- function(x) {
     str_replace_all("black", "Black") |>
     str_replace_all("hispanic", "Hispanic") |>
     str_replace_all("api", "API") |>
+    str_replace_all("asian", "Asian") |>
     str_replace_all("aian", "AIAN") |>
+    str_replace_all("indigenous", "Indigenous") |>
     str_replace(" ", "/") |>
     str_replace_all("\\.", "-")
 }

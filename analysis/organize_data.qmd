@@ -117,21 +117,24 @@ code_race <- function(raced, hispan, year) {
     (hispan != 0 | raced == 110) & year > 1970 ~ "Hispanic",
     raced == 100 ~ "White",
     raced == 200 ~ "Black",
-    raced >= 300 & raced <= 399 ~ "AIAN",
-    # we have to do API because 1980 and 1990
-    (raced >= 400 & raced <= 699) | (raced >= 860 & raced <= 869) ~ "API",
+    (raced >= 300 & raced <= 399) |
+      raced == 630 | (raced >= 680 & raced <= 699) ~ "Indigenous",
+    # TODO: leaving out 650 Other Asian or API in 1980 only
+    (raced >= 400 & raced <= 620) | 
+      (raced >= 640 & raced <= 643) | 
+      (raced >= 660 & raced <= 679) ~ "Asian",
     #raced == 700 ~ "Other", 
     # lets do major biracial groups for fun
     raced == 801 ~ "White-Black",
-    raced == 802 ~ "White-AIAN",
-    raced >= 803 & raced <= 825 ~ "White-API",
-    raced == 830 ~ "Black-AIAN",
-    raced >= 831 & raced <= 842 ~ "Black-API")
+    raced == 802 | (raced >= 820 & raced <= 825) ~ "White-Indigenous",
+    raced >= 810 & raced <= 819 ~ "White-Asian",
+    raced == 830 | (raced >= 840 & raced <= 842) ~ "Black-Indigenous",
+    raced >= 831 & raced <= 838 ~ "Black-Asian")
   
   factor(race, 
-         levels = c("White", "Black", "AIAN", "Hispanic", "API",
-                    "White-Black", "White-AIAN", "White-API", 
-                    "Black-AIAN", "Black-API"))
+         levels = c("White", "Black", "Indigenous", "Asian", "Hispanic",
+                    "White-Black", "White-Indigenous", "White-Asian", 
+                    "Black-Indigenous", "Black-Asian"))
 }
 
 # also create a function for education
@@ -212,8 +215,64 @@ census <- census |>
            YEAR <= 2018 ~ 2017
          )) |>
   # remove 2019
-  filter(YEAR != 2019) |>
-  # remove other and other multiracial
+  filter(YEAR != 2019)
+```
+
+Now lets impute values for the 650 (Other Asian/Pacific Islander) cases from 1980. We will use 1990 observations for Asian and PI respondents to impute. We use 1990 because it has a fuller range of responses fo Asian and PI respondents, specifically those that would have gone into the "Other Asian/PI" 650 category in 1980. For this imputation, I use:
+
+- race of other partner
+- age of both partners
+- education of both partners
+- duration of marriage
+- state of residence
+
+```{r}
+#| label: impute-other-api
+
+# first husbands
+idxh <- which(census$RACED == 650 & census$HISPAN == 0)
+length(idxh)
+data_imph <- census |>
+  filter((RACED >= 400 & RACED < 700 & HISPAN == 0) & year == "1990",
+         !is.na(race_husband)) |>
+  bind_rows(census[idxh,]) |>
+  select(state, race_husband, race_wife, age_husband, age_wife, 
+         educ_husband, educ_wife, dur_mar, year)
+
+imph <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+             printFlag = FALSE) |>
+  complete(1) |>
+  as_tibble() |>
+  filter(year == "1980") |>
+  pull(race_husband)
+
+table(imph)
+
+# then wives
+idxw <- which(census$RACED_SP == 650 & census$HISPAN_SP == 0)
+length(idxw)
+data_impw <- census |>
+  filter((RACED_SP >= 400 & RACED_SP < 700 & HISPAN_SP == 0) & year == "1990",
+         !is.na(race_wife)) |>
+  bind_rows(census[idxw,]) |>
+  select(state, race_husband, race_wife, age_husband, age_wife, 
+         educ_husband, educ_wife, dur_mar, year)
+
+impw <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+             printFlag = FALSE) |>
+  complete(1) |>
+  as_tibble() |>
+  filter(year == "1980") |>
+  pull(race_wife)
+
+table(impw)
+
+# now replace NA with imputed values
+census[idxh, "race_husband"] <- imph
+census[idxw, "race_wife"] <- impw
+
+# now we can remove all missing cases of race
+census <- census |>
   filter(!is.na(race_husband) & !is.na(race_wife))
 ```
 
@@ -230,6 +289,9 @@ table(census$educ_husband, census$educ_wife)
 
 table(census$race_husband)
 table(census$race_wife)
+
+table(census$RACED, census$race_husband)
+table(census$RACED_SP, census$race_wife)
 
 census |>
   group_by(YEAR) |>

@@ -39,7 +39,7 @@ census <- census |>
 #| label: set-globals
 
 # number of bootstrap samples
-B <- 50
+B <- 10
 ```
 
 # Model set up
@@ -86,12 +86,12 @@ Lets compare processing time of bootstrapped vs non-bootstrapped model for singl
 
 tic()
 marg_single <- census |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"))
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"))
 toc()
 
 tic()
 marg_single_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
                   show_progress = FALSE)
 toc()
 ```
@@ -131,36 +131,36 @@ How does the age weighting compare to
 
 marg_single_age_h2029 <- census |>
   filter(age_husband >= 20 & age_husband < 30) |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   mutate(restriction = "husband 20-29")
 
 marg_single_age_h2534 <- census |>
   filter(age_husband >= 25 & age_husband < 35) |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   mutate(restriction = "husband 25-34")
 
 marg_single_age_w2029 <- census |>
   filter(age_wife >= 20 & age_wife < 30) |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   mutate(restriction = "wife 20-29")
 
 marg_single_age_w2534 <- census |>
   filter(age_wife >= 25 & age_wife < 35) |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   mutate(restriction = "wife 25-34")
 
 marg_single_unweighted <- census |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   mutate(restriction = "full unweighted")
 
 marg_single_dur5 <- census |>
   filter(dur_mar <= 5) |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights = FALSE) |>
   # need to add missing values from 1990-2007 to get lines to break
   bind_rows(expand_grid(term = unique(marg_single_bs$term), 
@@ -238,20 +238,20 @@ Lets adjust for state, division, and region. For state, we will need to do it wi
 
 tic()
 marg_single_state <- census |>
-  estimate_lor(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                composition_var = "state", se = FALSE, pairwise = TRUE)
 toc()
 
 tic()
 marg_single_division_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   composition_var = "division",
-                  show_progress = FALSE)
+                  show_progress = TRUE)
 toc()
 
 tic()
 marg_single_region_bs <- census |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   composition_var = "region",
                   show_progress = FALSE)
 toc()
@@ -290,22 +290,22 @@ marg_single_bs |>
 #| fig-subcap: 
 #|    - White partner
 #|    - Black partner
-#|    - AIAN partner
-#|    - API partner
+#|    - Indigenous partner
+#|    - Asian partner
 #|    - Hispanic partner
 
 
 palette <- c(
-  "White/Black"    = "#E69F00", # rich orange
-  "White/AIAN"     = "#009E73", # teal green
-  "White/API"      = "#CC79A7", # muted magenta
-  "White/Hispanic" = "#661100", # deep rust
-  "Black/AIAN"     = "#A65628", # warm brown
-  "Black/API"      = "#74AA99", # muted cyan (not primary blue)
-  "Black/Hispanic" = "#882255", # deep burgundy
-  "AIAN/API"       = "#56B4E9", # desaturated turquoise
-  "AIAN/Hispanic"  = "#AA4499", # dusty rose
-  "API/Hispanic"   = "#117733" # forest green
+  "White/Black"          = "#E69F00", # rich orange
+  "White/Indigenous"     = "#009E73", # teal green
+  "White/Asian"          = "#CC79A7", # muted magenta
+  "White/Hispanic"       = "#661100", # deep rust
+  "Black/Indigenous"     = "#A65628", # warm brown
+  "Black/Asian"          = "#74AA99", # muted cyan (not primary blue)
+  "Black/Hispanic"       = "#882255", # deep burgundy
+  "Indigenous/Asian"     = "#56B4E9", # desaturated turquoise
+  "Indigenous/Hispanic"  = "#AA4499", # dusty rose
+  "Asian/Hispanic"       = "#117733"  # forest green
 )
 
 lims <- exp(c(min(marg_single_division_bs$conf.low), max(marg_single_division_bs$conf.high)))
@@ -337,7 +337,7 @@ marg_single_division_bs |>
   theme_bw()
 
 marg_single_division_bs |>
-  filter(str_detect(term, "AIAN")) |>
+  filter(str_detect(term, "Indigenous")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -350,7 +350,7 @@ marg_single_division_bs |>
   theme_bw()
 
 marg_single_division_bs |>
-  filter(str_detect(term, "API")) |>
+  filter(str_detect(term, "Asian")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
