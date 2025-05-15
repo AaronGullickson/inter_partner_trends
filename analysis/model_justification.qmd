@@ -241,12 +241,13 @@ Note that I have saturated the entire model (there are no more degrees of freedo
 $$\log(F_{12}/F_{21}) = \log(F_{12})-\log(F_{21}) = log(508)-log(1293) = -0.9342389$$
 Black woman/white man pairings are substantially less common. Now lets use the original model formulation to calculate this same log ratio from the model:
 
-$$\log(F_{12})-\log(F_{21}) = \lambda_2^{WR}-\lambda_2^{HR}+\beta$$
+$$\log(F_{12})-\log(F_{21}) = \lambda_2^{WR}-\lambda_2^{HR}-\beta$$
 
 From the original model:
 
 ```{r}
-1.356863-6.827014-(-4.535912)
+coefs <- coef(model)
+coefs["race_wifeBlack"]-coefs["race_husbandBlack"]-coefs["inter_wbTRUE"]
 ```
 
 We can see that these numbers match. This is also why the values of `race_husband` and `race_wife` change in the model when I switch the dummy variable from black woman/white man pairings to black man/white woman pairings.
@@ -360,7 +361,8 @@ I can use this formula to calculate the log gender asymmetry ratios for White/Bl
 $$\log(F_{WB})-\log(F_{BW})=\lambda_B^{WR}-\lambda_B^{HR}+\beta_{WB}$$
 
 ```{r}
-1.356863-(-4.535912)+(-6.827014)
+coefs <- coef(model)
+coefs["race_wifeBlack"]-coefs["race_husbandBlack"]+coefs["inter_wbTRUE"]
 ```
 
 And for White/Asian marriage:
@@ -368,7 +370,7 @@ And for White/Asian marriage:
 $$\log(F_{WA})-\log(F_{AW})=\lambda_A^{WR}-\lambda_A^{HR}+\beta_{WA}$$
 
 ```{r}
-0.787311-(-5.535215)+(-5.797101)
+coefs["race_wifeAsian"]-coefs["race_husbandAsian"]+coefs["inter_waTRUE"]
 ```
 
 For Black/Asian marriages, we would get:
@@ -381,7 +383,9 @@ $$
 $$
 
 ```{r}
--4.535912+0.787311-(-5.535215)-(1.356863)+(-9.279907)+2*(4.883224)
+coefs["race_husbandBlack"]+coefs["race_wifeAsian"]-
+  coefs["race_husbandAsian"]-coefs["race_wifeBlack"]+
+  coefs["inter_baTRUE"]+2*coefs["gender_ba"]
 ```
 
 To confirm:
