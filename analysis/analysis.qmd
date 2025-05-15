@@ -290,8 +290,8 @@ marg_single_bs |>
 #| fig-subcap: 
 #|    - White partner
 #|    - Black partner
-#|    - AIAN partner
-#|    - API partner
+#|    - Indigenous partner
+#|    - Asian partner
 #|    - Hispanic partner
 
 
