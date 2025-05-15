@@ -215,8 +215,51 @@ census <- census |>
            YEAR <= 2018 ~ 2017
          )) |>
   # remove 2019
-  filter(YEAR != 2019) |>
-  # remove other and other multiracial
+  filter(YEAR != 2019)
+
+# ok now lets impute values for the 650 cases from 1980. We will use 1990 observations
+# for Asian and PI respondents to impute. We use 1990 because it has a fuller range
+# of responses fo Asian and PI respondents, specifically those that would have gone
+# into the "Other Asian/PI" 650 category in 1980
+
+# first husbands
+idxh <- which(census$RACED == 650 & census$HISPAN == 0)
+length(idxh)
+data_imph <- census |>
+  filter((RACED >= 400 & RACED < 700 & HISPAN == 0) & year == "1990",
+         !is.na(race_husband)) |>
+  bind_rows(census[idxh,]) |>
+  select(state, race_husband, race_wife, age_husband, age_wife, dur_mar, year)
+
+imph <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+             printFlag = FALSE) |>
+  complete(1) |>
+  as_tibble() |>
+  filter(year == "1980") |>
+  pull(race_husband)
+
+# then wives
+idxw <- which(census$RACED_SP == 650 & census$HISPAN_SP == 0)
+length(idxw)
+data_impw <- census |>
+  filter((RACED_SP >= 400 & RACED_SP < 700 & HISPAN_SP == 0) & year == "1990",
+         !is.na(race_wife)) |>
+  bind_rows(census[idxw,]) |>
+  select(state, race_husband, race_wife, age_husband, age_wife, dur_mar, year)
+
+impw <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+             printFlag = FALSE) |>
+  complete(1) |>
+  as_tibble() |>
+  filter(year == "1980") |>
+  pull(race_wife)
+
+# now replace NA with imputed values
+census[idxh, "race_husband"] <- imph
+census[idxw, "race_wife"] <- impw
+
+# now we can remove all missing cases of race
+census <- census |>
   filter(!is.na(race_husband) & !is.na(race_wife))
 ```
 

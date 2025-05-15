@@ -12,6 +12,7 @@ packages = c(
   "tidyverse","lubridate","broom", #tidyverse and friends
   "ggrepel", # plotting extras
   "marginaleffects", # for computing log-odds from models
+  "mice", # for imputing values
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
   "MoMAColors", # for fun
