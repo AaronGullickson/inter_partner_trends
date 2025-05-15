@@ -117,21 +117,24 @@ code_race <- function(raced, hispan, year) {
     (hispan != 0 | raced == 110) & year > 1970 ~ "Hispanic",
     raced == 100 ~ "White",
     raced == 200 ~ "Black",
-    raced >= 300 & raced <= 399 ~ "AIAN",
-    # we have to do API because 1980 and 1990
-    (raced >= 400 & raced <= 699) | (raced >= 860 & raced <= 869) ~ "API",
+    (raced >= 300 & raced <= 399) |
+      raced == 630 | (raced >= 680 & raced <= 699) ~ "Indigenous",
+    # TODO: leaving out 650 Other Asian or API in 1980 only
+    (raced >= 400 & raced <= 620) | 
+      (raced >= 640 & raced <= 643) | 
+      (raced >= 660 & raced <= 679) ~ "Asian",
     #raced == 700 ~ "Other", 
     # lets do major biracial groups for fun
     raced == 801 ~ "White-Black",
-    raced == 802 ~ "White-AIAN",
-    raced >= 803 & raced <= 825 ~ "White-API",
-    raced == 830 ~ "Black-AIAN",
-    raced >= 831 & raced <= 842 ~ "Black-API")
+    raced == 802 | (raced >= 820 & raced <= 825) ~ "White-Indigenous",
+    raced >= 810 & raced <= 819 ~ "White-Asian",
+    raced == 830 | (raced >= 840 & raced <= 842) ~ "Black-Indigenous",
+    raced >= 831 & raced <= 838 ~ "Black-Asian")
   
   factor(race, 
-         levels = c("White", "Black", "AIAN", "Hispanic", "API",
-                    "White-Black", "White-AIAN", "White-API", 
-                    "Black-AIAN", "Black-API"))
+         levels = c("White", "Black", "Indigenous", "Asian", "Hispanic",
+                    "White-Black", "White-Indigenous", "White-Asian", 
+                    "Black-Indigenous", "Black-Asian"))
 }
 
 # also create a function for education
@@ -230,6 +233,8 @@ table(census$educ_husband, census$educ_wife)
 
 table(census$race_husband)
 table(census$race_wife)
+
+table(census$RACED, census$race_husband)
 
 census |>
   group_by(YEAR) |>

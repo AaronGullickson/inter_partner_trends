@@ -299,7 +299,9 @@ get_intermar_names <- function(x) {
     str_replace_all("black", "Black") |>
     str_replace_all("hispanic", "Hispanic") |>
     str_replace_all("api", "API") |>
+    str_replace_all("asian", "Asian") |>
     str_replace_all("aian", "AIAN") |>
+    str_replace_all("indigenous", "Indigenous") |>
     str_replace(" ", "/") |>
     str_replace_all("\\.", "-")
 }
