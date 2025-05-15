@@ -1,4 +1,4 @@
-Description: Revision of data for long term trends in interracial marriage (including year of marriage for 2008 on)
+Description: Revision of data for long term trends in interracial marriage (remove all age restrictions)
 Samples selected:
       1960 1%
             Note: 
@@ -138,30 +138,34 @@ Case Selection:               Yes
   SEX                          P  86              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
   AGE                          P  87-89           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
   MARST                        P  90              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  YRMARR                       P  91-94           4     .       .       .       .       .       .       .       .       .       X       X       X       X       X       X       X       X       X       X       X       X       .       .       .       
-  RACE                         P  95              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  RACED                        P  96-98           3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAN                       P  99              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAND                      P 100-102          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPL                          P 103-105          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPLD                         P 106-110          5     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISP1970                     P 111              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
-  EDUC                         P 112-113          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  EDUCD                        P 114-116          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QHISPAN                    q P 117              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE                      q P 118              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE2                     q P 119              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
-  SEX_SP                       P 120              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  AGE_SP                       P 121-123          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  RACED_SP                     P 124-126          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISPAN_SP                    P 127              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  BPL_SP                       P 128-130          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  HISP1970_SP                  P 131              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
-  EDUC_SP                      P 132-133          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  EDUCD_SP                     P 134-136          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QHISPAN_SP                 q P 137              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE_SP                   q P 138              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
-  QRACE2_SP                  q P 139              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  MARRNO                       P  91              1     X       X       .       .       .       .       .       .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       .       .       
+  YRMARR                       P  92-95           4     .       .       .       .       .       .       .       .       .       X       X       X       X       X       X       X       X       X       X       X       X       .       .       .       
+  AGEMARR                      P  96-97           2     X       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  RACE                         P  98              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  RACED                        P  99-101          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAN                       P 102              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAND                      P 103-105          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPL                          P 106-108          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPLD                         P 109-113          5     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISP1970                     P 114              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
+  EDUC                         P 115-116          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  EDUCD                        P 117-119          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QHISPAN                    q P 120              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE                      q P 121              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE2                     q P 122              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  SEX_SP                       P 123              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  AGE_SP                       P 124-126          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  MARRNO_SP                    P 127              1     X       X       .       .       .       .       .       .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       .       .       
+  AGEMARR_SP                   P 128-129          2     X       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
+  RACED_SP                     P 130-132          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISPAN_SP                    P 133              1     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  BPL_SP                       P 134-136          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  HISP1970_SP                  P 137              1     .       X       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       
+  EDUC_SP                      P 138-139          2     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  EDUCD_SP                     P 140-142          3     X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QHISPAN_SP                 q P 143              1     .       .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE_SP                   q P 144              1     .       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       X       
+  QRACE2_SP                  q P 145              1     .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       .       X       .       .       
 
 Variable Availability Key:
 All Years X - available in this sample
@@ -169,32 +173,6 @@ All Years . - not available in this sample
 
 Case Selections:
 P SEX      1 Male
-P AGE      020 20
-P AGE      021 21
-P AGE      022 22
-P AGE      023 23
-P AGE      024 24
-P AGE      025 25
-P AGE      026 26
-P AGE      027 27
-P AGE      028 28
-P AGE      029 29
-P AGE      030 30
-P AGE      031 31
-P AGE      032 32
-P AGE      033 33
-P AGE      034 34
-P AGE      035 35
-P AGE      036 36
-P AGE      037 37
-P AGE      038 38
-P AGE      039 39
-P AGE      040 40
-P AGE      041 41
-P AGE      042 42
-P AGE      043 43
-P AGE      044 44
-P AGE      045 45
 P MARST      1 Married, spouse present
 RECTYPE   Record type
 H         Household
@@ -646,8 +624,111 @@ MARST               Marital status
 6                   Never married/single
 9                   Blank, missing
 
+MARRNO              Times married
+0                   Not Applicable
+1                   Married once
+2                   Married twice (or more)
+3                   Married thrice (or more)
+4                   Four times
+5                   Five times
+6                   Six times
+7                   Unknown
+8                   Illegible
+9                   Missing
+
 YRMARR              Year married
 0000                N/A
+
+AGEMARR             Age at first marriage
+00                  N/A and missing
+12                  12 years old
+13                  13
+14                  14
+15                  15
+16                  16
+17                  17
+18                  18
+19                  19
+20                  20
+21                  21
+22                  22
+23                  23
+24                  24
+25                  25
+26                  26
+27                  27
+28                  28
+29                  29
+30                  30
+31                  31
+32                  32
+33                  33
+34                  34
+35                  35
+36                  36
+37                  37
+38                  38
+39                  39
+40                  40
+41                  41
+42                  42
+43                  43
+44                  44
+45                  45
+46                  46
+47                  47
+48                  48
+49                  49
+50                  50
+51                  51
+52                  52
+53                  53
+54                  54
+55                  55
+56                  56
+57                  57
+58                  58
+59                  59
+60                  60
+61                  61
+62                  62
+63                  63
+64                  64
+65                  65
+66                  66
+67                  67
+68                  68
+69                  69
+70                  70
+71                  71
+72                  72
+73                  73
+74                  74
+75                  75
+76                  76
+77                  77
+78                  78
+79                  79
+80                  80
+81                  81
+82                  82
+83                  83
+84                  84
+85                  85
+86                  86
+87                  87
+88                  88
+89                  89
+90                  90
+91                  91
+92                  92
+93                  93
+94                  94
+95                  95
+96                  96
+97                  97 (97+ for 1930 100%)
+98                  98
+99                  99+
 
 RACE                Race [general version]
 1                   White
@@ -2029,6 +2110,109 @@ AGE_SP              Age [of Spouse's location in household]
 135                 135
 140                 140
 999                 Missing
+
+MARRNO_SP           Times married [of Spouse's location in household]
+0                   Not Applicable
+1                   Married once
+2                   Married twice (or more)
+3                   Married thrice (or more)
+4                   Four times
+5                   Five times
+6                   Six times
+7                   Unknown
+8                   Illegible
+9                   Missing
+
+AGEMARR_SP          Age at first marriage [of Spouse's location in household]
+00                  N/A and missing
+12                  12 years old
+13                  13
+14                  14
+15                  15
+16                  16
+17                  17
+18                  18
+19                  19
+20                  20
+21                  21
+22                  22
+23                  23
+24                  24
+25                  25
+26                  26
+27                  27
+28                  28
+29                  29
+30                  30
+31                  31
+32                  32
+33                  33
+34                  34
+35                  35
+36                  36
+37                  37
+38                  38
+39                  39
+40                  40
+41                  41
+42                  42
+43                  43
+44                  44
+45                  45
+46                  46
+47                  47
+48                  48
+49                  49
+50                  50
+51                  51
+52                  52
+53                  53
+54                  54
+55                  55
+56                  56
+57                  57
+58                  58
+59                  59
+60                  60
+61                  61
+62                  62
+63                  63
+64                  64
+65                  65
+66                  66
+67                  67
+68                  68
+69                  69
+70                  70
+71                  71
+72                  72
+73                  73
+74                  74
+75                  75
+76                  76
+77                  77
+78                  78
+79                  79
+80                  80
+81                  81
+82                  82
+83                  83
+84                  84
+85                  85
+86                  86
+87                  87
+88                  88
+89                  89
+90                  90
+91                  91
+92                  92
+93                  93
+94                  94
+95                  95
+96                  96
+97                  97 (97+ for 1930 100%)
+98                  98
+99                  99+
 
 RACED_SP            Race [of Spouse's location in household; detailed version]
                     ONE MAJOR RACE GROUP
