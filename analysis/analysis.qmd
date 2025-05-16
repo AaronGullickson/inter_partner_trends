@@ -309,9 +309,9 @@ palette <- c(
   "Asian/Hispanic"       = "#117733"  # forest green
 )
 
-lims <- exp(c(min(marg_single_division_bs$conf.low), max(marg_single_division_bs$conf.high)))
+lims <- exp(c(min(marg_single_bs$conf.low), max(marg_single_bs$conf.high)))
 
-marg_single_division_bs |>
+marg_single_bs |>
   filter(str_detect(term, "White")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -324,7 +324,7 @@ marg_single_division_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_division_bs |>
+marg_single_bs |>
   filter(str_detect(term, "Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -337,7 +337,7 @@ marg_single_division_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_division_bs |>
+marg_single_bs |>
   filter(str_detect(term, "Indigenous")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -350,7 +350,7 @@ marg_single_division_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_division_bs |>
+marg_single_bs |>
   filter(str_detect(term, "Asian")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -363,7 +363,7 @@ marg_single_division_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_division_bs |>
+marg_single_bs |>
   filter(str_detect(term, "Hispanic")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
