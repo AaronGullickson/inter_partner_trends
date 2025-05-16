@@ -55,25 +55,29 @@ bootstrap_model <- function(ind_data,
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
   
-  results <- map(1:B, function(i) {
+  if(show_progress) {
+    pb$tick()
+  }
+  results <- ind_data |>
+    slice_sample(n = nrow(ind_data), replace = TRUE) |>
+    estimate_lor(selected_groups, se = FALSE)
+  by_vars <- colnames(results)
+  by_vars <- by_vars[by_vars != "estimate"]
+  
+  for(i in 2:B) {
     if(show_progress) {
       pb$tick()
     }
-    
-    result <- ind_data |>
+    results <- ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      estimate_lor(selected_groups, se = FALSE, ...)
-    
-    return(result)
-  })
+      estimate_lor(selected_groups, se = FALSE, ...) |>
+      # do a full join here in case some terms are missing in some samples
+      full_join(results, by = by_vars)
+  }
   
   if(show_progress) {
     pb$tick()
   }
-  # do a full join here in case some terms are missing in some samples
-  by_vars <- colnames(results[[1]])
-  by_vars <- by_vars[by_vars != "estimate"]
-  results <- reduce(results, full_join, by = by_vars)
   
   estimates <- results |> 
     select(starts_with("estimate"))
