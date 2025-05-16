@@ -598,6 +598,46 @@ marg_single_bs |>
   theme_bw()
 ```
 
+# Subrace Analysis
+
+```{r}
+
+marg_hispanic_sub <- census |>
+  mutate(race_husband = subrace_husband,
+         race_wife = subrace_wife) |>
+  bootstrap_model(c("White", "Black", "WhiteHispanic", "BlackHispanic", 
+                    "OtherHispanic"),
+                  show_progress = TRUE)
+
+marg_hispanic_sub |>
+  filter(str_detect(term, "^White/")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  #scale_color_manual(values = palette)+
+  #scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_hispanic_sub |>
+  filter(str_detect(term, "^Black/") | term == "White/Black") |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  #scale_color_manual(values = palette)+
+  #scale_fill_manual(values = palette)+
+  theme_bw()
+
+```
+
+
 ```{r}
 #| label: timestamp-end
 #| echo: false

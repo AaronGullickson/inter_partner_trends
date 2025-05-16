@@ -3,26 +3,40 @@
 
 # Globals -----------------------------------------------------------------
 
-PAIRINGS <- c("White/Black",
-              "White/Indigenous",
-              "White/Asian",
-              "White/Hispanic",
-              "Black/Indigenous",
-              "Black/Asian",
-              "Black/Hispanic",
-              "Indigenous/Asian",
-              "Indigenous/Hispanic",
-              "Asian/Hispanic",
-              "White/White-Black",
-              "Black/White-Black",
-              "White/White-Indigenous",
-              "Indigenous/White-Indigenous",
-              "White/White-Asian",
-              "Asian/White-Asian",
-              "Black/Black-Asian",
-              "Asian/Black-Asian",
-              "Black/Black-Indigenous",
-              "Indigenous/Black-Indigenous")
+PAIRINGS <- c(
+  # single race pairings
+  "White/Black",
+  "White/Indigenous",
+  "White/Asian",
+  "White/Hispanic",
+  "White/WhiteHispanic",
+  "White/BlackHispanic",
+  "White/OtherHispanic",
+  "Black/Indigenous",
+  "Black/Asian",
+  "Black/Hispanic",
+  "Black/WhiteHispanic",
+  "Black/BlackHispanic",
+  "Black/OtherHispanic",
+  "Indigenous/Asian",
+  "Indigenous/Hispanic",
+  "Asian/Hispanic",
+  # single to multi race pairings
+  "White/White-Black",
+  "Black/White-Black",
+  "White/White-Indigenous",
+  "Indigenous/White-Indigenous",
+  "White/White-Asian",
+  "Asian/White-Asian",
+  "Black/Black-Asian",
+  "Asian/Black-Asian",
+  "Black/Black-Indigenous",
+  "Indigenous/Black-Indigenous",
+  # panethnic pairings
+  "WhiteHispanic/BlackHispanic",
+  "WhiteHispanic/OtherHispanic",
+  "BlackHispanic/OtherHispanic"
+)
 
 # number of bootstrap samples
 # TODO: this is way too low for final analysis, but should be sufficient for
@@ -313,6 +327,7 @@ get_intermar_names <- function(x) {
     str_replace_all("asian", "Asian") |>
     str_replace_all("aian", "AIAN") |>
     str_replace_all("indigenous", "Indigenous") |>
+    str_replace_all("other", "Other") |>
     str_replace(" ", "/") |>
     str_replace_all("\\.", "-")
 }

@@ -117,19 +117,19 @@ I also include five biracial groups from 2000 on that have a large enough sample
 code_subrace <- function(raced, hispan, year) {
   
   subrace <- case_when(
-    hispan != 0 & raced == 100 & year > 1970 ~ "White Hispanic",
-    hispan != 0 & raced == 200 & year > 1970 ~ "Black Hispanic",
-    hispan != 0 & raced == 700 & year > 1970 ~ "Other Hispanic",
-    hispan != 0 & year > 1970 ~ "Residual Hispanic",
+    hispan != 0 & raced == 100 & year > 1970 ~ "WhiteHispanic",
+    hispan != 0 & raced == 200 & year > 1970 ~ "BlackHispanic",
+    hispan != 0 & raced == 700 & year > 1970 ~ "OtherHispanic",
+    hispan != 0 & year > 1970 ~ "ResidualHispanic",
     raced == 100 ~ "White",
     raced == 200 ~ "Black",
     (raced >= 300 & raced <= 399) ~ "AIAN",
     raced == 630 | (raced >= 680 & raced <= 699) ~ "PI",
     # leaving out 650 Other Asian or API in 1980 only
-    (raced >= 400 & raced <= 500) | raced %in% c(620, 642, 668) ~ "East Asian",
-    raced %in% c(600, 640, 660:663, 665:667) ~ "SE Asian",
-    raced %in% c(610, 641, 643, 664, 669:670) ~ "South Asian",
-    raced %in% c(671:679) ~ "Other Asian",
+    (raced >= 400 & raced <= 500) | raced %in% c(620, 642, 668) ~ "EastAsian",
+    raced %in% c(600, 640, 660:663, 665:667) ~ "SEAsian",
+    raced %in% c(610, 641, 643, 664, 669:670) ~ "SouthAsian",
+    raced %in% c(671:679) ~ "OtherAsian",
     # lets do major biracial groups
     raced == 801 ~ "White-Black",
     raced == 802 ~ "White-AIAN",
@@ -142,9 +142,9 @@ code_subrace <- function(raced, hispan, year) {
   factor(subrace, 
          levels = c("White", "Black", 
                     "AIAN", "PI", 
-                    "East Asian", "SE Asian", "South Asian", "Other Asian",
-                    "White Hispanic", "Black Hispanic", "Other Hispanic", 
-                    "Residual Hispanic",
+                    "EastAsian", "SEAsian", "SouthAsian", "OtherAsian",
+                    "WhiteHispanic", "BlackHispanic", "OtherHispanic", 
+                    "ResidualHispanic",
                     "White-Black", "White-AIAN", "White-PI", "White-Asian", 
                     "Black-AIAN", "Black-PI", "Black-Asian"))
 }
@@ -153,10 +153,10 @@ code_subrace <- function(raced, hispan, year) {
 code_race <- function(subrace, year) {
   
   race <- case_when(
-    subrace %in% c("White Hispanic", "Black Hispanic",
-                   "Other Hispanic", "Residual Hispanic") ~ "Hispanic",
-    subrace %in% c("East Asian", "SE Asian", 
-                   "South Asian", "Other Asian") ~ "Asian",
+    subrace %in% c("WhiteHispanic", "BlackHispanic",
+                   "OtherHispanic", "ResidualHispanic") ~ "Hispanic",
+    subrace %in% c("EastAsian", "SEAsian", 
+                   "SouthAsian", "OtherAsian") ~ "Asian",
     subrace %in% c("AIAN", "PI") ~ "Indigenous",
     subrace %in% c("White-AIAN", "White-PI") ~ "White-Indigenous",
     subrace %in% c("Black-AIAN", "Black-PI") ~ "Black-Indigenous",
