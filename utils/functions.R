@@ -14,8 +14,15 @@ PAIRINGS <- c("White/Black",
               "Indigenous/Hispanic",
               "Asian/Hispanic",
               "White/White-Black",
+              "Black/White-Black",
               "White/White-Indigenous",
-              "White/White-Asian")
+              "Indigenous/White-Indigenous",
+              "White/White-Asian",
+              "Asian/White-Asian",
+              "Black/Black-Asian",
+              "Asian/Black-Asian",
+              "Black/Black-Indigenous",
+              "Indigenous/Black-Indigenous")
 
 # number of bootstrap samples
 # TODO: this is way too low for final analysis, but should be sufficient for

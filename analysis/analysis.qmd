@@ -297,16 +297,26 @@ marg_single_bs |>
 
 
 palette <- c(
-  "White/Black"          = "#E69F00", # rich orange
-  "White/Indigenous"     = "#009E73", # teal green
-  "White/Asian"          = "#CC79A7", # muted magenta
-  "White/Hispanic"       = "#661100", # deep rust
-  "Black/Indigenous"     = "#A65628", # warm brown
-  "Black/Asian"          = "#74AA99", # muted cyan (not primary blue)
-  "Black/Hispanic"       = "#882255", # deep burgundy
-  "Indigenous/Asian"     = "#56B4E9", # desaturated turquoise
-  "Indigenous/Hispanic"  = "#AA4499", # dusty rose
-  "Asian/Hispanic"       = "#117733"  # forest green
+  "White/Black"                 = "#E69F00", # rich orange
+  "White/Indigenous"            = "#009E73", # teal green
+  "White/Asian"                 = "#CC79A7", # muted magenta
+  "White/Hispanic"              = "#661100", # deep rust
+  "Black/Indigenous"            = "#A65628", # warm brown
+  "Black/Asian"                 = "#74AA99", # muted cyan (not primary blue)
+  "Black/Hispanic"              = "#882255", # deep burgundy
+  "Indigenous/Asian"            = "#56B4E9", # desaturated turquoise
+  "Indigenous/Hispanic"         = "#AA4499", # dusty rose
+  "Asian/Hispanic"              = "#117733", # forest green
+  "White/White-Black"           = "#47AC11", 
+  "Black/White-Black"           = "#471624",
+  "White/White-Indigenous"      = "#361892",
+  "Indigenous/White-Indigenous" = "#23A4BB",
+  "White/White-Asian"           = "#667AA3",
+  "Asian/White-Asian"           = "#6D7003",
+  "Black/Black-Asian"           = "#1117AA",
+  "Asian/Black-Asian"           = "#6D4113",
+  "Black/Black-Indigenous"      = "#7171BB",
+  "Indigenous/Black-Indigenous" = "#422D13"
 )
 
 lims <- exp(c(min(marg_single_bs$conf.low), max(marg_single_bs$conf.high)))
@@ -377,6 +387,97 @@ marg_single_bs |>
   theme_bw()
 ```
 
+```{r}
+#| label: fig-intermar-multi-overall
+#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White-Black
+#|    - White-Indigenous
+#|    - White-Asian
+#|    - Black-Indigenous
+#|    - Black-Asian
+#|    
+marg_multi_wb_bs <- census |>
+  bootstrap_model(c("White", "Black", "White-Black"),
+                  show_progress = FALSE)
+
+marg_multi_wi_bs <- census |>
+  bootstrap_model(c("White", "Indigenous", "White-Indigenous"),
+                  show_progress = FALSE)
+
+marg_multi_wa_bs <- census |>
+  bootstrap_model(c("White", "Asian", "White-Asian"),
+                  show_progress = FALSE)
+
+marg_multi_bi_bs <- census |>
+  bootstrap_model(c("Black", "Indigenous", "Black-Indigenous"),
+                  show_progress = FALSE)
+
+marg_multi_ba_bs <- census |>
+  bootstrap_model(c("Black", "Asian", "Black-Asian"),
+                  show_progress = FALSE)
+
+marg_multi_wb_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_multi_wi_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_multi_wa_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_multi_bi_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+marg_multi_ba_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
 
 ```{r}
 #| label: timestamp-end
