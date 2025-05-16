@@ -784,6 +784,241 @@ marg_wb_division |>
   theme_bw()
 ```
 
+What about using a scalar for adjustment?
+
+```{r}
+state_race <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, state, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+state_race <- state_race |>
+  group_by(state, year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(state_race) |>
+  mutate(prop = n/n_total) |>
+  select(race, state, year, prop) |>
+  pivot_wider(names_from = race, values_from = prop) |>
+  mutate(entropy_state = White * log(1/White) + Black * log(1/Black)) |>
+  select(state, year, entropy_state)
+
+country_race <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+country_race <- country_race |>
+  group_by(year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(country_race) |>
+  mutate(prop = n/n_total) |>
+  select(race, year, prop) |>
+  pivot_wider(names_from = race, values_from = prop) |>
+  mutate(entropy = White * log(1/White) + Black * log(1/Black)) |>
+  select(year, entropy)
+  
+entropy_state <- state_race |>
+  left_join(country_race, by = "year") |>
+  mutate(entropy_diff = entropy_state - entropy,
+         race_husband = "White", 
+         race_wife = "Black",
+         year = as.factor(year)) |>
+  select(race_husband, race_wife, state, year, entropy_diff)
+    
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Black"),
+         race_wife %in% c("White", "Black")) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wb = race_husband == "White" & race_wife == "Black"
+  ) |>
+  left_join(entropy_state) |>
+  mutate(entropy_diff = ifelse(is.na(entropy_diff), 0, entropy_diff))
+
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wb) * year + entropy_diff * year,
+             data =mar_data, family = poisson)
+
+marg_wb_entropy_state <- avg_slopes(model, variables = "inter_wb", by = "year", 
+                                    type = "link") |> 
+  as_tibble()
+
+
+marg_wb_division |> 
+  rename(estimate_division = estimate) |>
+  right_join(marg_wb_state) |>
+  rename(estimate_state = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  right_join(marg_bw) |>
+  rename(estimate_none = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  right_join(marg_wb_entropy_state) |>
+  rename(estimate_entropy = estimate) |>
+  select(year, starts_with("estimate_")) |>
+  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_",
+               names_to = "composition", values_to = "estimate") |>
+  mutate(year = as.numeric(paste(year)),
+         name = factor(composition, levels = c("none", "division", "state", "entropy"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_line()+
+  geom_point()+
+  labs(color = "compositional\nadjustment")+
+  theme_bw()
+
+```
+
+```{r}
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic"),
+         year >= 1980) |>
+  group_by(race_husband, race_wife, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wh = race_husband == "White" & race_wife == "Hispanic"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wh) * year,
+             data =mar_data, family = poisson)
+
+marg_wh <- avg_slopes(model, variables = "inter_wh", by = "year", 
+                      type = "link") |> 
+  as_tibble() |>
+  mutate(composition = "none")
+
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic"),
+         year >= 1980) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wh = race_husband == "White" & race_wife == "Hispanic"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) * state + inter_wh) * year,
+             data =mar_data, family = poisson)
+
+marg_wh_state <- avg_slopes(model, variables = "inter_wh", by = "year", 
+                            type = "link") |> 
+  as_tibble() |>
+  mutate(composition = "state")
+
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic"),
+         year >= 1980) |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wh = race_husband == "White" & race_wife == "Hispanic"
+  )
+
+model <- glm(freq ~ ((race_husband + race_wife) * division + inter_wh) * year,
+             data =mar_data, family = poisson)
+
+marg_wh_division <- avg_slopes(model, variables = "inter_wh", by = "year", 
+                            type = "link") |> 
+  as_tibble() |>
+  mutate(composition = "division")
+
+state_race <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic"),
+         year >= 1980) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, state, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+state_race <- state_race |>
+  group_by(state, year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(state_race) |>
+  mutate(prop = n/n_total) |>
+  select(race, state, year, prop) |>
+  pivot_wider(names_from = race, values_from = prop) |>
+  mutate(entropy_state = White * log(1/White) + Hispanic * log(1/Hispanic)) |>
+  select(state, year, entropy_state)
+
+country_race <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic")) |>
+  group_by(race_husband, race_wife, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+country_race <- country_race |>
+  group_by(year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(country_race) |>
+  mutate(prop = n/n_total) |>
+  select(race, year, prop) |>
+  pivot_wider(names_from = race, values_from = prop) |>
+  mutate(entropy = White * log(1/White) + Hispanic * log(1/Hispanic)) |>
+  select(year, entropy)
+  
+entropy_state <- state_race |>
+  left_join(country_race, by = "year") |>
+  mutate(entropy_diff = entropy_state - entropy,
+         race_husband = "White", 
+         race_wife = "Hispanic",
+         year = as.factor(year)) |>
+  select(race_husband, race_wife, state, year, entropy_diff)
+    
+mar_data <- census_age |>
+  filter(race_husband %in% c("White", "Hispanic"),
+         race_wife %in% c("White", "Hispanic"),
+         year >= 1980) |>
+  group_by(race_husband, race_wife, state, year) |>
+  summarize(freq = n()) |>
+  ungroup() |>
+  mutate(
+    year = as.factor(year),
+    inter_wh = race_husband == "White" & race_wife == "Hispanic"
+  ) |>
+  left_join(entropy_state) |>
+  mutate(entropy_diff = ifelse(is.na(entropy_diff), 0, entropy_diff))
+
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wh) * year + entropy_diff*year,
+             data =mar_data, family = poisson)
+
+marg_wh_entropy_state <- avg_slopes(model, variables = "inter_wh", by = "year", 
+                                    type = "link") |> 
+  as_tibble() |>
+  mutate(composition = "entropy")
+
+marg_wh |>
+  bind_rows(marg_wh_entropy_state) |>
+  bind_rows(marg_wh_state) |>
+  bind_rows(marg_wh_division) |>
+  ggplot(aes(x = year, y = estimate, color = composition, group = composition))+
+  geom_line()+
+  geom_point()+
+  labs(color = "compositional\nadjustment")+
+  theme_bw()
+
+```
+
 ##### Calculating log odds ratio conditional on another variable
 
 We can also calculate log odds ratios separately by some other covariate, which is basically an interaction term. From a model perspective:
