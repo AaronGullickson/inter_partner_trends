@@ -273,10 +273,103 @@ marg_single_bs |>
   #            alpha = 0.3, color = NA)+
   geom_point(alpha = 0.7, size = 0.5)+
   geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term)+
+  facet_wrap(~term, scales = "free_y")+
   scale_color_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
   scale_fill_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
   theme_bw()
+
+```
+
+What about a model that mixes state and division? Could I get something that comes close to the state distinction for all groups but with enough fewer parameters that it can be estimated faster.
+
+```{r}
+state_race <- census |>
+  filter(year == "1980" | year == "2017") |>
+  group_by(race_husband, race_wife, state, division, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, state, division, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+state_race <- state_race |>
+  group_by(state, year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(state_race) |>
+  mutate(prop_state = n/n_total) |>
+  select(race, state, division, year, prop_state)
+
+division_race <- census |>
+  filter(year == "1980" | year == "2017") |>
+  group_by(race_husband, race_wife, division, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_longer(cols = starts_with("race_"), values_to = "race") |>
+  group_by(race, division, year) |>
+  summarize(n = sum(n), .groups = "drop")
+
+division_race <- division_race |>
+  group_by(division, year) |>
+  summarize(n_total = sum(n), .groups = "drop") |>
+  right_join(division_race) |>
+  mutate(prop_division = n/n_total) |>
+  select(race, division, year, prop_division)
+
+temp <- state_race |>
+  left_join(division_race) |>
+  mutate(prop_diff = prop_state - prop_division) |>
+  group_by(state, division, year) |>
+  summarize(sum_prop_diff = sum(abs(prop_diff)), .groups = "drop")
+
+ggplot(temp, aes(x = state, y = sum_prop_diff, color = year))+
+  geom_point()+
+  facet_wrap(~division, scales = "free_y")+
+  coord_flip()+
+  theme_bw()
+
+```
+
+
+```{r}
+#| label: calculate-divistate
+
+tic()
+marg_single_divistate <- census |>
+  mutate(
+    divistate = case_when(
+      state == "NM" ~ "NM",
+      #state == "WA" ~ "WA",
+      #state == "OR" ~ "OR",
+      state == "HI" ~ "HI",
+      state == "AK" ~ "AK",
+      #state == "DC" ~ "DC",
+      state == "OK" ~ "OK",
+      state == "CA" ~ "CA",
+      state == "TX" ~ "TX",
+      #state == "LA" ~ "LA",
+      #state == "AR" ~ "AR",
+      #state == "WV" ~ "WV",
+      TRUE ~ division
+    ),
+    divistate = factor(divistate)
+  ) |>
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+               composition_var = "divistate", pairwise = FALSE)
+toc()
+
+ marg_single_state |>
+  bind_rows(marg_single_divistate) |>
+  bind_rows(marg_single_division_bs) |>
+  mutate(composition = factor(composition, 
+                              levels = c("division", "divistate", "state"))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("red", "darkgreen", "navy"))+
+  scale_fill_manual(values = c("red", "darkgreen", "navy"))+
+  theme_bw()
+
 
 ```
 
