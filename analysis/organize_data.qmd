@@ -70,7 +70,7 @@ census <- census |>
 table(census$SEX, census$SEX_SP)
 ```
 
-## Code variables
+# Code variables
 
 States are entered as numeric FIPS codes. I will use the `tidycensus` package to merge in the `fips_codes` data to get state abbreviations.
 
@@ -85,7 +85,7 @@ census <- fips_codes |>
   right_join(census)
 ```
 
-### Coding race
+## Coding race
 
 Ok, now I am ready to code most of the variables we care about. The primary variable of concern is the race variable. Because I am doing this over a large time period I are limited in how I caan code race consistently. I also want to keep the categories small so that I will have a large enough sample size for each group in each year. For the main analysis, I will use the following categories:
 
@@ -107,47 +107,85 @@ I also include five biracial groups from 2000 on that have a large enough sample
 - Black-Indigenous
 - Black-Asian
 
-### Coding time periods
-
-To help smooth out smaller sample sizes I group the ACS data after 2000 into three year groups of 2001-2003, 2004-2006, 2007-2009, 2010-2012, 2013-2015, and 2016-2018. They are all identified by the midpoint year. 
-
-### Calculating marriage duration
-
-ACS data from 2008 onward included the year of the most recent marriage for married individuals. I can use this to determine the duration of the current marriage. The 1960, 1970, and 1980 also include a variable on married individuals age at *first* marriage. I use these to calculate duration of the current marriage, but for the earlier data period, I will only have valid duration of marriage for first marriages. 
-
 ```{r}
-#| label: create-vars
+#| label: code-race
 
 # TODO: deal with quality flags on race
 
-# create some functions for coding data where we need to do it for both spouses
-code_race <- function(raced, hispan, year) {
+# subrace will give a more detailed version of race so that we can experiment
+# with breaking out larger race groups
+code_subrace <- function(raced, hispan, year) {
   
-  race <- case_when(
-    (hispan != 0 | raced == 110) & year > 1970 ~ "Hispanic",
+  subrace <- case_when(
+    hispan != 0 & raced == 100 & year > 1970 ~ "White Hispanic",
+    hispan != 0 & raced == 200 & year > 1970 ~ "Black Hispanic",
+    hispan != 0 & raced == 700 & year > 1970 ~ "Other Hispanic",
+    hispan != 0 & year > 1970 ~ "Residual Hispanic",
     raced == 100 ~ "White",
     raced == 200 ~ "Black",
-    (raced >= 300 & raced <= 399) |
-      raced == 630 | (raced >= 680 & raced <= 699) ~ "Indigenous",
-    # TODO: leaving out 650 Other Asian or API in 1980 only
-    (raced >= 400 & raced <= 620) | 
-      (raced >= 640 & raced <= 643) | 
-      (raced >= 660 & raced <= 679) ~ "Asian",
-    #raced == 700 ~ "Other", 
-    # lets do major biracial groups for fun
+    (raced >= 300 & raced <= 399) ~ "AIAN",
+    raced == 630 | (raced >= 680 & raced <= 699) ~ "PI",
+    # leaving out 650 Other Asian or API in 1980 only
+    (raced >= 400 & raced <= 500) | raced %in% c(620, 642, 668) ~ "East Asian",
+    raced %in% c(600, 640, 660:663, 665:667) ~ "SE Asian",
+    raced %in% c(610, 641, 643, 664, 669:670) ~ "South Asian",
+    raced %in% c(671:679) ~ "Other Asian",
+    # lets do major biracial groups
     raced == 801 ~ "White-Black",
-    raced == 802 | (raced >= 820 & raced <= 825) ~ "White-Indigenous",
+    raced == 802 ~ "White-AIAN",
+    (raced >= 820 & raced <= 825) ~ "White-PI",
     raced >= 810 & raced <= 819 ~ "White-Asian",
-    raced == 830 | (raced >= 840 & raced <= 842) ~ "Black-Indigenous",
+    raced == 830 ~ "Black-AIAN",
+    (raced >= 840 & raced <= 842) ~ "Black-PI",
     raced >= 831 & raced <= 838 ~ "Black-Asian")
   
+  factor(subrace, 
+         levels = c("White", "Black", 
+                    "AIAN", "PI", 
+                    "East Asian", "SE Asian", "South Asian", "Other Asian",
+                    "White Hispanic", "Black Hispanic", "Other Hispanic", 
+                    "Residual Hispanic",
+                    "White-Black", "White-AIAN", "White-PI", "White-Asian", 
+                    "Black-AIAN", "Black-PI", "Black-Asian"))
+}
+
+# we can code race by combining subrace categories
+code_race <- function(subrace, year) {
+  
+  race <- case_when(
+    subrace %in% c("White Hispanic", "Black Hispanic",
+                   "Other Hispanic", "Residual Hispanic") ~ "Hispanic",
+    subrace %in% c("East Asian", "SE Asian", 
+                   "South Asian", "Other Asian") ~ "Asian",
+    subrace %in% c("AIAN", "PI") ~ "Indigenous",
+    subrace %in% c("White-AIAN", "White-PI") ~ "White-Indigenous",
+    subrace %in% c("Black-AIAN", "Black-PI") ~ "Black-Indigenous",
+    TRUE ~ subrace
+  )
+    
   factor(race, 
          levels = c("White", "Black", "Indigenous", "Asian", "Hispanic",
                     "White-Black", "White-Indigenous", "White-Asian", 
                     "Black-Indigenous", "Black-Asian"))
 }
 
-# also create a function for education
+census <- census |>
+  mutate(subrace_husband = code_subrace(RACED, HISPAN, YEAR),
+         subrace_wife = code_subrace(RACED_SP, HISPAN_SP, YEAR),
+         race_husband = code_race(subrace_husband),
+         race_wife = code_race(subrace_wife))
+```
+
+## Code additional variables
+
+To help smooth out smaller sample sizes I group the ACS data after 2000 into three year groups of 2001-2003, 2004-2006, 2007-2009, 2010-2012, 2013-2015, and 2016-2018. They are all identified by the midpoint year. 
+
+ACS data from 2008 onward included the year of the most recent marriage for married individuals. I can use this to determine the duration of the current marriage. The 1960, 1970, and 1980 also include a variable on married individuals age at *first* marriage. I use these to calculate duration of the current marriage, but for the earlier data period, I will only have valid duration of marriage for first marriages. 
+
+```{r}
+#| label: create-vars
+
+# create some functions for coding data where we need to do it for both spouses
 code_educ <- function(educd) {
   education <- case_when(
     educd < 62 ~ "LHS",
@@ -184,9 +222,7 @@ create_age_group <- function(age) {
 }
 
 census <- census |>
-  mutate(race_husband = code_race(RACED, HISPAN, YEAR),
-         race_wife = code_race(RACED_SP, HISPAN_SP, YEAR), 
-         educ_husband = code_educ(EDUCD),
+  mutate(educ_husband = code_educ(EDUCD),
          educ_wife = code_educ(EDUCD_SP),
          age_husband = AGE,
          age_wife = AGE_SP,
@@ -228,7 +264,7 @@ census <- census |>
   filter(YEAR != 2019)
 ```
 
-### Impute race for 650 case
+## Impute race for 650 case
 
 Now lets impute values for the 650 (Other Asian/Pacific Islander) cases from 1980. I will use valid 1990 observations for Asian and Pacific Islander respondents for the imputation procedure. I use 1990 rather than valid 1980 responses because it has a fuller range of possible categories for Asian and Pacific Islander respondents, specifically those that would have gone into the "Other Asian/PI" 650 category in 1980. I impute via predictive mean matching using the following covariates:
 
@@ -248,17 +284,17 @@ data_imph <- census |>
   filter((RACED >= 400 & RACED < 700 & HISPAN == 0) & year == "1990",
          !is.na(race_husband)) |>
   bind_rows(census[idxh,]) |>
-  select(state, race_husband, race_wife, age_husband, age_wife, 
+  select(state, subrace_husband, subrace_wife, age_husband, age_wife, 
          educ_husband, educ_wife, dur_mar, year)
 
-imph <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
-             printFlag = FALSE) |>
+imph_subrace <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+                     printFlag = FALSE) |>
   complete(1) |>
   as_tibble() |>
   filter(year == "1980") |>
-  pull(race_husband)
+  pull(subrace_husband)
 
-table(imph)
+table(imph_subrace)
 
 # then wives
 idxw <- which(census$RACED_SP == 650 & census$HISPAN_SP == 0)
@@ -267,29 +303,26 @@ data_impw <- census |>
   filter((RACED_SP >= 400 & RACED_SP < 700 & HISPAN_SP == 0) & year == "1990",
          !is.na(race_wife)) |>
   bind_rows(census[idxw,]) |>
-  select(state, race_husband, race_wife, age_husband, age_wife, 
+  select(state, subrace_husband, subrace_wife, age_husband, age_wife, 
          educ_husband, educ_wife, dur_mar, year)
 
-impw <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
-             printFlag = FALSE) |>
+impw_subrace <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+                     printFlag = FALSE) |>
   complete(1) |>
   as_tibble() |>
   filter(year == "1980") |>
-  pull(race_wife)
+  pull(subrace_wife)
 
-table(impw)
+table(impw_subrace)
 
 # now replace NA with imputed values
-census[idxh, "race_husband"] <- imph
-census[idxw, "race_wife"] <- impw
-
-# now we can remove all missing cases of race
-census <- census |>
-  filter(!is.na(race_husband) & !is.na(race_wife))
+census[idxh, "subrace_husband"] <- imph_subrace
+census[idxh, "race_husband"] <- code_race(imph_subrace)
+census[idxw, "subrace_wife"] <- impw_subrace
+census[idxw, "race_wife"] <- code_race(impw_subrace)
 ```
 
-
-### Check yourself before you wreck yourself
+## Check yourself before you wreck yourself
 
 Lets run some checks on our codes.
 
@@ -305,8 +338,11 @@ table(census$educ_husband, census$educ_wife)
 table(census$race_husband)
 table(census$race_wife)
 
-table(census$RACED, census$race_husband)
-table(census$RACED_SP, census$race_wife)
+table(census$subrace_husband, census$race_husband, exclude = NULL)
+table(census$subrace_wife, census$race_wife, exclude = NULL)
+
+table(census$RACED, census$subrace_husband)
+table(census$RACED_SP, census$subrace_wife)
 
 census |>
   group_by(YEAR) |>
@@ -315,7 +351,7 @@ census |>
   gt()
 ```
 
-## Calculate joint age distributions
+# Calculate joint age distributions
 
 I want to calculate age weights that weight each couple by the joint age distribution to mimic an age distribution similar to recently married couples. To do this, I first need to calculate the joint age distribution of recent marriages in each time period. For the data from 2008 onward I can do this from the ACS data itself, by selecting partners married a year or less.
 
@@ -383,7 +419,7 @@ convert_age_string <- function(x) {
 }
 ```
 
-### Read 1960 vital stats data
+## Read 1960 vital stats data
 
 This one is a bit of a mess. Its split up by single, widowed, and divorced wives, but the age groups for widowed and divorced start with under 35 and under 25, respectively. To extend these groups across all the categories, I distribute the under 35 and under 25 cases across the full cells using the proportions found in the single wives table.
 
@@ -464,7 +500,7 @@ prop_age_year_recent <- prop_age_year_recent |>
   bind_rows(vsus1960)
 ```
 
-### Read 1970 vital stats data
+## Read 1970 vital stats data
 
 The 1970 data is a straightforward single table.
 
@@ -491,7 +527,7 @@ prop_age_year_recent <- prop_age_year_recent |>
   bind_rows(vsus1970)
 ```
 
-### Read 1980 vital stats data
+## Read 1980 vital stats data
 
 The 1980 data is a straightforward single table.
 
@@ -519,7 +555,7 @@ prop_age_year_recent <- prop_age_year_recent |>
   bind_rows(vsus1980)
 ```
 
-### Read 1988 vital stats data
+## Read 1988 vital stats data
 
 1988 was the last year in which official vital statistics for marriage were published that I can use. This data is closer to the 1990 and 2000 data and so is a better jumping off point for the interpolations that will follow even though I won't use the 1988 proportions directly.
 
@@ -574,7 +610,7 @@ prop_age_year_recent <- prop_age_year_recent |>
   bind_rows(vsus1988)
 ```
 
-### Interpolating joint distributions
+## Interpolating joint distributions
 
 I have no information on the duration of marriages between 1980 and 2008 and we have no vital statistics reports. Therefore to get joint distributions for 1990 and 2000-2007, I will need to interpolate. After experimenting with more advanced techniques, I found that a simpler linear interpolation actually provided the best fit. I first create a function to interpolate.
 
@@ -761,7 +797,7 @@ prop_age_year_recent |>
 
 The full joint distribution looks like it is transitioning very naturally across the imputed years of 1990, 2000, and 2004. 
 
-## Sample restrictions
+# Sample restrictions
 
 Before fitting age weights, I should apply whatever global sample restrictions I need to apply to the data. 
 
@@ -792,7 +828,7 @@ census <- census |>
 
 ```
 
-## Calulate age weights
+# Calulate age weights
 
 Now that I have the joint distribution of age for recent marriages, I can compute the same proportions across all extant marriages and then use the ratio of the proportions to get the weights, the same as for post-stratification weights.
 
@@ -855,7 +891,7 @@ census |>
   theme_bw()
 ```
 
-## Save the data
+# Save the data
 
 Now lets save the data.
 
@@ -863,7 +899,7 @@ Now lets save the data.
 #| label: save-analytical-data
 
 census <- census |> 
-  select(race_husband, race_wife, 
+  select(race_husband, race_wife, subrace_husband, subrace_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
          dur_mar, weight_age, 
