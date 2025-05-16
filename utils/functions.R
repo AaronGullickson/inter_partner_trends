@@ -8,6 +8,9 @@ PAIRINGS <- c(
   "White/Black",
   "White/Indigenous",
   "White/Asian",
+  "White/EastAsian",
+  "White/SEAsian",
+  "White/SouthAsian",
   "White/Hispanic",
   "White/WhiteHispanic",
   "White/BlackHispanic",
@@ -35,7 +38,10 @@ PAIRINGS <- c(
   # panethnic pairings
   "WhiteHispanic/BlackHispanic",
   "WhiteHispanic/OtherHispanic",
-  "BlackHispanic/OtherHispanic"
+  "BlackHispanic/OtherHispanic",
+  "EastAsian/SEAsian",
+  "EastAsian/SouthAsian",
+  "SEAsian/SouthAsian"
 )
 
 # number of bootstrap samples
@@ -74,7 +80,7 @@ bootstrap_model <- function(ind_data,
   }
   results <- ind_data |>
     slice_sample(n = nrow(ind_data), replace = TRUE) |>
-    estimate_lor(selected_groups, se = FALSE)
+    estimate_lor(selected_groups, se = FALSE, ...)
   by_vars <- colnames(results)
   by_vars <- by_vars[by_vars != "estimate"]
   
@@ -328,6 +334,9 @@ get_intermar_names <- function(x) {
     str_replace_all("aian", "AIAN") |>
     str_replace_all("indigenous", "Indigenous") |>
     str_replace_all("other", "Other") |>
+    str_replace_all("east", "East") |>
+    str_replace_all("se", "SE") |>
+    str_replace_all("south", "South") |>
     str_replace(" ", "/") |>
     str_replace_all("\\.", "-")
 }
