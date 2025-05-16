@@ -40,7 +40,7 @@ census <- census |>
 #| label: set-globals
 
 # number of bootstrap samples
-B <- 10
+B <- 20
 ```
 
 # Model set up
@@ -93,7 +93,7 @@ toc()
 tic()
 marg_single_bs <- census |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
-                  show_progress = FALSE)
+                  show_progress = TRUE)
 toc()
 ```
 
@@ -476,6 +476,125 @@ marg_multi_ba_bs |>
   scale_y_log10()+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
+  theme_bw()
+```
+
+# Counterfactual Race Assignment
+
+```{r}
+#| label: fig-multi-wb-counterf
+#| fig-cap: Comparison of White/Black exogamy when White-Black partners are re-assigned as Black or White
+
+marg_wb_cf_black <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Black", "Black", race_husband),
+    race_wife = if_else(race_wife == "White-Black", "Black", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Black"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "Black")
+
+marg_wb_cf_white <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Black", "White", race_husband),
+    race_wife = if_else(race_wife == "White-Black", "White", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Black"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "White")
+
+marg_single_bs |>
+  filter(term == "White/Black") |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(marg_wb_cf_black) |>
+  bind_rows(marg_wb_cf_white) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy"))+
+  scale_fill_manual(values = c("red", "gold", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-multi-wa-counterf
+#| fig-cap: Comparison of White/Asian exogamy when White-Asian partners are re-assigned as Asian or White
+
+marg_wa_cf_asian <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Asian", "Asian", race_husband),
+    race_wife = if_else(race_wife == "White-Asian", "Asian", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Asian"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "Asian")
+
+marg_wa_cf_white <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Asian", "White", race_husband),
+    race_wife = if_else(race_wife == "White-Asian", "White", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Asian"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "White")
+
+marg_single_bs |>
+  filter(term == "White/Asian") |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(marg_wa_cf_asian) |>
+  bind_rows(marg_wa_cf_white) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy"))+
+  scale_fill_manual(values = c("red", "gold", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-multi-wi-counterf
+#| fig-cap: Comparison of White/Indigenous exogamy when White-Indigenous partners are re-assigned as Indigenous or White
+#| 
+marg_wi_cf_indigenous <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Indigenous", "Indigenous", race_husband),
+    race_wife = if_else(race_wife == "White-Indigenous", "Indigenous", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Indigenous"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "Indigenous")
+
+marg_wi_cf_white <- census |>
+  mutate(
+    race_husband = if_else(race_husband == "White-Indigenous", "White", race_husband),
+    race_wife = if_else(race_wife == "White-Indigenous", "White", race_wife)
+  ) |>
+  bootstrap_model(c("White", "Indigenous"),
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "White")
+
+marg_single_bs |>
+  filter(term == "White/Indigenous") |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(marg_wi_cf_indigenous) |>
+  bind_rows(marg_wi_cf_white) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy"))+
+  scale_fill_manual(values = c("red", "gold", "navy"))+
   theme_bw()
 ```
 
