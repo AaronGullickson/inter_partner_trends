@@ -636,6 +636,7 @@ marg_hispanic_sub |>
   theme_bw()
 
 ```
+
 ```{r}
 marg_asian_sub <- census |>
   mutate(race_husband = subrace_husband,
