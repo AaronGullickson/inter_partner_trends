@@ -7,6 +7,8 @@ PAIRINGS <- c(
   # single race pairings
   "White/Black",
   "White/Indigenous",
+  "White/AIAN",
+  "White/PI",
   "White/Asian",
   "White/EastAsian",
   "White/SEAsian",
@@ -41,7 +43,8 @@ PAIRINGS <- c(
   "BlackHispanic/OtherHispanic",
   "EastAsian/SEAsian",
   "EastAsian/SouthAsian",
-  "SEAsian/SouthAsian"
+  "SEAsian/SouthAsian",
+  "AIAN/PI"
 )
 
 # number of bootstrap samples
@@ -329,7 +332,7 @@ get_intermar_names <- function(x) {
     str_replace_all("white", "White") |>
     str_replace_all("black", "Black") |>
     str_replace_all("hispanic", "Hispanic") |>
-    str_replace_all("api", "API") |>
+    str_replace_all("pi", "PI") |>
     str_replace_all("asian", "Asian") |>
     str_replace_all("aian", "AIAN") |>
     str_replace_all("indigenous", "Indigenous") |>
