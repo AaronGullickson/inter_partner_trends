@@ -18,10 +18,9 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
+# Read in Census/ACS data
 
-This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. Reliable data on Hispanic identification is not available until 1980. IPUMS does provide a Hispanic identifier for earlier years that is primarily based on surnames, but this cannot be used by for interracial marriage because the identifier is the same for spouses. The 1970 data do contain responses to the first Hispanicity question on Form 1, but these responses have been shown to be inconsistent with later responses from 1980 on. We did test this response, and found a substantial decrease in Hispanic intermarriage from 1970 to 1980 that is inconsisten with general trends.
-
-## Read in ACS Data
+This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
 
 ```{r}
 #| label: read-data
@@ -58,7 +57,7 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00146.dat.gz"),
                    col_types = cols(.default = "i", HHWT = "d"))
 ```
 
-In more recent data we will have some same sex couples. To keep consistency across the time we will focus on heterosexual couples It also makes our data extract simpler because we can grab only men and attach spousal characteristics. However, we will still get male gay couples in the sample, so these need to be removed.
+In more recent data we will have some same sex couples. To keep consistency across the time I will focus on heterosexual couples. The full data contain some male-male couples in the sample, so these need to be removed.
 
 ```{r}
 #| label: check-spouse-sex
@@ -71,38 +70,13 @@ census <- census |>
 table(census$SEX, census$SEX_SP)
 ```
 
-Restrict both spouses to native born status:
+## Code variables
+
+States are entered as numeric FIPS codes. I will use the `tidycensus` package to merge in the `fips_codes` data to get state abbreviations.
 
 ```{r}
-#| label: restrict-nativity
+#| label: code-state-fips
 
-census |> 
-  select(BPL, BPL_SP) |>
-  summary()
-
-census <- census |>
-  filter(BPL <= 99, BPL_SP <= 99)
-
-census |> 
-  select(BPL, BPL_SP) |>
-  summary()
-```
-
-Lets check the ages of men and women. We won't change age here however.
-
-```{r}
-#| label: check-age
-
-summary(census$AGE)
-summary(census$AGE_SP)
-
-summary(census$AGE)
-summary(census$AGE_SP)
-```
-
-Lets merge in data from `tidycensus` to get state names.
-
-```{r}
 census <- fips_codes |> 
   as_tibble() |>
   mutate(STATEFIP = as.numeric(state_code)) |>
@@ -111,14 +85,42 @@ census <- fips_codes |>
   right_join(census)
 ```
 
-Ok, now we are ready to code race.
+### Coding race
+
+Ok, now I am ready to code most of the variables we care about. The primary variable of concern is the race variable. Because I am doing this over a large time period I are limited in how I caan code race consistently. I also want to keep the categories small so that I will have a large enough sample size for each group in each year. For the main analysis, I will use the following categories:
+
+- White
+- Black
+- Indigenous (American Indian/Alaska Native and Pacific Islander)
+- Asian
+- Hispanic
+
+Reliable data on Hispanic identification is not available until 1980. IPUMS does provide a Hispanic identifier for earlier years that is primarily based on surnames, but this cannot be used by for interracial marriage because the identifier is the same for spouses. The 1970 data do contain responses to the first Hispanicity question on Form 1, but these responses have been shown to be inconsistent with later responses from 1980 on. I did test this response, and found a substantial decrease in Hispanic intermarriage from 1970 to 1980 that is inconsistent with general trends.
+
+The 1980 data included a race category 650 which was for "Other Asian/Pacific Islander groups." This category was in keeping with the Census decision to collapse the Asian and Pacific Islander category together in most 1980 and 1990 reported statistics. For a variety of historical reasons (e.g. discourses of miscegenation) I think it makes much more sense to treat Pacific Islanders as an indigenous populations. However, to do so I need to deal with the 650 cases in 1980. I do this by imputation discussed below further.
+
+I also include five biracial groups from 2000 on that have a large enough sample to analyze:
+
+- White-Black
+- White-Indigenous
+- White-Asian
+- Black-Indigenous
+- Black-Asian
+
+### Coding time periods
+
+To help smooth out smaller sample sizes I group the ACS data after 2000 into three year groups of 2001-2003, 2004-2006, 2007-2009, 2010-2012, 2013-2015, and 2016-2018. They are all identified by the midpoint year. 
+
+### Calculating marriage duration
+
+ACS data from 2008 onward included the year of the most recent marriage for married individuals. I can use this to determine the duration of the current marriage. The 1960, 1970, and 1980 also include a variable on married individuals age at *first* marriage. I use these to calculate duration of the current marriage, but for the earlier data period, I will only have valid duration of marriage for first marriages. 
 
 ```{r}
 #| label: create-vars
 
 # TODO: deal with quality flags on race
 
-# lets create a function for assigning race, since we will do it for both spouses
+# create some functions for coding data where we need to do it for both spouses
 code_race <- function(raced, hispan, year) {
   
   race <- case_when(
@@ -226,7 +228,9 @@ census <- census |>
   filter(YEAR != 2019)
 ```
 
-Now lets impute values for the 650 (Other Asian/Pacific Islander) cases from 1980. We will use 1990 observations for Asian and PI respondents to impute. We use 1990 because it has a fuller range of responses fo Asian and PI respondents, specifically those that would have gone into the "Other Asian/PI" 650 category in 1980. For this imputation, I use:
+### Impute race for 650 case
+
+Now lets impute values for the 650 (Other Asian/Pacific Islander) cases from 1980. I will use valid 1990 observations for Asian and Pacific Islander respondents for the imputation procedure. I use 1990 rather than valid 1980 responses because it has a fuller range of possible categories for Asian and Pacific Islander respondents, specifically those that would have gone into the "Other Asian/PI" 650 category in 1980. I impute via predictive mean matching using the following covariates:
 
 - race of other partner
 - age of both partners
@@ -284,7 +288,10 @@ census <- census |>
   filter(!is.na(race_husband) & !is.na(race_wife))
 ```
 
-Lets check ourselves.
+
+### Check yourself before you wreck yourself
+
+Lets run some checks on our codes.
 
 ```{r}
 #| label: data-coding-checks
@@ -306,19 +313,30 @@ census |>
   summarize(mean_dur_mar = mean(dur_mar, na.rm = TRUE),
             min_dur_mar = min(dur_mar, na.rm = TRUE)) |>
   gt()
-
 ```
 
-## Calculate age weights
+## Calculate joint age distributions
 
-We want to calculate age weights that weight each couple by the joint age distribution to mimic an age distribution similar to recently married couples. To do this we need to first calculate the joint distribution of recent marriages. For now, we will do this based on data for years where we have information on marriage timing. <!-- TODO: Replace 1960-1980 with vital stats tables from 1960-1988 because these only consider first marriages -->
+I want to calculate age weights that weight each couple by the joint age distribution to mimic an age distribution similar to recently married couples. To do this, I first need to calculate the joint age distribution of recent marriages in each time period. For the data from 2008 onward I can do this from the ACS data itself, by selecting partners married a year or less.
+
+I also need this joint age distribution to be grouped into larger age groups than single years for two reasons. First, grouping will make for smoother interpolations in cases where I need to interpolate the joint distribution. Second, I will be using vital statistics report published tables to determine the joint distribution in earlier years and these tables have already grouped partners into larger age goups. The age groups that I will use in order to be able to use all tables are:
+
+* Under 20
+* 20-24
+* 25-29
+* 30-34
+* 35-44
+* 45-54
+* 55 and over
+
+Thes age groups are already coded in as numeric values in the `age_group_` variables for each spouse. I use a numeric value so that I can easily calculate means across years as a diagnostic check.
 
 ```{r}
 #| label: calculate-joint-age-distribution
 
 # long format table of joint distribution of spouse's age by year
 prop_age_year_recent <- census |>
-  filter(dur_mar <= 1) |>
+  filter(dur_mar <= 1 & YEAR >= 2008) |>
   group_by(age_group_husband, age_group_wife, YEAR) |>
   summarize(n_dur = n()) |>
   ungroup()
@@ -339,7 +357,15 @@ prop_age_year_recent |>
   gt()
 ```
 
+The resulting joint distribution proportions are correctly summing to one in each year.
+
+For the years 1960, 1970, 1980, and 1988, I use published tables from vital statistics reports that give the joint distribution in each year. I transcribed these tables to a google sheet avaiable [here](https://docs.google.com/spreadsheets/d/1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4/edit?usp=sharing).
+
+To prepare for reading this in, I deauthorize the `googlesheets4` package so I can read it in without having to enter authorization and I create a function that will help me convert the tables to the format I want.
+
 ```{r}
+#| label: prep-read-gsheet-tables
+
 gs4_deauth()
 
 convert_age_string <- function(x) {
@@ -357,13 +383,12 @@ convert_age_string <- function(x) {
 }
 ```
 
+### Read 1960 vital stats data
+
+This one is a bit of a mess. Its split up by single, widowed, and divorced wives, but the age groups for widowed and divorced start with under 35 and under 25, respectively. To extend these groups across all the categories, I distribute the under 35 and under 25 cases across the full cells using the proportions found in the single wives table.
+
 ```{r}
 #| label: read-1960-vsus
-
-# this ones a mess - its split up by single, widowed, and divorced wives, but
-# the age groups for widowed and divorced start with under 35 and under 25, 
-# respectively. I think the way to handle this will be to distribut the values
-# in this cell in the same proportions as for the single cells
 
 vsus1960_single <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
                               sheet = "Table 2-18 Single Bride 1960 VSUS") |>
@@ -434,12 +459,14 @@ vsus1960 <- vsus1960_single |>
   mutate(prop = freq / sum(freq), YEAR = 1960) |>
   select(age_group_husband, age_group_wife, YEAR, prop)
 
-# remove existing 1960 data and replace with this one
+# add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
-  filter(YEAR != 1960) |>
   bind_rows(vsus1960)
 ```
 
+### Read 1970 vital stats data
+
+The 1970 data is a straightforward single table.
 
 ```{r}
 #| label: read-1970-vsus
@@ -459,11 +486,14 @@ vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   mutate(YEAR = 1970) |>
   select(age_group_husband, age_group_wife, YEAR, prop)
 
-# remove existing 1970 data and replace with this one
+# add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
-  filter(YEAR != 1970) |>
   bind_rows(vsus1970)
 ```
+
+### Read 1980 vital stats data
+
+The 1980 data is a straightforward single table.
 
 ```{r}
 #| label: read-1980-vsus
@@ -488,6 +518,12 @@ prop_age_year_recent <- prop_age_year_recent |>
   filter(YEAR != 1980) |>
   bind_rows(vsus1980)
 ```
+
+### Read 1988 vital stats data
+
+1988 was the last year in which official vital statistics for marriage were published that I can use. This data is closer to the 1990 and 2000 data and so is a better jumping off point for the interpolations that will follow even though I won't use the 1988 proportions directly.
+
+The 1988 data were split by race (White, Black, and Other). Interestingly, interracial couples were ignored. Combining the results together should get me a pretty good approximation of the joint distribution of the age of spouses.
 
 ```{r}
 #| label: read-1988-vsus
@@ -538,8 +574,9 @@ prop_age_year_recent <- prop_age_year_recent |>
   bind_rows(vsus1988)
 ```
 
+### Interpolating joint distributions
 
-We have no information on duration between 1980 and 2008, so we will need to interpolate the joint distribution. After experimenting with more advanced techniques, we found that a simpler linear interpolation actually provided the best fit. Lets first create a function to interpolate.
+I have no information on the duration of marriages between 1980 and 2008 and we have no vital statistics reports. Therefore to get joint distributions for 1990 and 2000-2007, I will need to interpolate. After experimenting with more advanced techniques, I found that a simpler linear interpolation actually provided the best fit. I first create a function to interpolate.
 
 ```{r}
 #| label: function-interpolation
@@ -571,7 +608,7 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
 }
 ```
 
-Now we can do the interpolation for the missing years and add them to our full joint distribution data.
+Now I can do the interpolation for the missing years and add them to the full joint distribution data.
 
 ```{r}
 #| label: age-interpolation
@@ -583,7 +620,7 @@ prop_age_year_recent <- map(years_interp, interpolate_age_dist, 1988, 2008) |>
   bind_rows(prop_age_year_recent)
 ```
 
-And lets check these to make sure they look reasonable with some figures.
+I check these to make sure they look reasonable with some figures.
 
 ```{r}
 #| label: fig-summary-age-dist
@@ -621,6 +658,7 @@ ggplot(temp, aes(x = YEAR, y = age_diff))+
   theme_bw()
 ```
 
+The fit looks very nice both for the marginal distribution of partner's age and for the age difference between partners. 
 
 ```{r}
 #| label: fig-age-dist
@@ -721,8 +759,42 @@ prop_age_year_recent |>
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-Now that we have the joint distribution of age for recent marriages, we can compute the same proportions across all extant marriages and then use the ratio of the proportions to get the weights, the same as for post-stratification weights.
+The full joint distribution looks like it is transitioning very naturally across the imputed years of 1990, 2000, and 2004. 
 
+## Sample restrictions
+
+Before fitting age weights, I should apply whatever global sample restrictions I need to apply to the data. 
+
+To ensure that we are getting individuals who were married in the US and who were raised in the context of US norms around racial boundaries, I restrict both spouses to native born status.
+
+```{r}
+#| label: restrict-nativity
+
+census |> 
+  select(BPL, BPL_SP) |>
+  summary()
+
+census <- census |>
+  filter(BPL <= 99, BPL_SP <= 99)
+
+census |> 
+  select(BPL, BPL_SP) |>
+  summary()
+```
+
+Finally, I remove any missing values on race of spouses as these are groups that I did not explicitly code.
+
+```{r}
+#| label: drop-race-na
+
+census <- census |>
+  filter(!is.na(race_husband) & !is.na(race_wife))
+
+```
+
+## Calulate age weights
+
+Now that I have the joint distribution of age for recent marriages, I can compute the same proportions across all extant marriages and then use the ratio of the proportions to get the weights, the same as for post-stratification weights.
 
 ```{r}
 #| label: calculate-weights
@@ -751,6 +823,12 @@ weighting <- full_join(prop_age_year, prop_age_year_recent) |>
 
 census <- census |>
   left_join(weighting)
+```
+
+I confirm that the mean of the weights in each year is 1.
+
+```{r}
+#| label: mean-weights
 
 # confirm that the mean weight in each year is 1
 census |>
@@ -763,7 +841,7 @@ As a test case, lets see how the weights adjust the distribution in 2008.
 
 ```{r}
 #| label: fig-age-weights-hist
-#| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the green histogram applies age weights to the full distribution to bring them in line with recent marriages.
+#| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the blue histogram applies age weights to the full distribution to bring them in line with recent marriages.
 
 census |>
   filter(year == "2008") |>
@@ -782,12 +860,15 @@ census |>
 Now lets save the data.
 
 ```{r}
+#| label: save-analytical-data
+
 census <- census |> 
   select(race_husband, race_wife, 
          educ_husband, educ_wife, 
          age_husband, age_wife, 
          dur_mar, weight_age, 
-         state, division, region, year)
+         state, division, region, 
+         year)
          
 
 save(census, file = here("data", "data_constructed", "individ_data.RData"))
