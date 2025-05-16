@@ -236,6 +236,7 @@ Lets adjust for state, division, and region. For state, we will need to do it wi
 
 ```{r}
 #| label: estimate-geo-compositional-models
+#| eval: false
 
 tic()
 marg_single_state <- census |>
@@ -261,6 +262,7 @@ toc()
 ```{r}
 #| label: fig-compare-composition
 #| fig-cap: Comparison of model parameters from models with different geographic composition adjustments
+#| eval: false
 
 marg_single_bs |>
   bind_rows(marg_single_state) |>
@@ -281,8 +283,6 @@ marg_single_bs |>
 ```
 
 # Overall Trends
-
-
 
 ```{r}
 #| label: fig-intermar-single-overall
