@@ -78,25 +78,18 @@ bootstrap_model <- function(ind_data,
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
   
-  if(show_progress) {
-    pb$tick()
-  }
-  results <- ind_data |>
-    slice_sample(n = nrow(ind_data), replace = TRUE) |>
-    estimate_lor(selected_groups, se = FALSE, ...)
-  by_vars <- colnames(results)
-  by_vars <- by_vars[by_vars != "estimate"]
-  
-  for(i in 2:B) {
+  results <- map(1:B, function(i) {
     if(show_progress) {
       pb$tick()
     }
-    results <- ind_data |>
+    ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      estimate_lor(selected_groups, se = FALSE, ...) |>
-      # do a full join here in case some terms are missing in some samples
-      full_join(results, by = by_vars)
-  }
+      estimate_lor(selected_groups, se = FALSE, ...) 
+  })
+  
+  by_vars <- colnames(results[[1]])
+  by_vars <- by_vars[by_vars != "estimate"]
+  results <- reduce(results, full_join, by = by_vars)
   
   if(show_progress) {
     pb$tick()
@@ -158,6 +151,10 @@ estimate_lor <- function(ind_data,
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     mutate(unity = 1) |>
     summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
+  
+  # clean up the memory here now that we don't need individual data
+  rm(ind_data)
+  gc()
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
@@ -320,6 +317,11 @@ estimate_lor <- function(ind_data,
     marg <- marg |>
       select(-statistic, -p.value, -s.value)
   }
+  
+  # some memory cleanup
+  rm(model_data)
+  rm(model)
+  gc()
   
   return(marg)
 }
