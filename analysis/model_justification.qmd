@@ -48,7 +48,8 @@ For illustrative purposes, I will limit analysis to couples where the husband is
 ```{r}
 #| label: restrict-age
 census_age <- census |>
-  filter(age_husband >= 25 & age_husband <= 34)
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+")
 ```
 
 I can then use this to create three-way contingency tables across all racial groups and years.
@@ -707,32 +708,86 @@ Where $k$ is the region. We need to add the two-way interactions between each sp
 I could do this by state, for example. In this case, though, calculating `avg_slopes` will be computationally expensive, unless I turn off the calculation of standard errors.
 
 ```{r}
-#| label: fig-wb-state-time
-#| fig-cap: Log odds ratio of White/Black marriage over time, showing differene in estimates when accounting for varying racial composition across states.
+#| label: fig-wa-state-time
+#| fig-cap: Log odds ratio of White/Black marriage over time, showing difference in estimates when accounting for varying racial composition across states.
 mar_data <- census_age |>
-  filter(race_husband %in% c("White", "Black"),
-         race_wife %in% c("White", "Black")) |>
+  filter(race_husband %in% c("White", "Asian"),
+         race_wife %in% c("White", "Asian")) |>
   group_by(race_husband, race_wife, state, year) |>
   summarize(freq = n()) |>
   ungroup() |>
   mutate(
     year = as.factor(year),
-    inter_wb = race_husband == "White" & race_wife == "Black"
+    inter_wa = race_husband == "White" & race_wife == "Asian"
   )
 
-model <- glm(freq ~ ((race_husband + race_wife) * state + inter_wb) * year,
+model <- glm(freq ~ ((race_husband + race_wife) + inter_wa) * year,
+             data =mar_data, family = poisson) 
+
+marg_wa <- avg_slopes(model, variables = "inter_wa", by = "year", 
+                      type = "link", vcov = FALSE) |> 
+  as_tibble() |>
+  mutate(composition = "none")
+
+model <- glm(freq ~ ((race_husband + race_wife) * state + inter_wa) * year,
              data =mar_data, family = poisson)
 
-marg_wb_state <- avg_slopes(model, variables = "inter_wb", by = "year", 
+marg_wa_state <- avg_slopes(model, variables = "inter_wa", by = "year", 
                             type = "link", vcov = FALSE) |> 
-  as_tibble()
+  as_tibble() |>
+  mutate(composition = "state")
 
-marg_wb_state |> rename(estimate_state = estimate) |>
-  right_join(marg_bw) |>
-  rename(estimate_none = estimate) |>
-  select(year, starts_with("estimate_")) |>
-  pivot_longer(cols = starts_with("estimate_"), names_prefix = "estimate_",
-               names_to = "composition", values_to = "estimate") |>
+marg_wa_state |> 
+  bind_rows(marg_wa) |>
+  mutate(year = as.numeric(paste(year))) |>
+  ggplot(aes(x = year, y = estimate, color = composition))+
+  geom_line()+
+  geom_point()+
+  labs(color = "compositional\nadjustment")+
+  theme_bw()
+```
+
+We could also try to adjust by offsetting the expected cell count under the assumption of independence. So for husband's race $i$, wife's race $j$, state $s$, and time period $t$, we can determine the expected cell count $E_{ijst}$ under the assumption of independence of husband's and wife's race:
+
+$$E_{ijst} = \frac{F_{ist}F_{jst}}{F_{st}}$$
+
+This expected cell frequency can then be applied to the log-linear model as an offset:
+
+$$\log(F_{ijt})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_t^T+\lambda_{it}^{HR:T}+\lambda_{jt}^{WR:T}+\beta_{ijt}+\alpha_{ijt}+\log(E_{ijst})$$
+
+```{r}
+mar_data <- mar_data |>
+  group_by(race_husband, state, year) |>
+  summarize(husband_marg = sum(freq), .groups = "drop") |>
+  right_join(mar_data)
+
+mar_data <- mar_data |>
+  group_by(race_wife, state, year) |>
+  summarize(wife_marg = sum(freq), .groups = "drop") |>
+  right_join(mar_data)
+
+mar_data <- mar_data |>
+  group_by(state, year) |>
+  summarize(total = sum(freq), .groups = "drop") |>
+  right_join(mar_data)
+
+mar_data <- mar_data |>
+  mutate(expected = husband_marg * wife_marg / total) |>
+  # now we can aggregate up to the national level
+  group_by(race_husband, race_wife, year, inter_wa) |>
+  summarize(freq = sum(freq), expected = sum(expected), .groups = "drop")
+
+model <- glm(freq ~ (race_husband + race_wife + inter_wa) * year,
+             data =mar_data, family = poisson, offset = log(expected))
+
+marg_wa_state_offset <- avg_slopes(model, variables = "inter_wa", by = "year", 
+                                   type = "link", vcov = FALSE) |> 
+  as_tibble() |>
+  mutate(composition = "offset state")
+
+marg_wa_state |> 
+  bind_rows(marg_wa_state_offset) |>
+  bind_rows(marg_wa) |>
   mutate(year = as.numeric(paste(year))) |>
   ggplot(aes(x = year, y = estimate, color = composition))+
   geom_line()+

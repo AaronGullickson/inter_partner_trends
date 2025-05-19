@@ -181,6 +181,32 @@ estimate_lor <- function(ind_data,
   model_data <- model_data |>
     filter(freq > 0)
   
+  # if using a compositional adjustment, then calculate expected cell counts
+  if(!is.null(composition_var)) {
+    
+    # get husband's race marginal
+    model_data <- model_data |>
+      group_by(race_husband, !!sym(composition_var), year) |>
+      summarize(husband_marg = sum(freq), .groups = "drop") |>
+      right_join(model_data, by = c("race_husband", composition_var, "year"))
+    
+    # get wife's race marginal
+    model_data <- model_data |>
+      group_by(race_wife, !!sym(composition_var), year) |>
+      summarize(wife_marg = sum(freq), .groups = "drop") |>
+      right_join(model_data, by = c("race_wife", composition_var, "year"))
+    
+    # get total for composition-year
+    model_data <- model_data |>
+      group_by(!!sym(composition_var), year) |>
+      summarize(total = sum(freq), .groups = "drop") |>
+      right_join(model_data, by = c(composition_var, "year"))
+    
+    model_data <- model_data |>
+      mutate(expected = husband_marg * wife_marg / total) |>
+      select(-husband_marg, -wife_marg, -total)
+  }
+  
   # create required variables
   for(i in 1:(length(selected_groups)-1)) {
     for(j in (i+1):length(selected_groups)) {
@@ -229,12 +255,6 @@ estimate_lor <- function(ind_data,
   ## create formula ##
   
   formula_model <- "(race_husband+race_wife)"
-  if(!is.null(composition_var)) {
-    formula_model <- paste0(formula_model,
-                            "*(",
-                            paste(composition_var, collapse = "+"),
-                            ")")
-  }
   mar_terms <- colnames(model_data) |> str_subset("^inter_|^gender_")
   formula_model <- paste0(formula_model,
                           "+(",
@@ -250,12 +270,6 @@ estimate_lor <- function(ind_data,
                                paste0("race_wife*", control_var, "_wife")),
                              collapse = "+")
     formula_control <- paste0("(", formula_control, ")")
-    if(!is.null(composition_var)) {
-      formula_control <- paste0(formula_control, 
-                                "*(",
-                                paste(composition_var, collapse = "+"),
-                                ")")
-    }
     if(!is.null(conditional_var)) {
       formula_control <- paste0(formula_control, 
                                 "*(",
@@ -275,9 +289,16 @@ estimate_lor <- function(ind_data,
   
   ## run the model ##
   # turn off warnings about non-integer poisson - we know because of weights
-  model <- suppressWarnings(
-    glm(formula_model, data = model_data, family = poisson)
-  )
+  if(!is.null(composition_var)) {
+    model <- suppressWarnings(
+      glm(formula_model, data = model_data, family = poisson, 
+          offset = log(expected))
+    )
+  } else {
+    model <- suppressWarnings(
+      glm(formula_model, data = model_data, family = poisson)
+    )
+  }
 
    ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
