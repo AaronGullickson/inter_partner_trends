@@ -78,22 +78,34 @@ bootstrap_model <- function(ind_data,
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
   
-  results <- map(1:B, function(i) {
-    if(show_progress) {
+  results <- vector("list", B)
+  
+  # do a for loop here because memory can be an issue
+  for (i in seq_len(B)) {
+    if (show_progress) {
       pb$tick()
     }
-    ind_data |>
+    
+    sample_result <- ind_data |>
       slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      estimate_lor(selected_groups, se = FALSE, ...) 
-  })
-  
-  by_vars <- colnames(results[[1]])
-  by_vars <- by_vars[by_vars != "estimate"]
-  results <- reduce(results, full_join, by = by_vars)
+      estimate_lor(selected_groups, se = FALSE, ...)
+    
+    results[[i]] <- sample_result
+    
+    #  memory cleanup
+    rm(sample_result)
+    if (i %% 5 == 0) {
+      gc()  # Run garbage collection every 5 iterations
+    }
+  }
   
   if(show_progress) {
     pb$tick()
   }
+  
+  by_vars <- colnames(results[[1]])
+  by_vars <- by_vars[by_vars != "estimate"]
+  results <- reduce(results, full_join, by = by_vars)
   
   estimates <- results |> 
     select(starts_with("estimate"))
