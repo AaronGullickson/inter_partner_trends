@@ -200,6 +200,10 @@ code_educ <- function(educd) {
   return(education)
 }
 
+code_generation <- function(bpl) {
+  factor(if_else(bpl <= 99, "2nd+", "1st"))
+}
+
 # for the age weighting, we will need five year age groups. Just code
 # by the midpoint so we can calculate means
 create_age_group <- function(age) {
@@ -228,6 +232,8 @@ census <- census |>
          age_wife = AGE_SP,
          age_group_husband = create_age_group(age_husband),
          age_group_wife = create_age_group(age_wife),
+         gen_husband = code_generation(BPL),
+         gen_wife = code_generation(BPL_SP),
          dur_mar = case_when(
            YEAR >= 2008 ~ YEAR-YRMARR,
            YEAR <= 1980 & MARRNO == 1 ~ AGE-AGEMARR,
@@ -801,24 +807,7 @@ The full joint distribution looks like it is transitioning very naturally across
 
 Before fitting age weights, I should apply whatever global sample restrictions I need to apply to the data. 
 
-To ensure that we are getting individuals who were married in the US and who were raised in the context of US norms around racial boundaries, I restrict both spouses to native born status.
-
-```{r}
-#| label: restrict-nativity
-
-census |> 
-  select(BPL, BPL_SP) |>
-  summary()
-
-census <- census |>
-  filter(BPL <= 99, BPL_SP <= 99)
-
-census |> 
-  select(BPL, BPL_SP) |>
-  summary()
-```
-
-Finally, I remove any missing values on race of spouses as these are groups that I did not explicitly code.
+I remove any missing values on race of spouses as these are groups that I did not explicitly code.
 
 ```{r}
 #| label: drop-race-na
@@ -902,6 +891,7 @@ census <- census |>
   select(race_husband, race_wife, subrace_husband, subrace_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
+         gen_husband, gen_wife,
          dur_mar, weight_age, 
          state, division, region, 
          year)
