@@ -43,6 +43,63 @@ census <- census |>
 B <- 10
 ```
 
+```{r}
+#| label: set-color-palette
+
+palette <- c(
+  # Single race comboinations
+  "White/Black"                   = "#E69F00",  # rich orange
+  "White/Indigenous"              = "#009E73",  # teal green
+  "White/Asian"                   = "#CC79A7",  # muted magenta
+  "White/Hispanic"                = "#661100",  # deep rust
+  "Black/Indigenous"              = "#A65628",  # warm brown
+  "Black/Asian"                   = "#74AA99",  # muted cyan
+  "Black/Hispanic"                = "#882255",  # deep burgundy
+  "Indigenous/Asian"              = "#56B4E9",  # desaturated turquoise
+  "Indigenous/Hispanic"           = "#AA4499",  # dusty rose
+  "Asian/Hispanic"                = "#117733",  # forest green
+  
+  # Single race to multiracial combinations
+  "White/White-Black"             = "#47AC11",  # vivid spring green
+  "Black/White-Black"             = "#471624",  # deep maroon-brown
+  "White/White-Indigenous"        = "#361892",  # royal indigo
+  "Indigenous/White-Indigenous"   = "#23A4BB",  # bright teal-blue
+  "White/White-Asian"             = "#667AA3",  # slate blue
+  "Asian/White-Asian"             = "#6D7003",  # olive drab
+  "Black/Black-Asian"             = "#1117AA",  # bold cobalt blue
+  "Asian/Black-Asian"             = "#6D4113",  # dark umber
+  "Black/Black-Indigenous"        = "#7171BB",  # muted periwinkle
+  "Indigenous/Black-Indigenous"   = "#422D13",  # earthy espresso
+
+  # Hispanic subgroups with White and Black
+  "White/WhiteHispanic"           = "#9E9E00",  # olive yellow
+  "White/BlackHispanic"           = "#AA0055",  # rose plum
+  "White/OtherHispanic"           = "#994455",  # warm muted red
+  "Black/WhiteHispanic"           = "#552288",  # soft purple
+  "Black/BlackHispanic"           = "#AA3344",  # reddish brick
+  "Black/OtherHispanic"           = "#BB5522",  # burnt orange-rust
+
+  # Asian subgroups with White
+  "White/EastAsian"               = "#3366AA",  # steely blue
+  "White/SEAsian"                 = "#118877",  # sea green
+  "White/SouthAsian"              = "#9933AA",  # muted violet-magenta
+
+  # Intra-Hispanic
+  "WhiteHispanic/BlackHispanic"   = "#BB8866",  # muted tan
+  "WhiteHispanic/OtherHispanic"   = "#885577",  # dusty mauve
+  "BlackHispanic/OtherHispanic"   = "#AA8844",  # muted amber
+  
+  # Intra-Asian
+  "EastAsian/SEAsian"             = "#336633",  # forest moss
+  "EastAsian/SouthAsian"          = "#993399",  # grape violet
+  "SEAsian/SouthAsian"            = "#CC6666",  # muted rose
+
+  # Intra-Indigenous
+  "AIAN/PI"                       = "#447777"   # muted teal gray
+)
+
+```
+
 # Model set up
 
 We use the function `estimate_lor` to estimate our key intermarriage log odds ratio parameters. At a basic level, all we need to feed in to this function is the couple level Census/ACS data and a vector of the names of racial groups we want to include. All pairings of this vector will be estimated in the model. In some cases, the user may want to manually restrict the Census/ACS data (e.g. by age) before piping it into `estimate_lor`.
@@ -306,30 +363,6 @@ marg_single_bs |>
 #|    - Asian partner
 #|    - Hispanic partner
 
-
-palette <- c(
-  "White/Black"                 = "#E69F00", # rich orange
-  "White/Indigenous"            = "#009E73", # teal green
-  "White/Asian"                 = "#CC79A7", # muted magenta
-  "White/Hispanic"              = "#661100", # deep rust
-  "Black/Indigenous"            = "#A65628", # warm brown
-  "Black/Asian"                 = "#74AA99", # muted cyan (not primary blue)
-  "Black/Hispanic"              = "#882255", # deep burgundy
-  "Indigenous/Asian"            = "#56B4E9", # desaturated turquoise
-  "Indigenous/Hispanic"         = "#AA4499", # dusty rose
-  "Asian/Hispanic"              = "#117733", # forest green
-  "White/White-Black"           = "#47AC11", 
-  "Black/White-Black"           = "#471624",
-  "White/White-Indigenous"      = "#361892",
-  "Indigenous/White-Indigenous" = "#23A4BB",
-  "White/White-Asian"           = "#667AA3",
-  "Asian/White-Asian"           = "#6D7003",
-  "Black/Black-Asian"           = "#1117AA",
-  "Asian/Black-Asian"           = "#6D4113",
-  "Black/Black-Indigenous"      = "#7171BB",
-  "Indigenous/Black-Indigenous" = "#422D13"
-)
-
 lims <- exp(c(min(marg_single_bs$conf.low), max(marg_single_bs$conf.high)))
 
 marg_single_bs |>
@@ -582,7 +615,6 @@ marg_single_bs |>
 ```{r}
 #| label: fig-multi-wi-counterf
 #| fig-cap: Comparison of White/Indigenous exogamy when White-Indigenous partners are re-assigned as Indigenous or White
-#| eval: false
 
 marg_wi_cf_indigenous <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
@@ -624,6 +656,12 @@ marg_single_bs |>
 # Subrace Analysis
 
 ```{r}
+#| label: fig-sub-hispanic
+#| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
+#| layout-ncol: 2
+#| subfig-cap:
+#|   - White partner
+#|   - Black partner
 
 marg_hispanic_sub <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
@@ -633,6 +671,9 @@ marg_hispanic_sub <- census |>
                     "OtherHispanic"),
                   show_progress = TRUE)
 
+lims <- exp(c(min(marg_hispanic_sub$conf.low), 
+              max(marg_hispanic_sub$conf.high)))
+
 marg_hispanic_sub |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
@@ -641,10 +682,15 @@ marg_hispanic_sub |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
+```
+
+```{r}
+#| label: fig-pan-hispanic
+#| fig-cap: Exogamy of Hispanic subgroups with each other
 
 marg_hispanic_sub |>
   filter(str_detect(term, "^Black/") | term == "White/Black") |>
@@ -654,14 +700,17 @@ marg_hispanic_sub |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
 
 ```
 
 ```{r}
+#| label: fig-sub-asian-full
+#| fig-cap: Exogamy of Asian subgroups with White partners. 
+
 marg_asian_sub <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
@@ -678,9 +727,14 @@ marg_asian_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
+```
+
+```{r}
+#| label: fig-pan-asian-full
+#| fig-cap: Exogamy of Asian subgroups with each other
 
 marg_asian_sub |>
   filter(!str_detect(term, "^White/")) |>
@@ -691,9 +745,16 @@ marg_asian_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
+
+```
+
+
+```{r}
+#| label: fig-sub-asian-simple
+#| fig-cap: Exogamy of Asian subgroups with White partners, where East Asian and SE Asian have been combined into East Asian
 
 # combine E and SE
 combine_race <- function(subrace) {
@@ -703,14 +764,14 @@ combine_race <- function(subrace) {
     subrace %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
   factor(race, levels = c("White", "EastAsian", "SouthAsian"))
 }
-marg_asian_sub <- census |>
+marg_asian_sub_simple <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = combine_race(subrace_husband),
          race_wife = combine_race(subrace_wife)) |>
   bootstrap_model(c("White", "EastAsian", "SouthAsian"),
                   show_progress = TRUE)
 
-marg_asian_sub |>
+marg_asian_sub_simple |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -719,11 +780,16 @@ marg_asian_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
+```
 
-marg_asian_sub |>
+```{r}
+#| label: fig-pan-asian-simple
+#| fig-cap: Exogamy of Asian subgroups with each other, where East Asian and SE Asian have been combined into East Asian
+
+marg_asian_sub_simple |>
   filter(!str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -732,13 +798,15 @@ marg_asian_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
-
 ```
 
 ```{r}
+#| label: fig-sub-indigenous
+#| fig-cap: Exogamy of Indigenous subgroups with White partners.
+
 marg_indig_sub <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
@@ -755,9 +823,14 @@ marg_indig_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
+```
+
+```{r}
+#| label: fig-pan-indigenous
+#| fig-cap: Exogamy of Indigenous subgroups with each other
 
 marg_indig_sub |>
   filter(!str_detect(term, "^White/")) |>
@@ -768,8 +841,8 @@ marg_indig_sub |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  #scale_color_manual(values = palette)+
-  #scale_fill_manual(values = palette)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
   theme_bw()
 
 ```
