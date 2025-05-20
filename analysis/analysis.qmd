@@ -47,7 +47,7 @@ B <- 10
 #| label: set-color-palette
 
 palette <- c(
-  # Single race comboinations
+  # Single race combinations
   "White/Black"                   = "#E69F00",  # rich orange
   "White/Indigenous"              = "#009E73",  # teal green
   "White/Asian"                   = "#CC79A7",  # muted magenta
@@ -74,10 +74,10 @@ palette <- c(
   # Hispanic subgroups with White and Black
   "White/WhiteHispanic"           = "#9E9E00",  # olive yellow
   "White/BlackHispanic"           = "#AA0055",  # rose plum
-  "White/OtherHispanic"           = "#994455",  # warm muted red
+  "White/OtherHispanic"           = "#4FAA37",  # leafy green
   "Black/WhiteHispanic"           = "#552288",  # soft purple
   "Black/BlackHispanic"           = "#AA3344",  # reddish brick
-  "Black/OtherHispanic"           = "#BB5522",  # burnt orange-rust
+  "Black/OtherHispanic"           = "#2C37DA",  # vivid sapphire
 
   # Asian subgroups with White
   "White/EastAsian"               = "#3366AA",  # steely blue
