@@ -736,6 +736,19 @@ marg_hispanic_sub_state_bs |>
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
+
+marg_hispanic_sub_state_bs |>
+  filter(str_detect(term, "^Black/")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
 ```
 
 ```{r}
