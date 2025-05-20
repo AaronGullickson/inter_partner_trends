@@ -331,38 +331,24 @@ marg_single_bs |>
 
 # Compositional Factors
 
-Lets adjust for state, division, and region. We will bootstrap
+Lets adjust for state, division, and region. We will bootstrap all of them, but its absolutely necessary to do the state one separately by year. The division model also gets some slight gains to useing a separate year approach.
 
 ```{r}
 #| label: estimate-geo-compositional-models
 
 tic()
-marg_bw_state_2000 <- census |>
+marg_single_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               composition_var = "state", se = FALSE, pairwise = FALSE,
-               year_separate = TRUE)
-toc()
-
-tic()
-marg_bw_state <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  estimate_lor(c("White", "Black"), 
-               composition_var = "state", se = FALSE, pairwise = TRUE)
-toc()
-
-tic()
-marg_single_state <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               composition_var = "state", se = FALSE, pairwise = TRUE)
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE)
 toc()
 
 tic()
 marg_single_division_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  composition_var = "division",
+                  composition_var = "division", year_separate = TRUE,
                   show_progress = TRUE)
 toc()
 
@@ -370,28 +356,27 @@ tic()
 marg_single_region_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  composition_var = "region",
-                  show_progress = FALSE)
+                  composition_var = "region", year_separate = FALSE,
+                  show_progress = TRUE)
 toc()
 ```
 
 ```{r}
 #| label: fig-compare-composition
 #| fig-cap: Comparison of model parameters from models with different geographic composition adjustments
-#| eval: false
 
 marg_single_bs |>
-  bind_rows(marg_single_state) |>
+  bind_rows(marg_single_state_bs) |>
   bind_rows(marg_single_division_bs) |>
   bind_rows(marg_single_region_bs) |>
   mutate(composition = factor(composition, 
                               levels = c("none", "region", "division", "state"))) |>
   ggplot(aes(x = year, y = estimate, color = composition))+
-  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
-  #            alpha = 0.3, color = NA)+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = composition),
+              alpha = 0.3, color = NA)+
   geom_point(alpha = 0.7, size = 0.5)+
   geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term)+
+  facet_wrap(~term, scales = "free_y")+
   scale_color_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
   scale_fill_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
   theme_bw()
