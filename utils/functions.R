@@ -332,7 +332,7 @@ estimate_lor <- function(ind_data,
   
   # add some additional information here and clean up
   marg <- marg |>
-    select(-contrast) |>
+    select(-contrast, -starts_with("predicted")) |>
     mutate(type = "glm",
            age_weighted = use_weights,
            composition = ifelse(is.null(composition_var),
