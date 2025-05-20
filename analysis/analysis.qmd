@@ -738,7 +738,7 @@ marg_hispanic_sub_state_bs |>
   theme_bw()
 
 marg_hispanic_sub_state_bs |>
-  filter(str_detect(term, "^Black/")) |>
+  filter(str_detect(term, "^Black/") | term == "White/Black") |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
