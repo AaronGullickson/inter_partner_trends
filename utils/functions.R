@@ -159,7 +159,8 @@ estimate_lor <- function(ind_data,
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
     mutate(race_husband = fct_drop(race_husband),
-           race_wife = fct_drop(race_wife)) |>
+           race_wife = fct_drop(race_wife),
+           year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     mutate(unity = 1) |>
     summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
@@ -227,7 +228,7 @@ estimate_lor <- function(ind_data,
   }
   
   ## create formula ##
-  
+  single_year <- length(unique(model_data$year)) == 1
   formula_model <- "(race_husband+race_wife)"
   if(!is.null(composition_var)) {
     formula_model <- paste0(formula_model,
@@ -240,11 +241,12 @@ estimate_lor <- function(ind_data,
                           "+(",
                           paste(mar_terms, collapse = "+"),
                           ")")
-  formula_model <- paste0("(", 
-                          formula_model, 
-                          ")*(",
-                          paste(c(conditional_var, "year"), collapse = "*"),
-                          ")")
+  interactors <- ifelse(single_year, 
+                        ifelse(is.null(conditional_var), "", conditional_var),
+                        paste(c(conditional_var, "year"), collapse = "*"))
+  if(interactors != "") {
+    formula_model <- paste0("(", formula_model, ")*(", interactors, ")")
+  }
   if(!is.null(control_var)) {
     formula_control <- paste(c(paste0("race_husband*", control_var, "_husband"),
                                paste0("race_wife*", control_var, "_wife")),
@@ -268,7 +270,9 @@ estimate_lor <- function(ind_data,
                                          paste0(control_var, "_wife"),
                                          sep = "*"),
                                    collapse = "+"))
-    formula_control <- paste0("(", formula_control, ")*year")
+    if(!single_year) {
+      formula_control <- paste0("(", formula_control, ")*year")
+    }
     formula_model <- paste(formula_model, formula_control, sep = "+")
   }
   formula_model <- reformulate(formula_model, "freq")
