@@ -163,7 +163,6 @@ Thats not too bad. Lets compare the estimates from bootstrapping to the glm esti
 ```{r}
 #| label: fig-compare-bootstrap-analytical
 #| fig-cap: Comparison of bootstrapped parameters to GLM model parameters
-#| fig-height: 8
 
 marg_single |>
   bind_rows(marg_single_bs) |>
@@ -197,13 +196,17 @@ toc()
 So for a simple model, it takes longer to do separately by year. Are the parameters the same?
 
 ```{r}
+#| label: fig-compare-year-sep
+#| fig-cap: Comparison of parameters when estimating in a single model vs separately by year
 
 marg_single_bs_yearsep |>
   rename(estimate_yearsep = estimate) |>
   right_join(marg_single_bs, by = c("term", "year")) |>
   ggplot(aes(x = estimate, y = estimate_yearsep))+
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
-  geom_point()
+  labs(x = "estimate separately by year", y = "estimate all years together")+
+  geom_point()+
+  theme_bw()
 
 ```
 
@@ -332,7 +335,6 @@ Lets adjust for state, division, and region. We will bootstrap
 
 ```{r}
 #| label: estimate-geo-compositional-models
-#| eval: false
 
 tic()
 marg_bw_state_2000 <- census |>
