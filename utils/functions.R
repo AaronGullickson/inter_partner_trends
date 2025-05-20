@@ -149,7 +149,6 @@ estimate_lor <- function(ind_data,
   # it might also be much faster to do individual years separately
   if(year_separate) {
     results <- map(unique(ind_data$year), function(y) {
-      paste(y)
       ind_data |>
         filter(year == y) |>
         estimate_lor(selected_groups, 
