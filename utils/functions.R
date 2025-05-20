@@ -128,7 +128,8 @@ estimate_lor <- function(ind_data,
                          control_var = NULL,
                          se = TRUE,
                          use_weights = TRUE,
-                         pairwise = FALSE) {
+                         pairwise = FALSE,
+                         year_separate = FALSE) {
   
   
   # In some complex cases, running each pairwise comparison separately
@@ -139,11 +140,26 @@ estimate_lor <- function(ind_data,
       ind_data |>
         estimate_lor(c(group1, group2), 
                      composition_var, conditional_var, control_var,
-                     se, use_weights, pairwise = FALSE)
+                     se, use_weights, pairwise = FALSE, year_separate)
     }) |>
       bind_rows()
     return(results)
   }
+  
+  # it might also be much faster to do individual years separately
+  if(year_separate) {
+    results <- map(unique(ind_data$year), function(y) {
+      paste(y)
+      ind_data |>
+        filter(year == y) |>
+        estimate_lor(selected_groups, 
+                     composition_var, conditional_var, control_var,
+                     se, use_weights, pairwise, year_separate = FALSE)
+    }) |>
+      bind_rows()
+    return(results)
+  }
+  
   
   ## prepare model data ##
   controls <- NULL
@@ -158,9 +174,7 @@ estimate_lor <- function(ind_data,
     # trim to just selected groups and drop unused factor levels
     filter(race_husband %in% selected_groups,
            race_wife %in% selected_groups) |>
-    mutate(race_husband = fct_drop(race_husband),
-           race_wife = fct_drop(race_wife),
-           year = fct_drop(year)) |>
+    mutate(year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     mutate(unity = 1) |>
     summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
