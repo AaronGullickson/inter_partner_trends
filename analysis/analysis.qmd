@@ -129,6 +129,8 @@ For simple models, the processing time is quite quick, but for more complex mode
 
 Reducing the number of selected groups can also speed up overall model time. Setting `pairwise = TRUE` will break the full model into a set of models with only two groups and estimate them separately. The results will be the same, but this can improve speed in more complex cases with more than two groups, without the user having to manually enter each pairwise case. However, in simpler models, this approach will be slower.
 
+Probably the fastest way to speed up the models it do each year separately as year needs to be interacted with just about everything. this can be done with `year_separate = TRUE`. In simple models, this may not be necessary and may slow down the computation, but in more complex models, this will result in a very large speed improvement.
+
 ## Weighting and Bootstrapping
 
 By default, the `estimate_lor` will use the sum of the age weights as the frequency dependent variable for the models. This can be set to raw frequency counts with `use_weights = FALSE` although in this case, unless further restrictions by age are made by the user, the entire stock of marriages will be included and equally weighted.
@@ -177,6 +179,35 @@ marg_single |>
 ```
 
 The results are extremely close. Note that the bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
+
+Now how does the time compare if we do separate years?
+
+```{r}
+#| label: benchmark-year-sep
+
+tic()
+marg_single_bs_yearsep <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
+                  year_separate = TRUE, 
+                  show_progress = TRUE)
+toc()
+```
+
+So for a simple model, it takes longer to do separately by year. Are the parameters the same?
+
+```{r}
+
+marg_single_bs_yearsep |>
+  rename(estimate_yearsep = estimate) |>
+  right_join(marg_single_bs, by = c("term", "year")) |>
+  ggplot(aes(x = estimate, y = estimate_yearsep))+
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
+  geom_point()
+
+```
+
+That looks pretty good. They are not exact because we are bootstrapping.
 
 # Age Restrictions
 
@@ -297,11 +328,26 @@ marg_single_bs |>
 
 # Compositional Factors
 
-Lets adjust for state, division, and region. For state, we will need to do it without SE or bootstrapping for sanity.
+Lets adjust for state, division, and region. We will bootstrap
 
 ```{r}
 #| label: estimate-geo-compositional-models
 #| eval: false
+
+tic()
+marg_bw_state_2000 <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+               composition_var = "state", se = FALSE, pairwise = FALSE,
+               year_separate = TRUE)
+toc()
+
+tic()
+marg_bw_state <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  estimate_lor(c("White", "Black"), 
+               composition_var = "state", se = FALSE, pairwise = TRUE)
+toc()
 
 tic()
 marg_single_state <- census |>
