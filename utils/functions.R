@@ -48,8 +48,9 @@ PAIRINGS <- c(
 )
 
 # number of bootstrap samples
-# TODO: this is way too low for final analysis, but should be sufficient for
-# preliminary runs where we just want a reasonably close estimate
+# his is way too low for final analysis, but should be sufficient for
+# preliminary runs where we just want a reasonably close estimate. The actual
+# B will typically be set in the quarto doc where it is used.
 B <- 10
 
 
@@ -78,9 +79,13 @@ bootstrap_model <- function(ind_data,
     mutate(race_husband = fct_drop(race_husband),
            race_wife = fct_drop(race_wife))
   
+  # first estimate the full model to get analytical point estimates
+  point_estimates <- ind_data |>
+    estimate_lor(selected_groups, se = FALSE, ...)
+  
+  # now loop for the bootstrap
   results <- vector("list", B)
   
-  # do a for loop here because memory can be an issue
   for (i in seq_len(B)) {
     if (show_progress) {
       pb$tick()
@@ -107,16 +112,16 @@ bootstrap_model <- function(ind_data,
   by_vars <- by_vars[by_vars != "estimate"]
   results <- reduce(results, full_join, by = by_vars)
   
-  estimates <- results |> 
+  bs_estimates <- results |> 
     select(starts_with("estimate"))
   
-  results |>
-    select(-starts_with("estimate")) |>
+  # bind together point estimates with bootstrapped values
+  point_estimates |>
+    #select(-starts_with("estimate")) |>
     bind_cols(tibble(
-      estimate = apply(estimates, 1, mean, na.rm = TRUE),
-      std.error = apply(estimates, 1, sd, na.rm = TRUE),
-      conf.low = apply(estimates, 1, quantile, 0.025, na.rm = TRUE),
-      conf.high = apply(estimates, 1, quantile, 0.975, na.rm = TRUE)
+      std.error = apply(bs_estimates, 1, sd, na.rm = TRUE),
+      conf.low = apply(bs_estimates, 1, quantile, 0.025, na.rm = TRUE),
+      conf.high = apply(bs_estimates, 1, quantile, 0.975, na.rm = TRUE)
     )) |>
     mutate(type = "bootstrap")
 }

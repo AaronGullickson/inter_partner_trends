@@ -177,7 +177,7 @@ marg_single |>
   ggplot(aes(x = year, y = estimate, color = type))+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = type),
               alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
+  geom_point(alpha = 0.5, size = 0.5)+
   geom_line(alpha = 0.5)+
   facet_wrap(~term, scales = "free_y")+
   scale_color_manual(values = c("navy", "red"))+
@@ -185,7 +185,7 @@ marg_single |>
   theme_bw()
 ```
 
-The results are extremely close. Note that the bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
+Point estimates are the same, as expected. The bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
 
 Now how does the time compare if we do separate years?
 
@@ -218,7 +218,7 @@ marg_single_bs_yearsep |>
 
 ```
 
-That looks pretty good. They are not exact because we are bootstrapping.
+Results are identical.
 
 # Age Restrictions
 
