@@ -387,6 +387,66 @@ marg_single_bs |>
 
 ```
 
+# Control for Education
+
+Running state composition and educational controls in the same model slows them down quite a bit - almost 2 minutes per model (20 minutes for 10 bootstrapped models), so I will just run a straight education model with no compositional controls.  We really should look at this with state composition controlled, but lets just a single model without SEs to keep things sane.
+
+```{r}
+#| label: estimate-educ-models
+
+tic()
+marg_single_educ_bs <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+                  control_var = "educ",
+                  year_separate = TRUE,
+                  show_progress = TRUE)
+toc()
+
+tic()
+marg_single_educ_state <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+               composition_var = "state", control_var = "educ", 
+               year_separate = TRUE, se = FALSE)
+toc()
+```
+
+```{r}
+#| label: fig-educ
+#| fig-cap: Comparison of model parameters when controlling for spousal education differences across race in baseline model
+
+marg_single_bs |>
+  bind_rows(marg_single_educ_bs) |>
+  ggplot(aes(x = year, y = estimate, color = control))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = control),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("red", "navy"))+
+  scale_fill_manual(values = c("red", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-educ-state
+#| fig-cap: Comparison of model parameters when controlling for spousal education differences across race in models that also adjust for racial composition by state
+
+marg_single_state_bs |>
+  bind_rows(marg_single_educ_state) |>
+  ggplot(aes(x = year, y = estimate, color = control))+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = control),
+  #            alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.7, size = 0.5)+
+  geom_line(alpha = 0.5, linewidth = 1.25)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("red", "navy"))+
+  scale_fill_manual(values = c("red", "navy"))+
+  theme_bw()
+
+```
+
 # Overall Trends
 
 ```{r}
