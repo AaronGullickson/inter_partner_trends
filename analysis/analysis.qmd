@@ -146,7 +146,7 @@ Because we are estimating each model `B` times, computation time is substantiall
 Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups.
 
 ```{r}
-#| label: model-time-benchmarks
+#| label: estimate-model-time-benchmarks
 
 tic()
 marg_single <- census |>
@@ -186,7 +186,7 @@ The results are extremely close. Note that the bootstrapped results have a large
 Now how does the time compare if we do separate years?
 
 ```{r}
-#| label: benchmark-year-sep
+#| label: estimate-model-benchmark-year-sep
 
 tic()
 marg_single_bs_yearsep <- census |>
@@ -530,16 +530,7 @@ marg_single_state_bs |>
 ```
 
 ```{r}
-#| label: fig-intermar-multi-overall
-#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
-#| layout-ncol: 2
-#| fig-subcap: 
-#|    - White-Black
-#|    - White-Indigenous
-#|    - White-Asian
-#|    - Black-Indigenous
-#|    - Black-Asian
-#|    
+#| label: estimate-models-multiracial
 marg_multi_wb_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "White-Black"),
@@ -569,6 +560,19 @@ marg_multi_ba_state_bs <- census |>
   bootstrap_model(c("Black", "Asian", "Black-Asian"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
+
+```
+
+```{r}
+#| label: fig-intermar-multi-overall
+#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White-Black
+#|    - White-Indigenous
+#|    - White-Asian
+#|    - Black-Indigenous
+#|    - Black-Asian
 
 marg_multi_wb_state_bs |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
@@ -634,9 +638,9 @@ marg_multi_ba_state_bs |>
 # Counterfactual Race Assignment
 
 ```{r}
-#| label: fig-multi-wb-counterf
-#| fig-cap: Comparison of White/Black exogamy when White-Black partners are re-assigned as Black or White
+#| label: estimate-models-counterfactual-race
 
+## White-Black ##
 marg_wb_cf_black_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
@@ -659,27 +663,7 @@ marg_wb_cf_white_state_bs <- census |>
                   show_progress = TRUE) |>
   mutate(counterfactual = "White")
 
-marg_single_state_bs |>
-  filter(term == "White/Black") |>
-  mutate(counterfactual = "Actual") |>
-  bind_rows(marg_wb_cf_black_state_bs) |>
-  bind_rows(marg_wb_cf_white_state_bs) |>
-  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy"))+
-  scale_fill_manual(values = c("red", "gold", "navy"))+
-  theme_bw()
-```
-
-```{r}
-#| label: fig-multi-wa-counterf
-#| fig-cap: Comparison of White/Asian exogamy when White-Asian partners are re-assigned as Asian or White
-
+## White-Asian ##
 marg_wa_cf_asian_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
@@ -702,27 +686,7 @@ marg_wa_cf_white_state_bs <- census |>
                   show_progress = TRUE) |>
   mutate(counterfactual = "White")
 
-marg_single_state_bs |>
-  filter(term == "White/Asian") |>
-  mutate(counterfactual = "Actual") |>
-  bind_rows(marg_wa_cf_asian_state_bs) |>
-  bind_rows(marg_wa_cf_white_state_bs) |>
-  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy"))+
-  scale_fill_manual(values = c("red", "gold", "navy"))+
-  theme_bw()
-```
-
-```{r}
-#| label: fig-multi-wi-counterf
-#| fig-cap: Comparison of White/Indigenous exogamy when White-Indigenous partners are re-assigned as Indigenous or White
-
+## White-Indigenous ##
 marg_wi_cf_indigenous_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
@@ -745,6 +709,56 @@ marg_wi_cf_white_state_bs <- census |>
                   show_progress = TRUE) |>
   mutate(counterfactual = "White")
 
+
+
+```
+
+```{r}
+#| label: fig-multi-wb-counterf
+#| fig-cap: Comparison of White/Black exogamy when White-Black partners are re-assigned as Black or White
+
+marg_single_state_bs |>
+  filter(term == "White/Black") |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(marg_wb_cf_black_state_bs) |>
+  bind_rows(marg_wb_cf_white_state_bs) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy"))+
+  scale_fill_manual(values = c("red", "gold", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-multi-wa-counterf
+#| fig-cap: Comparison of White/Asian exogamy when White-Asian partners are re-assigned as Asian or White
+
+marg_single_state_bs |>
+  filter(term == "White/Asian") |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(marg_wa_cf_asian_state_bs) |>
+  bind_rows(marg_wa_cf_white_state_bs) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy"))+
+  scale_fill_manual(values = c("red", "gold", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-multi-wi-counterf
+#| fig-cap: Comparison of White/Indigenous exogamy when White-Indigenous partners are re-assigned as Indigenous or White
+
 marg_single_state_bs |>
   filter(term == "White/Indigenous") |>
   mutate(counterfactual = "Actual") |>
@@ -765,13 +779,10 @@ marg_single_state_bs |>
 # Subrace Analysis
 
 ```{r}
-#| label: fig-sub-hispanic
-#| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
-#| layout-ncol: 2
-#| fig-subcap:
-#|   - White partner
-#|   - Black partner
+#| label: estimate-models-sub-race
 
+
+## Hispanic subgroups ##
 marg_hispanic_sub_state_bs <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
@@ -780,6 +791,49 @@ marg_hispanic_sub_state_bs <- census |>
                     "OtherHispanic"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
+
+## Asian subgroups ##
+marg_asian_sub_state_bs <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  mutate(race_husband = subrace_husband,
+         race_wife = subrace_wife) |>
+  bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian"),
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE)
+
+
+## Asian subgroups, combining East and SE ##
+combine_race <- function(subrace) {
+  race <- case_when(
+    subrace == "White" ~ "White",
+    subrace == "SouthAsian" ~ "SouthAsian",
+    subrace %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
+  factor(race, levels = c("White", "EastAsian", "SouthAsian"))
+}
+marg_asian_sub_simple_state_bs <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  mutate(race_husband = combine_race(subrace_husband),
+         race_wife = combine_race(subrace_wife)) |>
+  bootstrap_model(c("White", "EastAsian", "SouthAsian"),
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE)
+
+marg_indig_sub_state_bs <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  mutate(race_husband = subrace_husband,
+         race_wife = subrace_wife) |>
+  bootstrap_model(c("White", "AIAN", "PI"),
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE)
+```
+
+```{r}
+#| label: fig-sub-hispanic
+#| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - White partner
+#|   - Black partner
 
 lims <- exp(c(min(marg_hispanic_sub_state_bs$conf.low), 
               max(marg_hispanic_sub_state_bs$conf.high)))
@@ -834,14 +888,6 @@ marg_hispanic_sub_state_bs |>
 #| label: fig-sub-asian-full
 #| fig-cap: Exogamy of Asian subgroups with White partners. 
 
-marg_asian_sub_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-
 marg_asian_sub_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
@@ -880,22 +926,6 @@ marg_asian_sub_state_bs |>
 #| label: fig-sub-asian-simple
 #| fig-cap: Exogamy of Asian subgroups with White partners, where East Asian and SE Asian have been combined into East Asian
 
-# combine E and SE
-combine_race <- function(subrace) {
-  race <- case_when(
-    subrace == "White" ~ "White",
-    subrace == "SouthAsian" ~ "SouthAsian",
-    subrace %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
-  factor(race, levels = c("White", "EastAsian", "SouthAsian"))
-}
-marg_asian_sub_simple_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  mutate(race_husband = combine_race(subrace_husband),
-         race_wife = combine_race(subrace_wife)) |>
-  bootstrap_model(c("White", "EastAsian", "SouthAsian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-
 marg_asian_sub_simple_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
@@ -932,14 +962,6 @@ marg_asian_sub_simple_state_bs |>
 #| label: fig-sub-indigenous
 #| fig-cap: Exogamy of Indigenous subgroups with White partners.
 
-marg_indig_sub_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "AIAN", "PI"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-
 marg_indig_sub_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
@@ -970,7 +992,6 @@ marg_indig_sub_state_bs |>
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
-
 ```
 
 ```{r}
