@@ -265,18 +265,23 @@ estimate_lor <- function(ind_data,
                                paste0("race_wife*", control_var, "_wife")),
                              collapse = "+")
     formula_control <- paste0("(", formula_control, ")")
-    if(!is.null(composition_var)) {
-      formula_control <- paste0(formula_control, 
-                                "*(",
-                                paste(composition_var, collapse = "+"),
-                                ")")
-    }
-    if(!is.null(conditional_var)) {
-      formula_control <- paste0(formula_control, 
-                                "*(",
-                                paste(conditional_var, collapse = "+"),
-                                ")")
-    }
+    # I think this is a too complicated model that will be very slow because
+    # we are estimating the three way interaction of 
+    # spouse race*composition*spouse education. The payoff is allowing different
+    # racial distributions of education by state, which will likely be minimal
+    # for the extra time it takes
+    #if(!is.null(composition_var)) {
+    #  formula_control <- paste0(formula_control, 
+    #                            "*(",
+    #                            paste(composition_var, collapse = "+"),
+    #                            ")")
+    #}
+    #if(!is.null(conditional_var)) {
+    #  formula_control <- paste0(formula_control, 
+    #                            "*(",
+    #                            paste(conditional_var, collapse = "+"),
+    #                            ")")
+    #}
     formula_control <- paste(formula_control,
                              "+",
                              paste(paste(paste0(control_var, "_husband"), 
