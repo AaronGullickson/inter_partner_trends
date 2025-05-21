@@ -1,5 +1,8 @@
 ---
 title: "Run Models"
+# set the number of bootstrap samples here. 10 is good for quick runs
+params:
+  bootstrap_rep: 10
 execute:
   warning: false
   message: false
@@ -40,7 +43,8 @@ census <- census |>
 #| label: set-globals
 
 # number of bootstrap samples
-B <- 10
+B <- params$bootstrap_rep
+B
 ```
 
 ```{r}
