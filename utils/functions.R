@@ -59,8 +59,12 @@ B <- 10
 bootstrap_model <- function(ind_data, 
                             selected_groups,
                             n_replicates = B,
+                            conf_level = 0.83,
                             show_progress = FALSE,
                             ...) {
+  
+  ci_upper <- 1-(1-conf_level)/2
+  ci_lower <- (1-conf_level)/2
   
   if(show_progress) {
     pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
@@ -120,8 +124,8 @@ bootstrap_model <- function(ind_data,
     rowwise(by_vars) |>
     summarize(
       std.error = sd(c_across(starts_with("estimate")), na.rm = TRUE),
-      conf.low = quantile(c_across(starts_with("estimate")), 0.025, na.rm = TRUE),
-      conf.high = quantile(c_across(starts_with("estimate")), 0.975, na.rm = TRUE),
+      conf.low = quantile(c_across(starts_with("estimate")), ci_lower, na.rm = TRUE),
+      conf.high = quantile(c_across(starts_with("estimate")), ci_upper, na.rm = TRUE),
       .groups = "drop"
     ) |>
     # join back to the point estimates
@@ -139,6 +143,7 @@ estimate_lor <- function(ind_data,
                          control_var = NULL,
                          se = TRUE,
                          use_weights = TRUE,
+                         conf_level = 0.83,
                          pairwise = FALSE,
                          year_separate = FALSE) {
   
@@ -322,7 +327,8 @@ estimate_lor <- function(ind_data,
                variables = vars,
                by = c(conditional_var, "year"),
                type = "link",
-               vcov = se)
+               vcov = se, 
+               conf_level = conf_level)
     ) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year)),
