@@ -156,7 +156,8 @@ estimate_lor <- function(ind_data,
       ind_data |>
         estimate_lor(c(group1, group2), 
                      composition_var, conditional_var, control_var,
-                     se, use_weights, pairwise = FALSE, year_separate)
+                     se, use_weights, conf_level, pairwise = FALSE, 
+                     year_separate)
     }) |>
       bind_rows()
     return(results)
@@ -169,7 +170,8 @@ estimate_lor <- function(ind_data,
         filter(year == y) |>
         estimate_lor(selected_groups, 
                      composition_var, conditional_var, control_var,
-                     se, use_weights, pairwise, year_separate = FALSE)
+                     se, use_weights, conf_level, pairwise, 
+                     year_separate = FALSE)
     }) |>
       bind_rows()
     return(results)
