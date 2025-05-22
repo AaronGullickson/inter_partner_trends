@@ -58,12 +58,13 @@ B <- 10
 
 bootstrap_model <- function(ind_data, 
                             selected_groups,
+                            n_replicates = B,
                             show_progress = FALSE,
                             ...) {
   
   if(show_progress) {
     pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = B + 2)
+                           total = n_replicates + 2)
     pb$tick(0)
   }
   
@@ -84,9 +85,9 @@ bootstrap_model <- function(ind_data,
     estimate_lor(selected_groups, se = FALSE, ...)
   
   # now loop for the bootstrap
-  results <- vector("list", B)
+  results <- vector("list", n_replicates)
   
-  for (i in seq_len(B)) {
+  for (i in seq_len(n_replicates)) {
     if (show_progress) {
       pb$tick()
     }
