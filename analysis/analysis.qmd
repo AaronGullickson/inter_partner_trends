@@ -23,7 +23,6 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
-
 ```{r}
 #| label: prepare-data
 #| include: false
@@ -158,6 +157,8 @@ bs_indices <- census |>
   generate_bootstrap_indices()
 toc()
 ```
+
+Because the bootstrap samples are created here, it is important that `census` is not further modified or changed before being entired into `bootstrap_model` commands.
 
 Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups.
 
