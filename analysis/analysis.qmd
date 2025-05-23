@@ -650,7 +650,6 @@ marg_wb_cf_black_state_bs <- census |>
   mutate(counterfactual = "Black")
 
 marg_wb_cf_white_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Black", "White", race_husband),
     race_wife = if_else(race_wife == "White-Black", "White", race_wife)
