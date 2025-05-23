@@ -1,4 +1,4 @@
-## check_packages.R
+ ## check_packages.R
 
 #Run this script to check for packages that the other R scripts will use. If missing, try to install.
 #code borrowed from here:
@@ -15,7 +15,6 @@ packages = c(
   "mice", # for imputing values
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
-  "MoMAColors", # for fun
   "tictoc", "progress" # for tracking processing time
 )
 
