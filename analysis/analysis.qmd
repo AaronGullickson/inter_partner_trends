@@ -36,7 +36,8 @@ census <- census |>
          year = relevel(year, "2000"),
          region = factor(region),
          division = factor(division),
-         state = factor(state))
+         state = factor(state)) |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+")
 ```
 
 ```{r}
@@ -147,6 +148,17 @@ When using weights, the default standard errors created by `estimate_lor` will n
 
 Because we are estimating each model `B` times, computation time is substantially increased, although we get some savings back by not having to estimate SEs for each model. Still, be careful about estimating super complex models by bootstrap.
 
+We create the bootstrapped samples at the top. For memory reasons, we just save the row indices for each bootstrapped sample.
+
+```{r}
+#| label: generate-bootstrap-samples
+
+tic()
+bs_indices <- census |>
+  generate_bootstrap_indices()
+toc()
+```
+
 Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups.
 
 ```{r}
@@ -154,13 +166,11 @@ Lets compare processing time of bootstrapped vs non-bootstrapped model for singl
 
 tic()
 marg_single <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"))
 toc()
 
 tic()
 marg_single_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
                   show_progress = TRUE)
 toc()
@@ -194,7 +204,6 @@ Now how does the time compare if we do separate years?
 
 tic()
 marg_single_bs_yearsep <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
                   year_separate = TRUE, 
                   show_progress = TRUE)
@@ -220,39 +229,6 @@ marg_single_bs_yearsep |>
 
 Results are identical.
 
-
-How do things look if we don't use sample weights?
-
-```{r}
-#| label: estimate-model-no-sample-weights
-
-tic()
-marg_single_bs_unweighted <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
-                  show_progress = TRUE, use_weights_sample = FALSE)
-toc()
-```
-
-```{r}
-#| label: fig-compare-weights
-#| fig-cap: Comparison of parameters when estimating with and without sample weights
-
-marg_single_bs |>
-  bind_rows(marg_single_bs_unweighted) |>
-  ggplot(aes(x = year, y = estimate, color = sample_weighted))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = sample_weighted),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.5, size = 0.5)+
-  geom_line(alpha = 0.5)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("navy", "red"))+
-  scale_fill_manual(values = c("navy","red"))+
-  theme_bw()
-```
-
-Pretty close.
-
 # Age Restrictions
 
 How does the age weighting compare to 
@@ -266,40 +242,34 @@ How does the age weighting compare to
 
 marg_single_age_h2029 <- census |>
   filter(age_husband >= 20 & age_husband < 30) |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
   mutate(restriction = "husband 20-29")
 
 marg_single_age_h2534 <- census |>
   filter(age_husband >= 25 & age_husband < 35) |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
   mutate(restriction = "husband 25-34")
 
 marg_single_age_w2029 <- census |>
   filter(age_wife >= 20 & age_wife < 30) |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
   mutate(restriction = "wife 20-29")
 
 marg_single_age_w2534 <- census |>
   filter(age_wife >= 25 & age_wife < 35) |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
   mutate(restriction = "wife 25-34")
 
 marg_single_unweighted <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
   mutate(restriction = "full unweighted")
 
 marg_single_dur5 <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   filter(dur_mar <= 5) |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                use_weights_age = FALSE) |>
@@ -379,7 +349,6 @@ Lets adjust for state, division, and region. We will bootstrap all of them, but 
 
 tic()
 marg_single_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
@@ -387,7 +356,6 @@ toc()
 
 tic()
 marg_single_division_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   composition_var = "division", year_separate = TRUE,
                   show_progress = TRUE)
@@ -395,7 +363,6 @@ toc()
 
 tic()
 marg_single_region_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   composition_var = "region", year_separate = FALSE,
                   show_progress = TRUE)
@@ -433,7 +400,6 @@ Running state composition and educational controls in the same model slows them 
 
 tic()
 marg_single_educ_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                   control_var = "educ",
                   year_separate = TRUE,
@@ -442,7 +408,6 @@ toc()
 
 tic()
 marg_single_educ_state <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
                composition_var = "state", control_var = "educ", 
                year_separate = TRUE, se = FALSE)
@@ -568,32 +533,28 @@ marg_single_state_bs |>
 
 ```{r}
 #| label: estimate-models-multiracial
+
 marg_multi_wb_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Black", "White-Black"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
 
 marg_multi_wi_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Indigenous", "White-Indigenous"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
 
 marg_multi_wa_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("White", "Asian", "White-Asian"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
 
 marg_multi_bi_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("Black", "Indigenous", "Black-Indigenous"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
 
 marg_multi_ba_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   bootstrap_model(c("Black", "Asian", "Black-Asian"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = FALSE)
@@ -679,7 +640,6 @@ marg_multi_ba_state_bs |>
 
 ## White-Black ##
 marg_wb_cf_black_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Black", "Black", race_husband),
     race_wife = if_else(race_wife == "White-Black", "Black", race_wife)
@@ -702,7 +662,6 @@ marg_wb_cf_white_state_bs <- census |>
 
 ## White-Asian ##
 marg_wa_cf_asian_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Asian", "Asian", race_husband),
     race_wife = if_else(race_wife == "White-Asian", "Asian", race_wife)
@@ -713,7 +672,6 @@ marg_wa_cf_asian_state_bs <- census |>
   mutate(counterfactual = "Asian")
 
 marg_wa_cf_white_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Asian", "White", race_husband),
     race_wife = if_else(race_wife == "White-Asian", "White", race_wife)
@@ -725,7 +683,6 @@ marg_wa_cf_white_state_bs <- census |>
 
 ## White-Indigenous ##
 marg_wi_cf_indigenous_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Indigenous", "Indigenous", race_husband),
     race_wife = if_else(race_wife == "White-Indigenous", "Indigenous", race_wife)
@@ -736,7 +693,6 @@ marg_wi_cf_indigenous_state_bs <- census |>
   mutate(counterfactual = "Indigenous")
 
 marg_wi_cf_white_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(
     race_husband = if_else(race_husband == "White-Indigenous", "White", race_husband),
     race_wife = if_else(race_wife == "White-Indigenous", "White", race_wife)
@@ -821,7 +777,6 @@ marg_single_state_bs |>
 
 ## Hispanic subgroups ##
 marg_hispanic_sub_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
   bootstrap_model(c("White", "Black", "WhiteHispanic", "BlackHispanic", 
@@ -831,7 +786,6 @@ marg_hispanic_sub_state_bs <- census |>
 
 ## Asian subgroups ##
 marg_asian_sub_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
   bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian"),
@@ -848,7 +802,6 @@ combine_race <- function(subrace) {
   factor(race, levels = c("White", "EastAsian", "SouthAsian"))
 }
 marg_asian_sub_simple_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = combine_race(subrace_husband),
          race_wife = combine_race(subrace_wife)) |>
   bootstrap_model(c("White", "EastAsian", "SouthAsian"),
@@ -856,7 +809,6 @@ marg_asian_sub_simple_state_bs <- census |>
                   show_progress = TRUE)
 
 marg_indig_sub_state_bs <- census |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
   bootstrap_model(c("White", "AIAN", "PI"),
