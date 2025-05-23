@@ -56,9 +56,44 @@ B <- 10
 
 # Modeling functions ------------------------------------------------------
 
+generate_bootstrap_indices <- function(ind_data, 
+                                       n_replicates = B, 
+                                       sample_design = TRUE) {
+  
+  # create index variable
+  ind_data <- ind_data |>
+    mutate(idx = seq_len(nrow(ind_data)))
+  
+  map(1:n_replicates, function(i) {
+    if(sample_design) {
+      # we need to adjust for year and strata
+      ind_data |>
+        group_by(year, strata) |>
+        group_split() |>
+        map(function(stratum_data) {
+          clusters <- unique(stratum_data$cluster)
+          tibble(cluster = sample(clusters, length(clusters), replace = TRUE))
+        }) |>
+        bind_rows() |>
+        left_join(ind_data, by = "cluster", relationship = "many-to-many") |>
+        pull(idx)
+    } else {
+      # Simple bootstrap but still stratify by year
+      ind_data |>
+        group_by(year) |>
+        group_split() |>
+        map(function(year_data) {
+          sample(year_data$idx, nrow(year_data), replace = TRUE)
+        }) |>
+        list_c()
+    }
+  })
+}
+
 bootstrap_model <- function(ind_data, 
                             selected_groups,
                             n_replicates = B,
+                            sample_design = TRUE,
                             conf_level = 0.83,
                             show_progress = FALSE,
                             ...) {
@@ -97,8 +132,9 @@ bootstrap_model <- function(ind_data,
     }
     
     sample_result <- ind_data |>
-      slice_sample(n = nrow(ind_data), replace = TRUE) |>
-      estimate_lor(selected_groups, se = FALSE, ...)
+      bootstrap_sample(sample_design) |>
+      estimate_lor(selected_groups, use_weights_sample = sample_design, 
+                   se = FALSE, ...)
     
     results[[i]] <- sample_result
     
@@ -134,6 +170,32 @@ bootstrap_model <- function(ind_data,
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
     mutate(type = "bootstrap")
+}
+
+bootstrap_sample <- function(ind_data, sample_design = TRUE) {
+  
+  if(!sample_design) {
+    # just resample within year
+    ind_data |>
+      group_by(year) |>
+      group_split() |>
+      map(function(year_data) {
+        year_data |>
+          slice_sample(n = nrow(year_data), replace = TRUE)
+      }) |>
+      bind_rows()
+  }
+  
+  # otherwise we need to group by year and strata and then resample cluster
+  ind_data |>
+    group_by(year, strata) |>
+    group_split() |>
+    map_dfr(function(stratum_data) {
+      clusters <- unique(stratum_data$cluster)
+      sampled_clusters <- sample(clusters, length(clusters), replace = TRUE)
+      tibble(cluster = sampled_clusters)
+    }) |> 
+    left_join(ind_data, by = "cluster", relationship = "many-to-many")
 }
 
 estimate_lor <- function(ind_data, 
