@@ -233,10 +233,16 @@ estimate_lor <- function(ind_data,
   grouping_vars <- c("race_husband", "race_wife", "year", 
                      composition_var, conditional_var, controls)
   
-  # create variable to sum for frequencies
+  # pre-process individual data
   ind_data <- ind_data |>
+    # trim to just selected groups and drop unused factor levels
+    filter(race_husband %in% selected_groups,
+           race_wife %in% selected_groups) |>
+    mutate(year = fct_drop(year)) |>
+    # set up a variable for summing frequencies
     mutate(sum_var = 1)
   
+  # adjust based on weights
   if(use_weights_age) {
     ind_data <- ind_data |>
       mutate(sum_var = sum_var * weight_age)
@@ -247,7 +253,7 @@ estimate_lor <- function(ind_data,
       mutate(sum_var = sum_var * weight_sample)
   }
   
-  # renormalize
+  # renormalize weights
   ind_data <- ind_data |>
     group_by(year) |>
     mutate(sum_var = sum_var / mean(sum_var)) |>
@@ -255,10 +261,6 @@ estimate_lor <- function(ind_data,
   
   # create contingency table
   model_data <- ind_data |>
-    # trim to just selected groups and drop unused factor levels
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
-    mutate(year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     summarize(freq = sum(sum_var), .groups = "drop")
   
@@ -349,23 +351,6 @@ estimate_lor <- function(ind_data,
                                paste0("race_wife*", control_var, "_wife")),
                              collapse = "+")
     formula_control <- paste0("(", formula_control, ")")
-    # I think this is a too complicated model that will be very slow because
-    # we are estimating the three way interaction of 
-    # spouse race*composition*spouse education. The payoff is allowing different
-    # racial distributions of education by state, which will likely be minimal
-    # for the extra time it takes
-    #if(!is.null(composition_var)) {
-    #  formula_control <- paste0(formula_control, 
-    #                            "*(",
-    #                            paste(composition_var, collapse = "+"),
-    #                            ")")
-    #}
-    #if(!is.null(conditional_var)) {
-    #  formula_control <- paste0(formula_control, 
-    #                            "*(",
-    #                            paste(conditional_var, collapse = "+"),
-    #                            ")")
-    #}
     formula_control <- paste(formula_control,
                              "+",
                              paste(paste(paste0(control_var, "_husband"), 
