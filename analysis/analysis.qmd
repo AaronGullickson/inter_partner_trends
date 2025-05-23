@@ -141,9 +141,9 @@ Probably the fastest way to speed up the models it do each year separately as ye
 
 ## Weighting and Bootstrapping
 
-By default, the `estimate_lor` will use the sum of the age weights as the frequency dependent variable for the models. This can be set to raw frequency counts with `use_weights = FALSE` although in this case, unless further restrictions by age are made by the user, the entire stock of marriages will be included and equally weighted.
+By default, the `estimate_lor` will use the sum of the product of the age weights and the sample weights as the frequency dependent variable for the models. This can be set to raw frequency counts with `use_weights_age = FALSE` and `use_weights_sample = FALSE` although in this case, unless further restrictions by age are made by the user, the entire stock of marriages will be included and equally weighted.
 
-When using age weights, the default standard errors created by `estimate_lor` will not be correct because they do not take account of the variability in the weights. Estimating correct SEs by sample design is not easy in this case, so instead I use a bootstrap technique to derive inference estimates that are more accurate. This is defined by a `bootstrap_model` wrapper function that can take all the same arguments as `estimate_lor`. The number of bootstrap samples is defined by `B` which is determined at the top of this document. For most exploratory purposes a small `B` will speed up computation and seems to work pretty well, but for final products, this should be increased substantially.
+When using weights, the default standard errors created by `estimate_lor` will not be correct because they do not take account of the variability in the weights. Estimating correct SEs by sample design is not easy in this case, so instead I use a bootstrap technique to derive inference estimates that are more accurate. This is defined by a `bootstrap_model` wrapper function that can take all the same arguments as `estimate_lor`. The number of bootstrap samples is defined by `B` which is determined at the top of this document. For most exploratory purposes a small `B` will speed up computation and seems to work pretty well, but for final products, this should be increased substantially.
 
 Because we are estimating each model `B` times, computation time is substantially increased, although we get some savings back by not having to estimate SEs for each model. Still, be careful about estimating super complex models by bootstrap.
 
@@ -268,41 +268,41 @@ marg_single_age_h2029 <- census |>
   filter(age_husband >= 20 & age_husband < 30) |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   mutate(restriction = "husband 20-29")
 
 marg_single_age_h2534 <- census |>
   filter(age_husband >= 25 & age_husband < 35) |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   mutate(restriction = "husband 25-34")
 
 marg_single_age_w2029 <- census |>
   filter(age_wife >= 20 & age_wife < 30) |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   mutate(restriction = "wife 20-29")
 
 marg_single_age_w2534 <- census |>
   filter(age_wife >= 25 & age_wife < 35) |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   mutate(restriction = "wife 25-34")
 
 marg_single_unweighted <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   mutate(restriction = "full unweighted")
 
 marg_single_dur5 <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   filter(dur_mar <= 5) |>
   estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights = FALSE) |>
+               use_weights_age = FALSE) |>
   # need to add missing values from 1990-2007 to get lines to break
   bind_rows(expand_grid(term = unique(marg_single_bs$term), 
                         year = c(1990, 2000:2007))) |>
