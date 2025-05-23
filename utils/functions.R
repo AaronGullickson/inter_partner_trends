@@ -56,9 +56,43 @@ B <- 10
 
 # Modeling functions ------------------------------------------------------
 
+generate_bootstrap_indices <- function(ind_data, 
+                                       n_replicates = B, 
+                                       sample_design = TRUE) {
+  
+  # create index variable
+  ind_data <- ind_data |>
+    mutate(idx = seq_len(nrow(ind_data)))
+  
+  map(1:n_replicates, function(i) {
+    if(sample_design) {
+      # we need to adjust for year and strata
+      ind_data |>
+        group_by(year, strata) |>
+        group_split() |>
+        map(function(stratum_data) {
+          clusters <- unique(stratum_data$cluster)
+          tibble(cluster = sample(clusters, length(clusters), replace = TRUE))
+        }) |>
+        bind_rows() |>
+        left_join(ind_data, by = "cluster", relationship = "many-to-many") |>
+        pull(idx)
+    } else {
+      # Simple bootstrap but still stratify by year
+      ind_data |>
+        group_by(year) |>
+        group_split() |>
+        map(function(year_data) {
+          sample(year_data$idx, nrow(year_data), replace = TRUE)
+        }) |>
+        list_c()
+    }
+  })
+}
+
 bootstrap_model <- function(ind_data, 
                             selected_groups,
-                            n_replicates = B,
+                            bootstrap_indices = bs_indices,
                             conf_level = 0.83,
                             show_progress = FALSE,
                             ...) {
@@ -68,49 +102,35 @@ bootstrap_model <- function(ind_data,
   
   if(show_progress) {
     pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = n_replicates + 2)
+                           total = length(bootstrap_indices) + 1,
+                           show_after = 0)
     pb$tick(0)
   }
-  
-  # filter out unnecessary groups for later speed improvements
-  # estimate_lor does this but it will be faster to bootstrap sample a 
-  # smaller individual dataset
-  if(show_progress) {
-    pb$tick()
-  }
-  ind_data <- ind_data |>
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
-    mutate(race_husband = fct_drop(race_husband),
-           race_wife = fct_drop(race_wife))
-  
+
   # first estimate the full model to get analytical point estimates
   point_estimates <- ind_data |>
     estimate_lor(selected_groups, se = FALSE, ...)
+  if(show_progress) {
+    pb$tick()
+  }
   
   # now loop for the bootstrap
-  results <- vector("list", n_replicates)
-  
-  for (i in seq_len(n_replicates)) {
-    if (show_progress) {
-      pb$tick()
-    }
-    
-    sample_result <- ind_data |>
-      slice_sample(n = nrow(ind_data), replace = TRUE) |>
+  results <- vector("list", length(bootstrap_indices))
+  for(i in seq_len(length(bootstrap_indices))) {
+    sample_result <- ind_data[bootstrap_indices[[i]],] |>
       estimate_lor(selected_groups, se = FALSE, ...)
     
     results[[i]] <- sample_result
     
     #  memory cleanup
     rm(sample_result)
-    if (i %% 5 == 0) {
+    if(i %% 5 == 0) {
       gc()  # Run garbage collection every 5 iterations
     }
-  }
-  
-  if(show_progress) {
-    pb$tick()
+    
+    if (show_progress) {
+      pb$tick()
+    }
   }
   
   by_vars <- colnames(results[[1]])
@@ -134,6 +154,32 @@ bootstrap_model <- function(ind_data,
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
     mutate(type = "bootstrap")
+}
+
+bootstrap_sample <- function(ind_data, sample_design = TRUE) {
+  
+  if(!sample_design) {
+    # just resample within year
+    ind_data |>
+      group_by(year) |>
+      group_split() |>
+      map(function(year_data) {
+        year_data |>
+          slice_sample(n = nrow(year_data), replace = TRUE)
+      }) |>
+      bind_rows()
+  }
+  
+  # otherwise we need to group by year and strata and then resample cluster
+  ind_data |>
+    group_by(year, strata) |>
+    group_split() |>
+    map_dfr(function(stratum_data) {
+      clusters <- unique(stratum_data$cluster)
+      sampled_clusters <- sample(clusters, length(clusters), replace = TRUE)
+      tibble(cluster = sampled_clusters)
+    }) |> 
+    left_join(ind_data, by = "cluster", relationship = "many-to-many")
 }
 
 estimate_lor <- function(ind_data, 
@@ -187,10 +233,16 @@ estimate_lor <- function(ind_data,
   grouping_vars <- c("race_husband", "race_wife", "year", 
                      composition_var, conditional_var, controls)
   
-  # create variable to sum for frequencies
+  # pre-process individual data
   ind_data <- ind_data |>
+    # trim to just selected groups and drop unused factor levels
+    filter(race_husband %in% selected_groups,
+           race_wife %in% selected_groups) |>
+    mutate(year = fct_drop(year)) |>
+    # set up a variable for summing frequencies
     mutate(sum_var = 1)
   
+  # adjust based on weights
   if(use_weights_age) {
     ind_data <- ind_data |>
       mutate(sum_var = sum_var * weight_age)
@@ -201,7 +253,7 @@ estimate_lor <- function(ind_data,
       mutate(sum_var = sum_var * weight_sample)
   }
   
-  # renormalize
+  # renormalize weights
   ind_data <- ind_data |>
     group_by(year) |>
     mutate(sum_var = sum_var / mean(sum_var)) |>
@@ -209,12 +261,7 @@ estimate_lor <- function(ind_data,
   
   # create contingency table
   model_data <- ind_data |>
-    # trim to just selected groups and drop unused factor levels
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
-    mutate(year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
-    mutate(unity = 1) |>
     summarize(freq = sum(sum_var), .groups = "drop")
   
   # clean up the memory here now that we don't need individual data
@@ -304,23 +351,6 @@ estimate_lor <- function(ind_data,
                                paste0("race_wife*", control_var, "_wife")),
                              collapse = "+")
     formula_control <- paste0("(", formula_control, ")")
-    # I think this is a too complicated model that will be very slow because
-    # we are estimating the three way interaction of 
-    # spouse race*composition*spouse education. The payoff is allowing different
-    # racial distributions of education by state, which will likely be minimal
-    # for the extra time it takes
-    #if(!is.null(composition_var)) {
-    #  formula_control <- paste0(formula_control, 
-    #                            "*(",
-    #                            paste(composition_var, collapse = "+"),
-    #                            ")")
-    #}
-    #if(!is.null(conditional_var)) {
-    #  formula_control <- paste0(formula_control, 
-    #                            "*(",
-    #                            paste(conditional_var, collapse = "+"),
-    #                            ")")
-    #}
     formula_control <- paste(formula_control,
                              "+",
                              paste(paste(paste0(control_var, "_husband"), 

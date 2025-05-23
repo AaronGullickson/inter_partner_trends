@@ -60,8 +60,8 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00148.dat.gz"),
                                             QHISPAN = 125,
                                             QRACE_SP = 163,
                                             QHISPAN_SP = 162),
-                   col_types = cols(.default = "i", HHWT = "d", CLUSTER = "d", 
-                                    STRATA = "d", PERWT = "d", PERWT = "d"))
+                   col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
+                                    HHWT = "d", PERWT = "d", PERWT = "d"))
 ```
 
 In more recent data we will have some same sex couples. To keep consistency across the time I will focus on heterosexual couples. The full data contain some male-male couples in the sample, so these need to be removed.
