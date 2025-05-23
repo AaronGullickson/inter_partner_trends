@@ -293,6 +293,45 @@ census <- census |>
   filter(YEAR != 2019)
 ```
 
+## Code weights
+
+I don't have a couple-based weight in the data so my choice is to use the household weight or some combination of the person weights. If there was only one couple per household, then the household weight would be ideal, but that is not always the case. 
+
+Lets look at the correlations between the weights:
+
+
+```{r}
+#| label: corr-weights
+
+cor(census[,c("PERWT", "PERWT_SP", "HHWT")])
+```
+
+They are pretty tightly correlated. I think the most principled approach is to take the average of the person weights. These weights should be divided by the mean for each year.
+
+```{r}
+#| label: construct-weights
+
+census <- census |>
+  mutate(weight_sample = (PERWT + PERWT_SP) / 2)
+
+# check on the correlation matrix
+cor(census[,c("weight_sample", "PERWT", "PERWT_SP", "HHWT")])
+
+# now normalize the weights to mean to one in each year
+weight_means <- census |>
+  group_by(YEAR) |>
+  summarize(mean_sweight = mean(weight_sample), .groups = "drop")
+
+census <- census |>
+  left_join(weight_means, by = "YEAR") |>
+  mutate(weight_sample = weight_sample / mean_sweight)
+
+# check to make sure it means to one in each year
+census |>
+  group_by(YEAR) |>
+  summarize(mean(weight_sample), .groups = "drop")
+```
+
 ## Impute race for 650 case
 
 Now lets impute values for the 650 (Other Asian/Pacific Islander) cases from 1980. I will use valid 1990 observations for Asian and Pacific Islander respondents for the imputation procedure. I use 1990 rather than valid 1980 responses because it has a fuller range of possible categories for Asian and Pacific Islander respondents, specifically those that would have gone into the "Other Asian/PI" 650 category in 1980. I impute via predictive mean matching using the following covariates:
@@ -911,12 +950,14 @@ Now lets save the data.
 #| label: save-analytical-data
 
 census <- census |> 
+  rename(strata = STRATA, cluster = CLUSTER) |>
   select(race_husband, race_wife, subrace_husband, subrace_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
          gen_husband, gen_wife,
-         dur_mar, weight_age, 
+         dur_mar,
          state, division, region, 
+         weight_age, weight_sample, strata, cluster,
          year)
          
 
