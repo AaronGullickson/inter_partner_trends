@@ -92,8 +92,7 @@ generate_bootstrap_indices <- function(ind_data,
 
 bootstrap_model <- function(ind_data, 
                             selected_groups,
-                            n_replicates = B,
-                            sample_design = TRUE,
+                            bootstrap_indices = bs_indices,
                             conf_level = 0.83,
                             show_progress = FALSE,
                             ...) {
@@ -103,50 +102,35 @@ bootstrap_model <- function(ind_data,
   
   if(show_progress) {
     pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = n_replicates + 2)
+                           total = length(bootstrap_indices) + 1,
+                           show_after = 0)
     pb$tick(0)
   }
-  
-  # filter out unnecessary groups for later speed improvements
-  # estimate_lor does this but it will be faster to bootstrap sample a 
-  # smaller individual dataset
-  if(show_progress) {
-    pb$tick()
-  }
-  ind_data <- ind_data |>
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
-    mutate(race_husband = fct_drop(race_husband),
-           race_wife = fct_drop(race_wife))
-  
+
   # first estimate the full model to get analytical point estimates
   point_estimates <- ind_data |>
     estimate_lor(selected_groups, se = FALSE, ...)
+  if(show_progress) {
+    pb$tick()
+  }
   
   # now loop for the bootstrap
-  results <- vector("list", n_replicates)
-  
-  for (i in seq_len(n_replicates)) {
-    if (show_progress) {
-      pb$tick()
-    }
-    
-    sample_result <- ind_data |>
-      bootstrap_sample(sample_design) |>
-      estimate_lor(selected_groups, use_weights_sample = sample_design, 
-                   se = FALSE, ...)
+  results <- vector("list", length(bootstrap_indices))
+  for(i in seq_len(length(bootstrap_indices))) {
+    sample_result <- ind_data[bootstrap_indices[[i]],] |>
+      estimate_lor(selected_groups, se = FALSE, ...)
     
     results[[i]] <- sample_result
     
     #  memory cleanup
     rm(sample_result)
-    if (i %% 5 == 0) {
+    if(i %% 5 == 0) {
       gc()  # Run garbage collection every 5 iterations
     }
-  }
-  
-  if(show_progress) {
-    pb$tick()
+    
+    if (show_progress) {
+      pb$tick()
+    }
   }
   
   by_vars <- colnames(results[[1]])
@@ -276,7 +260,6 @@ estimate_lor <- function(ind_data,
            race_wife %in% selected_groups) |>
     mutate(year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
-    mutate(unity = 1) |>
     summarize(freq = sum(sum_var), .groups = "drop")
   
   # clean up the memory here now that we don't need individual data
