@@ -25,7 +25,7 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00148.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00149.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
@@ -52,16 +52,25 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00148.dat.gz"),
                                             MARRNO_SP = 142,
                                             AGEMARR_SP = c(147, 148),
                                             RACED_SP = c(149, 151),
+                                            RACHSING_SP = 161,
                                             HISPAN_SP = 152,
-                                            HISP1970_SP = 156,
+                                            HISP1970_SP = 160,
                                             BPL_SP = c(153, 155),
-                                            EDUCD_SP = c(159, 161),
+                                            YRIMMIG_SP = c(156, 159),
+                                            EDUCD_SP = c(164, 166),
                                             QRACE = 126,
                                             QHISPAN = 125,
+<<<<<<< Updated upstream
                                             QRACE_SP = 163,
                                             QHISPAN_SP = 162),
                    col_types = cols(.default = "i", HHWT = "d", CLUSTER = "d", 
                                     STRATA = "d", PERWT = "d", PERWT = "d"))
+=======
+                                            QRACE_SP = 168,
+                                            QHISPAN_SP = 167),
+                   col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
+                                    HHWT = "d", PERWT = "d", PERWT = "d"))
+>>>>>>> Stashed changes
 ```
 
 In more recent data we will have some same sex couples. To keep consistency across the time I will focus on heterosexual couples. The full data contain some male-male couples in the sample, so these need to be removed.
@@ -192,11 +201,22 @@ code_race <- function(subrace, year) {
                     "Black-Indigenous", "Black-Asian"))
 }
 
+# also code best single race
+code_best_race <- function(race) {
+  
+  best_race <- factor(race,
+                      levels = 1:5,
+                      labels = c("White", "Black", "AIAN", "API", "Hispanic"))
+  
+}
+
 census <- census |>
   mutate(subrace_husband = code_subrace(RACED, HISPAN, YEAR),
          subrace_wife = code_subrace(RACED_SP, HISPAN_SP, YEAR),
          race_husband = code_race(subrace_husband),
-         race_wife = code_race(subrace_wife))
+         race_wife = code_race(subrace_wife),
+         race_best_husband = code_best_race(RACHSING),
+         race_best_wife = code_best_race(RACHSING_SP))
 ```
 
 ## Code additional variables
@@ -951,7 +971,9 @@ Now lets save the data.
 
 census <- census |> 
   rename(strata = STRATA, cluster = CLUSTER) |>
-  select(race_husband, race_wife, subrace_husband, subrace_wife,
+  select(race_husband, race_wife, 
+         subrace_husband, subrace_wife, 
+         race_best_husband, race_best_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
          gen_husband, gen_wife,
