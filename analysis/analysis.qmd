@@ -220,6 +220,39 @@ marg_single_bs_yearsep |>
 
 Results are identical.
 
+
+How do things look if we don't use sample weights?
+
+```{r}
+#| label: estimate-model-no-sample-weights
+
+tic()
+marg_single_bs_unweighted <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
+                  show_progress = TRUE, use_weights_sample = FALSE)
+toc()
+```
+
+```{r}
+#| label: fig-compare-weights
+#| fig-cap: Comparison of parameters when estimating with and without sample weights
+
+marg_single_bs |>
+  bind_rows(marg_single_bs_unweighted) |>
+  ggplot(aes(x = year, y = estimate, color = sample_weighted))+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = sample_weighted),
+              alpha = 0.3, color = NA)+
+  geom_point(alpha = 0.5, size = 0.5)+
+  geom_line(alpha = 0.5)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("navy", "red"))+
+  scale_fill_manual(values = c("navy","red"))+
+  theme_bw()
+```
+
+Pretty close.
+
 # Age Restrictions
 
 How does the age weighting compare to 

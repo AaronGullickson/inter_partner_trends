@@ -142,7 +142,8 @@ estimate_lor <- function(ind_data,
                          conditional_var = NULL,
                          control_var = NULL,
                          se = TRUE,
-                         use_weights = TRUE,
+                         use_weights_age = TRUE,
+                         use_weights_sample = TRUE,
                          conf_level = 0.83,
                          pairwise = FALSE,
                          year_separate = FALSE) {
@@ -156,8 +157,8 @@ estimate_lor <- function(ind_data,
       ind_data |>
         estimate_lor(c(group1, group2), 
                      composition_var, conditional_var, control_var,
-                     se, use_weights, conf_level, pairwise = FALSE, 
-                     year_separate)
+                     se, use_weights_age, use_weights_sample, conf_level, 
+                     pairwise = FALSE, year_separate)
     }) |>
       bind_rows()
     return(results)
@@ -170,8 +171,8 @@ estimate_lor <- function(ind_data,
         filter(year == y) |>
         estimate_lor(selected_groups, 
                      composition_var, conditional_var, control_var,
-                     se, use_weights, conf_level, pairwise, 
-                     year_separate = FALSE)
+                     se, use_weights_age, use_weights_sample, conf_level, 
+                     pairwise, year_separate = FALSE)
     }) |>
       bind_rows()
     return(results)
@@ -185,8 +186,28 @@ estimate_lor <- function(ind_data,
   }                     
   grouping_vars <- c("race_husband", "race_wife", "year", 
                      composition_var, conditional_var, controls)
-  sum_var <- ifelse(use_weights, "weight_age", "unity")
   
+  # create variable to sum for frequencies
+  ind_data <- ind_data |>
+    mutate(sum_var = 1)
+  
+  if(use_weights_age) {
+    ind_data <- ind_data |>
+      mutate(sum_var = sum_var * weight_age)
+  }
+  
+  if(use_weights_sample) {
+    ind_data <- ind_data |>
+      mutate(sum_var = sum_var * weight_sample)
+  }
+  
+  # renormalize
+  ind_data <- ind_data |>
+    group_by(year) |>
+    mutate(sum_var = sum_var / mean(sum_var)) |>
+    ungroup()
+  
+  # create contingency table
   model_data <- ind_data |>
     # trim to just selected groups and drop unused factor levels
     filter(race_husband %in% selected_groups,
@@ -194,7 +215,7 @@ estimate_lor <- function(ind_data,
     mutate(year = fct_drop(year)) |>
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     mutate(unity = 1) |>
-    summarize(freq = sum(!!sym(sum_var)), .groups = "drop")
+    summarize(freq = sum(sum_var), .groups = "drop")
   
   # clean up the memory here now that we don't need individual data
   rm(ind_data)
@@ -358,7 +379,8 @@ estimate_lor <- function(ind_data,
   marg <- marg |>
     select(-contrast, -starts_with("predicted")) |>
     mutate(type = "glm",
-           age_weighted = use_weights,
+           age_weighted = use_weights_age,
+           sample_weighted = use_weights_sample,
            composition = ifelse(is.null(composition_var),
                                 "none",
                                 paste(composition_var, collapse = ",")),
