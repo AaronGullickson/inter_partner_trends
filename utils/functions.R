@@ -121,16 +121,8 @@ bootstrap_model <- function(ind_data,
   # now loop for the bootstrap
   results <- vector("list", length(bootstrap_indices))
   for(i in seq_len(length(bootstrap_indices))) {
-    sample_result <- ind_data[bootstrap_indices[[i]],] |>
-      estimate_lor(selected_groups, se = FALSE, ...)
-    
-    results[[i]] <- sample_result
-    
-    #  memory cleanup
-    rm(sample_result)
-    if(i %% 5 == 0) {
-      gc()  # Run garbage collection every 5 iterations
-    }
+    results[[i]] <- estimate_lor(ind_data[bootstrap_indices[[i]],],
+                                 selected_groups, se = FALSE, ...)
     
     if (show_progress) {
       pb$tick()
