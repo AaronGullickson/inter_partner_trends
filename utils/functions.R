@@ -7,6 +7,7 @@ PAIRINGS <- c(
   # single race pairings
   "White/Black",
   "White/Indigenous",
+  "White/API",
   "White/AIAN",
   "White/PI",
   "White/Asian",
@@ -18,7 +19,9 @@ PAIRINGS <- c(
   "White/BlackHispanic",
   "White/OtherHispanic",
   "Black/Indigenous",
+  "Black/AIAN",
   "Black/Asian",
+  "Black/API",
   "Black/Hispanic",
   "Black/WhiteHispanic",
   "Black/BlackHispanic",
@@ -26,6 +29,7 @@ PAIRINGS <- c(
   "Indigenous/Asian",
   "Indigenous/Hispanic",
   "Asian/Hispanic",
+  "AIAN/API",
   # single to multi race pairings
   "White/White-Black",
   "Black/White-Black",
@@ -439,6 +443,7 @@ get_intermar_names <- function(x) {
     str_replace_all("white", "White") |>
     str_replace_all("black", "Black") |>
     str_replace_all("hispanic", "Hispanic") |>
+    str_replace_all("api", "API") |>
     str_replace_all("pi", "PI") |>
     str_replace_all("asian", "Asian") |>
     str_replace_all("aian", "AIAN") |>

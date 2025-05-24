@@ -639,124 +639,160 @@ marg_multi_ba_state_bs |>
 ```{r}
 #| label: estimate-models-counterfactual-race
 
-## White-Black ##
-marg_wb_cf_black_state_bs <- census |>
+# for the best race case, we need to use the AIAN and API categories 
+transform_race <- function(race, subrace, best_race, cf = "best") {
+  
+  race <- as.character(race)
+  
+  race <- case_when(
+    subrace == "PI" ~ "API",
+    race == "Asian" ~ "API",
+    race == "Indigenous" ~ "AIAN",
+    TRUE ~ race
+  )
+  
+  if(cf == "white") {
+    race <- if_else(race == "White-Black", "White", race)
+    race <- if_else(race == "White-Asian", "White", race)
+    race <- if_else(race == "White-Indigenous", "White", race)
+  }
+  if(cf == "minority") {
+    race <- if_else(race == "White-Black", "Black", race)
+    race <- if_else(race == "White-Asian", "API", race)
+    race <- if_else(race != "White-Indigenous", race,
+                    if_else(subrace == "PI", "API", "AIAN"))
+  }
+  if(cf == "best") {
+    race <- if_else(!is.na(best_race), best_race, race)
+  }
+
+  race <- factor(race, levels = c("White", "Black", "AIAN", "API", "Hispanic"))
+}
+
+marg_single_cf_none_state_bs <- census |>
   mutate(
-    race_husband = if_else(race_husband == "White-Black", "Black", race_husband),
-    race_wife = if_else(race_wife == "White-Black", "Black", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Black"),
+    race_husband = transform_race(
+      race_husband, subrace_husband, race_best_husband, "none"
+    ),
+    race_wife = transform_race(
+      race_wife, subrace_wife, race_best_wife, "none"
+    )
+  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
-  mutate(counterfactual = "Black")
+  mutate(counterfactual = "Actual")
 
-marg_wb_cf_white_state_bs <- census |>
+marg_single_cf_white_state_bs <- census |>
   mutate(
-    race_husband = if_else(race_husband == "White-Black", "White", race_husband),
-    race_wife = if_else(race_wife == "White-Black", "White", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Black"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "White")
-
-## White-Asian ##
-marg_wa_cf_asian_state_bs <- census |>
-  mutate(
-    race_husband = if_else(race_husband == "White-Asian", "Asian", race_husband),
-    race_wife = if_else(race_wife == "White-Asian", "Asian", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Asian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "Asian")
-
-marg_wa_cf_white_state_bs <- census |>
-  mutate(
-    race_husband = if_else(race_husband == "White-Asian", "White", race_husband),
-    race_wife = if_else(race_wife == "White-Asian", "White", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Asian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "White")
-
-## White-Indigenous ##
-marg_wi_cf_indigenous_state_bs <- census |>
-  mutate(
-    race_husband = if_else(race_husband == "White-Indigenous", "Indigenous", race_husband),
-    race_wife = if_else(race_wife == "White-Indigenous", "Indigenous", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Indigenous"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "Indigenous")
-
-marg_wi_cf_white_state_bs <- census |>
-  mutate(
-    race_husband = if_else(race_husband == "White-Indigenous", "White", race_husband),
-    race_wife = if_else(race_wife == "White-Indigenous", "White", race_wife)
-  ) |>
-  bootstrap_model(c("White", "Indigenous"),
+    race_husband = transform_race(
+      race_husband, subrace_husband, race_best_husband, "white"
+    ),
+    race_wife = transform_race(
+      race_wife, subrace_wife, race_best_wife, "white"
+    )
+  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
   mutate(counterfactual = "White")
 
+marg_single_cf_minority_state_bs <- census |>
+  mutate(
+    race_husband = transform_race(
+      race_husband, subrace_husband, race_best_husband, "minority"
+    ),
+    race_wife = transform_race(
+      race_wife, subrace_wife, race_best_wife, "minority"
+    )
+  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "Non-White")
 
-
+marg_single_cf_best_state_bs <- census |>
+  mutate(
+    race_husband = transform_race(
+      race_husband, subrace_husband, race_best_husband, "best"
+    ),
+    race_wife = transform_race(
+      race_wife, subrace_wife, race_best_wife, "best"
+    )
+  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE,
+                  show_progress = TRUE) |>
+  mutate(counterfactual = "Best")
 ```
 
 ```{r}
 #| label: fig-multi-wb-counterf
 #| fig-cap: Comparison of White/Black exogamy when White-Black partners are re-assigned as Black or White
 
-marg_single_state_bs |>
-  filter(term == "White/Black") |>
+marg_single_cf_none_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_wb_cf_black_state_bs) |>
-  bind_rows(marg_wb_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_minority_state_bs) |>
+  bind_rows(marg_single_cf_best_state_bs) |>
+  filter(term == "White/Black") |>
+  mutate(counterfactual = if_else(counterfactual == "Non-White", "Black",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "Black", 
+                                            "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
   geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
+                  fill = counterfactual),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy"))+
-  scale_fill_manual(values = c("red", "gold", "navy"))+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
 ```
 
 ```{r}
 #| label: fig-multi-wa-counterf
-#| fig-cap: Comparison of White/Asian exogamy when White-Asian partners are re-assigned as Asian or White
+#| fig-cap: Comparison of White/API exogamy when White-API partners are re-assigned as API or White
 
-marg_single_state_bs |>
-  filter(term == "White/Asian") |>
+marg_single_cf_none_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_wa_cf_asian_state_bs) |>
-  bind_rows(marg_wa_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_minority_state_bs) |>
+  bind_rows(marg_single_cf_best_state_bs) |>
+  filter(term == "White/API") |>
+  mutate(counterfactual = if_else(counterfactual == "Non-White", "API",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "API", 
+                                            "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
   geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
+                  fill = counterfactual),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy"))+
-  scale_fill_manual(values = c("red", "gold", "navy"))+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
 ```
 
 ```{r}
 #| label: fig-multi-wi-counterf
-#| fig-cap: Comparison of White/Indigenous exogamy when White-Indigenous partners are re-assigned as Indigenous or White
+#| fig-cap: Comparison of White/AIAN exogamy when White-AIAN partners are re-assigned as AIAN or White
 
-marg_single_state_bs |>
-  filter(term == "White/Indigenous") |>
+marg_single_cf_none_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_wi_cf_indigenous_state_bs) |>
-  bind_rows(marg_wi_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_white_state_bs) |>
+  bind_rows(marg_single_cf_minority_state_bs) |>
+  bind_rows(marg_single_cf_best_state_bs) |>
+  filter(term == "White/AIAN") |>
+  mutate(counterfactual = if_else(counterfactual == "Non-White", "AIAN",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "AIAN", 
+                                            "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
@@ -764,8 +800,8 @@ marg_single_state_bs |>
   geom_line()+
   geom_point(size = 0.5)+
   scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy"))+
-  scale_fill_manual(values = c("red", "gold", "navy"))+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
 ```
 
