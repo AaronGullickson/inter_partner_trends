@@ -160,32 +160,6 @@ bootstrap_model <- function(ind_data,
     mutate(type = "bootstrap")
 }
 
-bootstrap_sample <- function(ind_data, sample_design = TRUE) {
-  
-  if(!sample_design) {
-    # just resample within year
-    ind_data |>
-      group_by(year) |>
-      group_split() |>
-      map(function(year_data) {
-        year_data |>
-          slice_sample(n = nrow(year_data), replace = TRUE)
-      }) |>
-      bind_rows()
-  }
-  
-  # otherwise we need to group by year and strata and then resample cluster
-  ind_data |>
-    group_by(year, strata) |>
-    group_split() |>
-    map_dfr(function(stratum_data) {
-      clusters <- unique(stratum_data$cluster)
-      sampled_clusters <- sample(clusters, length(clusters), replace = TRUE)
-      tibble(cluster = sampled_clusters)
-    }) |> 
-    left_join(ind_data, by = "cluster", relationship = "many-to-many")
-}
-
 estimate_lor <- function(ind_data, 
                          selected_groups,
                          composition_var = NULL,
