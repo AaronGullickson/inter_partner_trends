@@ -1019,6 +1019,58 @@ marg_indig_sub_state_bs |>
   theme_bw()
 ```
 
+# Regional models
+
+```{r}
+#| label: estimate-models-regional
+
+tic()
+marg_single_region_bs <- census |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE,
+                  show_progress = TRUE)
+toc()
+```
+
+
+```{r}
+#| label: fig-region
+#| fig-cap: Exogamy of single race groups, separately by region
+
+marg_single_region_bs |>
+  ggplot(aes(x = year, y = exp(estimate), color = region))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term, scales = "free_y")+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-region-white
+#| fig-cap: Exogamy involving White partners, separately by region
+
+marg_single_region_bs |>
+  filter(str_detect(term, "^White/")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = region))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  theme_bw()
+```
+
 ```{r}
 #| label: timestamp-end
 #| echo: false
