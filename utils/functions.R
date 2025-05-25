@@ -149,7 +149,7 @@ bootstrap_model <- function(ind_data,
     # move estimate before inference measures
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
-    mutate(type = "bootstrap")
+    mutate(type = paste0("bootstrap", length(bootstrap_indices)))
 }
 
 estimate_lor <- function(ind_data, 
