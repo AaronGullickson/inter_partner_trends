@@ -99,6 +99,7 @@ bootstrap_model <- function(ind_data,
                             bootstrap_indices = bs_indices,
                             conf_level = 0.83,
                             show_progress = FALSE,
+                            num_cores = 3,
                             ...) {
   
   ci_upper <- 1-(1-conf_level)/2
@@ -118,16 +119,52 @@ bootstrap_model <- function(ind_data,
     pb$tick()
   }
   
-  # now loop for the bootstrap
-  results <- vector("list", length(bootstrap_indices))
-  for(i in seq_len(length(bootstrap_indices))) {
-    results[[i]] <- estimate_lor(ind_data[bootstrap_indices[[i]],],
-                                 selected_groups, se = FALSE, ...)
-    
-    if (show_progress) {
-      pb$tick()
+  # Start cluster
+  cl <- makeCluster(num_cores)
+  
+  # Export necessary variables and functions
+  clusterExport(cl, varlist = c("ind_data", "bootstrap_indices", 
+                                "selected_groups", "estimate_lor", 
+                                "get_intermar_names", "get_permutations",
+                                "PAIRINGS"), 
+                envir = environment())
+  
+  # Load libraries on each worker (if not fully qualified in estimate_lor)
+  clusterEvalQ(cl, {
+    library(tidyverse)
+    library(marginaleffects)
+  })
+  
+  # Split bootstrap indices into chunks
+  chunks <- split(bootstrap_indices, cut(seq_along(bootstrap_indices), 
+                                         num_cores, labels = FALSE))
+  
+  # Process each chunk in parallel
+  results_list <- parLapply(cl, chunks, function(chunk) {
+    out <- vector("list", length(chunk))
+    for (i in seq_along(chunk)) {
+      out[[i]] <- estimate_lor(ind_data[chunk[[i]], ], 
+                               selected_groups, se = FALSE)
+      gc()  # Clean up memory
     }
-  }
+    out
+  })
+  
+  stopCluster(cl)
+  
+  # Flatten results
+  results <- flatten(results_list)
+  
+  # now loop for the bootstrap
+  #results <- vector("list", length(bootstrap_indices))
+  #for(i in seq_len(length(bootstrap_indices))) {
+  #  results[[i]] <- estimate_lor(ind_data[bootstrap_indices[[i]],],
+  #                               selected_groups, se = FALSE, ...)
+  #  
+  #  if (show_progress) {
+  #    pb$tick()
+  #  }
+  #}
   
   by_vars <- colnames(results[[1]])
   by_vars <- by_vars[by_vars != "estimate"]
