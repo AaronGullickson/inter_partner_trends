@@ -335,10 +335,14 @@ estimate_lor <- function(ind_data,
   formula_model <- reformulate(formula_model, "freq")
   
   ## run the model ##
-  # turn off warnings about non-integer poisson - we know because of weights
-  model <- suppressWarnings(
-    glm(formula_model, data = model_data, family = poisson)
-  )
+  if(se) {
+    # turn off warnings about non-integer poisson - we know because of weights
+    model <- suppressWarnings(
+      glm(formula_model, data = model_data, family = poisson)
+    )
+  } else {
+    model <- glm(formula_model, data = model_data, family = quasipoisson)
+  }
 
    ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
