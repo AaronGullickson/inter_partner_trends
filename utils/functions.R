@@ -161,24 +161,8 @@ estimate_lor <- function(ind_data,
                          use_weights_age = TRUE,
                          use_weights_sample = TRUE,
                          conf_level = 0.83,
-                         pairwise = FALSE,
                          year_separate = FALSE) {
   
-  
-  # In some complex cases, running each pairwise comparison separately
-  # will be faster than running a single model
-  if(pairwise) {
-    groups <- get_permutations(selected_groups)
-    results <- pmap(groups, function(group1, group2) {
-      ind_data |>
-        estimate_lor(c(group1, group2), 
-                     composition_var, conditional_var, control_var,
-                     se, use_weights_age, use_weights_sample, conf_level, 
-                     pairwise = FALSE, year_separate)
-    }) |>
-      bind_rows()
-    return(results)
-  }
   
   # it might also be much faster to do individual years separately
   if(year_separate) {
