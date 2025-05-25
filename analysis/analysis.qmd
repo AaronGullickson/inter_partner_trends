@@ -999,7 +999,7 @@ marg_indig_sub_state_bs |>
 #| label: estimate-models-regional
 
 tic()
-marg_single_region_bs <- census |>
+marg_single_byregion_bs <- census |>
   bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
                   year_separate = TRUE,
@@ -1012,7 +1012,7 @@ toc()
 #| label: fig-region
 #| fig-cap: Exogamy of single race groups, separately by region
 
-marg_single_region_bs |>
+marg_single_byregion_bs |>
   ggplot(aes(x = year, y = exp(estimate), color = region))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
@@ -1030,7 +1030,7 @@ marg_single_region_bs |>
 #| label: fig-region-white
 #| fig-cap: Exogamy involving White partners, separately by region
 
-marg_single_region_bs |>
+marg_single_byregion_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = region))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -1043,6 +1043,38 @@ marg_single_region_bs |>
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
+```
+
+# Save Final Models
+
+```{r}
+save(
+  # basic models
+  marg_single_bs, 
+  marg_single_state_bs,
+  # age restricted models
+  marg_single_dur5,
+  # education models
+  marg_single_educ_state,
+  # multiple race models
+  marg_multi_wb_state_bs,
+  marg_multi_wa_state_bs,
+  marg_multi_wi_state_bs,
+  marg_multi_ba_state_bs,
+  marg_multi_bi_state_bs,
+  # counterfactual models
+  marg_single_cf_best_state_bs,
+  marg_single_cf_white_state_bs,
+  marg_single_cf_minority_state_bs,
+  marg_single_cf_none_state_bs,
+  # subgroup models
+  marg_hispanic_sub_state_bs,
+  marg_asian_sub_state_bs,
+  marg_asian_sub_simple_state_bs,
+  marg_indig_sub_state_bs,
+  # regional models
+  marg_single_byregion_bs,   
+  file = here("data", "data_constructed", "models.RData"))
 ```
 
 ```{r}
