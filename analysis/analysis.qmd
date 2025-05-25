@@ -2,7 +2,7 @@
 title: "Run Models"
 # set the number of bootstrap samples here. 10 is good for quick runs
 params:
-  bootstrap_rep: 10
+  bootstrap_rep: 3
 execute:
   warning: false
   message: false
@@ -394,18 +394,10 @@ marg_single_bs |>
 
 # Control for Education
 
-Running state composition and educational controls in the same model slows them down quite a bit - almost 2 minutes per model (20 minutes for 10 bootstrapped models), so I will just run a straight education model with no compositional controls.  We really should look at this with state composition controlled, but lets just a single model without SEs to keep things sane.
+Running state composition and educational controls in the same model slows them down quite a bit - almost 2 minutes per model (20 minutes for 10 bootstrapped models), so for now I am just going to run a single model and ignore standard errors.
 
 ```{r}
 #| label: estimate-educ-models
-
-tic()
-marg_single_educ_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  control_var = "educ",
-                  year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
 
 tic()
 marg_single_educ_state <- census |>
@@ -682,6 +674,7 @@ marg_single_cf_none_state_bs <- census |>
                   show_progress = TRUE) |>
   mutate(counterfactual = "Actual")
 
+tic()
 marg_single_cf_white_state_bs <- census |>
   mutate(
     race_husband = transform_race(
@@ -694,7 +687,9 @@ marg_single_cf_white_state_bs <- census |>
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
   mutate(counterfactual = "White")
+toc()
 
+tic()
 marg_single_cf_minority_state_bs <- census |>
   mutate(
     race_husband = transform_race(
@@ -707,7 +702,9 @@ marg_single_cf_minority_state_bs <- census |>
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
   mutate(counterfactual = "Non-White")
+toc()
 
+tic()
 marg_single_cf_best_state_bs <- census |>
   mutate(
     race_husband = transform_race(
@@ -720,6 +717,7 @@ marg_single_cf_best_state_bs <- census |>
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
   mutate(counterfactual = "Best")
+toc()
 ```
 
 ```{r}
@@ -810,8 +808,8 @@ marg_single_cf_none_state_bs |>
 ```{r}
 #| label: estimate-models-sub-race
 
-
 ## Hispanic subgroups ##
+tic()
 marg_hispanic_sub_state_bs <- census |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
@@ -819,14 +817,17 @@ marg_hispanic_sub_state_bs <- census |>
                     "OtherHispanic"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
+toc()
 
 ## Asian subgroups ##
+tic()
 marg_asian_sub_state_bs <- census |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
   bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
+toc()
 
 
 ## Asian subgroups, combining East and SE ##
@@ -837,19 +838,24 @@ combine_race <- function(subrace) {
     subrace %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
   factor(race, levels = c("White", "EastAsian", "SouthAsian"))
 }
+
+tic()
 marg_asian_sub_simple_state_bs <- census |>
   mutate(race_husband = combine_race(subrace_husband),
          race_wife = combine_race(subrace_wife)) |>
   bootstrap_model(c("White", "EastAsian", "SouthAsian"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
+toc()
 
+tic()
 marg_indig_sub_state_bs <- census |>
   mutate(race_husband = subrace_husband,
          race_wife = subrace_wife) |>
   bootstrap_model(c("White", "AIAN", "PI"),
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE)
+toc()
 ```
 
 ```{r}
@@ -1031,17 +1037,6 @@ marg_single_region_bs <- census |>
                   year_separate = TRUE,
                   show_progress = TRUE)
 toc()
-
-tic()
-marg_subhispan_region_bs <- census |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "Black",  "WhiteHispanic", "BlackHispanic", 
-                    "OtherHispanic"),
-                  composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
 ```
 
 
@@ -1081,27 +1076,6 @@ marg_single_region_bs |>
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
 ```
-
-```{r}
-#| label: fig-region-subhispanic
-#| fig-cap: Exogamy involving Hispanic subgroups and White and Black partners, separately by region
-
-marg_subhispan_region_bs |>
-  filter((str_detect(term, "^White/") | str_detect(term, "^Black/")) &
-           term != "White/Black") |>
-  ggplot(aes(x = year, y = exp(estimate), color = region))+
-  geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  facet_wrap(~term)+
-  scale_y_log10()+
-  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  theme_bw()
-```
-
 
 ```{r}
 #| label: timestamp-end
