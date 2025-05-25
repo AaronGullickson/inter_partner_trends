@@ -377,23 +377,6 @@ toc()
 
 ```{r}
 #| label: fig-educ
-#| fig-cap: Comparison of model parameters when controlling for spousal education differences across race in baseline model
-
-marg_single_bs |>
-  bind_rows(marg_single_educ_bs) |>
-  ggplot(aes(x = year, y = estimate, color = control))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = control),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("red", "navy"))+
-  scale_fill_manual(values = c("red", "navy"))+
-  theme_bw()
-```
-
-```{r}
-#| label: fig-educ-state
 #| fig-cap: Comparison of model parameters when controlling for spousal education differences across race in models that also adjust for racial composition by state
 
 marg_single_state_bs |>
