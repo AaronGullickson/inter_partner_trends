@@ -612,6 +612,7 @@ transform_race <- function(race, subrace, best_race, cf = "best") {
   race <- factor(race, levels = c("White", "Black", "AIAN", "API", "Hispanic"))
 }
 
+tic()
 marg_single_cf_none_state_bs <- census |>
   mutate(
     race_husband = transform_race(
@@ -624,6 +625,7 @@ marg_single_cf_none_state_bs <- census |>
                   composition_var = "state", year_separate = TRUE,
                   show_progress = TRUE) |>
   mutate(counterfactual = "Actual")
+toc()
 
 tic()
 marg_single_cf_white_state_bs <- census |>
