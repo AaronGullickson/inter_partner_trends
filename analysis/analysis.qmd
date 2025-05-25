@@ -198,38 +198,6 @@ marg_single |>
 
 Point estimates are the same, as expected. The bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
 
-Now how does the time compare if we do separate years?
-
-```{r}
-#| label: estimate-model-benchmark-year-sep
-
-tic()
-marg_single_bs_yearsep <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
-                  year_separate = TRUE, 
-                  show_progress = TRUE)
-toc()
-```
-
-So for a simple model, it takes longer to do separately by year. Are the parameters the same?
-
-```{r}
-#| label: fig-compare-year-sep
-#| fig-cap: Comparison of parameters when estimating in a single model vs separately by year
-
-marg_single_bs_yearsep |>
-  rename(estimate_yearsep = estimate) |>
-  right_join(marg_single_bs, by = c("term", "year")) |>
-  ggplot(aes(x = estimate, y = estimate_yearsep))+
-  geom_abline(intercept = 0, slope = 1, color = "red", linetype = 2)+
-  labs(x = "estimate separately by year", y = "estimate all years together")+
-  geom_point()+
-  theme_bw()
-
-```
-
-Results are identical.
-
 # Age Restrictions
 
 How does the age weighting compare to 
