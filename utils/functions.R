@@ -99,73 +99,64 @@ bootstrap_model <- function(ind_data,
                             bootstrap_indices = bs_indices,
                             conf_level = 0.83,
                             show_progress = FALSE,
+                            chunk_size = 50,
                             num_cores = 3,
                             ...) {
   
   ci_upper <- 1-(1-conf_level)/2
   ci_lower <- (1-conf_level)/2
   
-  if(show_progress) {
-    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = length(bootstrap_indices) + 1,
-                           show_after = 0)
-    pb$tick(0)
-  }
-
   # first estimate the full model to get analytical point estimates
   point_estimates <- ind_data |>
     estimate_lor(selected_groups, se = FALSE, ...)
-  if(show_progress) {
-    pb$tick()
-  }
+  
+  # Split into chunks
+  bs_chunks <- split(bootstrap_indices, 
+                     ceiling(seq_along(bootstrap_indices) / chunk_size))
   
   # Start cluster
   cl <- makeCluster(num_cores)
+  on.exit(stopCluster(cl))
   
   # Export necessary variables and functions
-  clusterExport(cl, varlist = c("ind_data", "bootstrap_indices", 
-                                "selected_groups", "estimate_lor", 
+  clusterExport(cl, varlist = c("selected_groups", "estimate_model", 
                                 "get_intermar_names", "get_permutations",
                                 "PAIRINGS"), 
                 envir = environment())
   
-  # Load libraries on each worker (if not fully qualified in estimate_lor)
+  # Load libraries on each worker
   clusterEvalQ(cl, {
     library(tidyverse)
     library(marginaleffects)
   })
   
-  # Split bootstrap indices into chunks
-  chunks <- split(bootstrap_indices, cut(seq_along(bootstrap_indices), 
-                                         num_cores, labels = FALSE))
-  
-  # Process each chunk in parallel
-  results_list <- parLapply(cl, chunks, function(chunk) {
-    out <- vector("list", length(chunk))
-    for (i in seq_along(chunk)) {
-      out[[i]] <- estimate_lor(ind_data[chunk[[i]], ], 
-                               selected_groups, se = FALSE)
-      gc()  # Clean up memory
-    }
-    out
-  })
-  
-  stopCluster(cl)
-  
-  # Flatten results
-  results <- flatten(results_list)
-  
-  # now loop for the bootstrap
-  #results <- vector("list", length(bootstrap_indices))
-  #for(i in seq_len(length(bootstrap_indices))) {
-  #  results[[i]] <- estimate_lor(ind_data[bootstrap_indices[[i]],],
-  #                               selected_groups, se = FALSE, ...)
-  #  
-  #  if (show_progress) {
-  #    pb$tick()
-  #  }
-  #}
-  
+  # loop through chunks and then create model data and estimate models 
+  # in parallel
+  results <- list()
+  for (chunk in bs_chunks) {
+    
+    # Create model data for this chunk
+    model_data_list <- map(chunk, function(idx) {
+      create_model_data(ind_data[idx,], selected_groups, ...)
+    })
+
+    # Export model data list to workers
+    clusterExport(cl, varlist = "model_data_list", envir = environment())
+    
+    # Parallel estimation of the models
+    chunk_results <- parLapply(cl, seq_along(model_data_list), function(i) {
+      estimate_model(model_data_list[[i]], selected_groups, se = FALSE, ...)
+    })
+
+    results <- c(results, chunk_results)
+    estimate_count <- estimate_count + length(chunk_results)
+    #if (show_progress) pb$update(estimate_count / (length(bootstrap_indices) + 1))
+    
+    # Clean up
+    rm(model_data_list)
+    gc()
+  }
+ 
   by_vars <- colnames(results[[1]])
   by_vars <- by_vars[by_vars != "estimate"]
   # full join here because its possible that some coefficients might be dropped
@@ -201,20 +192,39 @@ estimate_lor <- function(ind_data,
                          year_separate = FALSE) {
   
   
-  # it might also be much faster to do individual years separately
+  model_data <- create_model_data(ind_data, selected_groups,
+                                  composition_var, conditional_var,
+                                  control_var, use_weights_age,
+                                  use_weights_sample)
+  
+  rm(ind_data)
+  gc()
+  
+  # it might be much faster to do individual years separately
   if(year_separate) {
-    results <- map(unique(ind_data$year), function(y) {
-      ind_data |>
+    results <- map(unique(model_data$year), function(y) {
+      model_data |>
         filter(year == y) |>
-        estimate_lor(selected_groups, 
-                     composition_var, conditional_var, control_var,
-                     se, use_weights_age, use_weights_sample, conf_level, 
-                     pairwise, year_separate = FALSE)
+        estimate_model(selected_groups, composition_var, conditional_var, 
+                       control_var, se, use_weights_age, use_weights_sample, 
+                       conf_level)
     }) |>
       bind_rows()
     return(results)
   }
   
+  estimate_model(model_data, selected_groups, composition_var, conditional_var, 
+                 control_var, se, use_weights_age, use_weights_sample, 
+                 conf_level)
+}
+
+create_model_data <- function(ind_data, 
+                              selected_groups,
+                              composition_var = NULL,
+                              conditional_var = NULL,
+                              control_var = NULL,
+                              use_weights_age = TRUE,
+                              use_weights_sample = TRUE) {
   
   ## prepare model data ##
   controls <- NULL
@@ -255,9 +265,18 @@ estimate_lor <- function(ind_data,
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     summarize(freq = sum(sum_var), .groups = "drop")
   
-  # clean up the memory here now that we don't need individual data
-  rm(ind_data)
-  gc()
+  return(model_data)
+}
+
+estimate_model <- function(model_data, 
+                           selected_groups,
+                           composition_var = NULL,
+                           conditional_var = NULL,
+                           control_var = NULL,
+                           se = TRUE,
+                           use_weights_age = TRUE,
+                           use_weights_sample = TRUE,
+                           conf_level = 0.83) {
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
@@ -364,8 +383,8 @@ estimate_lor <- function(ind_data,
   } else {
     model <- glm(formula_model, data = model_data, family = quasipoisson)
   }
-
-   ## get marginal effects of variables we want ##
+  
+  ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
@@ -377,7 +396,7 @@ estimate_lor <- function(ind_data,
                type = "link",
                vcov = se, 
                conf_level = conf_level)
-    ) |>
+  ) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
