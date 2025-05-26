@@ -51,17 +51,10 @@ PAIRINGS <- c(
   "AIAN/PI"
 )
 
-# number of bootstrap samples
-# his is way too low for final analysis, but should be sufficient for
-# preliminary runs where we just want a reasonably close estimate. The actual
-# B will typically be set in the quarto doc where it is used.
-B <- 10
-
-
 # Modeling functions ------------------------------------------------------
 
 generate_bootstrap_data <- function(ind_data, 
-                                    n_replicates = B, 
+                                    n_replicates, 
                                     sample_design = TRUE,
                                     ...) {
   
