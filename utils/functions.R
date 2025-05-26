@@ -94,17 +94,51 @@ generate_bootstrap_indices <- function(ind_data,
   })
 }
 
-bootstrap_model <- function(ind_data, 
+generate_bootstrap_data <- function(ind_data, 
+                                    n_replicates = B, 
+                                    sample_design = TRUE,
+                                    ...) {
+  
+  
+  # the first element of the list is always the actual
+  actual <- list(create_model_data(ind_data,...))
+  
+  replicates <- map(1:n_replicates, function(i) {
+    if(sample_design) {
+      # we need to adjust for year and strata
+      ind_data |>
+        group_by(year, strata) |>
+        group_split() |>
+        map(function(stratum_data) {
+          clusters <- unique(stratum_data$cluster)
+          tibble(cluster = sample(clusters, length(clusters), replace = TRUE)) |>
+            left_join(ind_data, by = "cluster", relationship = "many-to-many")
+        }) |>
+        bind_rows() |>
+        create_model_data(...)
+    } else {
+      # Simple bootstrap but still stratify by year
+      ind_data |>
+        group_by(year) |>
+        group_split() |>
+        map(function(year_data) {
+          slice_sample(year_data, n = nrow(year_data), replace = TRUE)
+        }) |>
+        bind_rows() |>
+        create_model_data(...)
+    }
+  })
+  
+  return(c(actual, replicates))
+}
+
+bootstrap_model <- function(model_data_list, 
                             selected_groups,
-                            bootstrap_indices = bs_indices,
                             chunk_size = 50,
                             num_cores = 3,
-                            show_progress = FALSE,
                             composition_var = NULL,
                             conditional_var = NULL,
                             control_var = NULL,
-                            use_weights_age = TRUE,
-                            use_weights_sample = TRUE,
                             conf_level = 0.83,
                             year_separate = FALSE) {
   
@@ -112,14 +146,15 @@ bootstrap_model <- function(ind_data,
   ci_lower <- (1-conf_level)/2
   
   # first estimate the full model to get analytical point estimates
-  point_estimates <- estimate_lor(ind_data, selected_groups, composition_var, 
-                                  conditional_var,  control_var, 
-                                  use_weights_age, use_weights_sample, FALSE, 
-                                  conf_level, year_separate)
+  point_estimates <- estimate_model(model_data_list[[1]], selected_groups, 
+                                    composition_var, conditional_var, 
+                                    control_var, FALSE, conf_level, 
+                                    year_separate)
+  model_data_list <- model_data_list[-1]
   
   # Split into chunks
-  bs_chunks <- split(bootstrap_indices, 
-                     ceiling(seq_along(bootstrap_indices) / chunk_size))
+  bs_chunks <- split(model_data_list, 
+                     ceiling(seq_along(model_data_list) / chunk_size))
   
   # Start cluster
   cl <- makeCluster(num_cores)
@@ -128,7 +163,6 @@ bootstrap_model <- function(ind_data,
   # Export necessary variables and functions
   clusterExport(cl, varlist = c("selected_groups", "composition_var",
                                 "conditional_var", "control_var",
-                                "use_weights_age", "use_weights_sample",
                                 "conf_level", "year_separate",
                                 "estimate_model", "get_intermar_names", 
                                 "get_permutations", "PAIRINGS"), 
@@ -140,35 +174,21 @@ bootstrap_model <- function(ind_data,
     library(marginaleffects)
   })
   
-  # loop through chunks and then create model data and estimate models 
-  # in parallel
+  # loop through chunks and estimate models in parallel
   results <- list()
   for (chunk in bs_chunks) {
     
-    # Create model data for this chunk
-    model_data_list <- map(chunk, function(idx) {
-      create_model_data(ind_data[idx,], selected_groups, composition_var, 
-                        conditional_var, control_var, use_weights_age, 
-                        use_weights_sample)
-    })
-
     # Export model data list to workers
-    clusterExport(cl, varlist = "model_data_list", envir = environment())
+    clusterExport(cl, varlist = "chunk", envir = environment())
     
     # Parallel estimation of the models
-    chunk_results <- parLapply(cl, seq_along(model_data_list), function(i) {
-      estimate_model(model_data_list[[i]], selected_groups, composition_var, 
-                     conditional_var, control_var, use_weights_age, 
-                     use_weights_sample, FALSE, conf_level, year_separate)
+    chunk_results <- parLapply(cl, seq_along(chunk), function(i) {
+      estimate_model(chunk[[i]], selected_groups, composition_var, 
+                     conditional_var, control_var, FALSE, conf_level, 
+                     year_separate)
     })
 
     results <- c(results, chunk_results)
-    estimate_count <- estimate_count + length(chunk_results)
-    #if (show_progress) pb$update(estimate_count / (length(bootstrap_indices) + 1))
-    
-    # Clean up
-    rm(model_data_list)
-    gc()
   }
  
   by_vars <- colnames(results[[1]])
@@ -191,32 +211,7 @@ bootstrap_model <- function(ind_data,
     # move estimate before inference measures
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
-    mutate(type = paste0("bootstrap", length(bootstrap_indices)))
-}
-
-estimate_lor <- function(ind_data, 
-                         selected_groups,
-                         composition_var = NULL,
-                         conditional_var = NULL,
-                         control_var = NULL,
-                         use_weights_age = TRUE,
-                         use_weights_sample = TRUE,
-                         se = TRUE,
-                         conf_level = 0.83,
-                         year_separate = FALSE) {
-  
-  
-  model_data <- create_model_data(ind_data, selected_groups,
-                                  composition_var, conditional_var,
-                                  control_var, use_weights_age,
-                                  use_weights_sample)
-  
-  rm(ind_data)
-  gc()
-  
-  estimate_model(model_data, selected_groups, composition_var, conditional_var, 
-                 control_var, use_weights_age, use_weights_sample, se,
-                 conf_level, year_separate)
+    mutate(type = paste0("bootstrap", length(model_data_list)))
 }
 
 create_model_data <- function(ind_data, 
@@ -289,7 +284,8 @@ estimate_model <- function(model_data,
   
   # trim to just selected groups and drop unused factor levels
   model_data <- model_data |>
-    filter(race_husband %in% selected_groups, race_wife %in% selected_groups)
+    filter(race_husband %in% selected_groups, race_wife %in% selected_groups) |>
+    mutate(year = fct_drop(year))
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
