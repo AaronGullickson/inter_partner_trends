@@ -140,8 +140,6 @@ generate_bootstrap_data <- function(ind_data,
 
 bootstrap_model <- function(model_data_list, 
                             selected_groups,
-                            chunk_size = 50,
-                            num_cores = 3,
                             composition_var = NULL,
                             conditional_var = NULL,
                             control_var = NULL,
@@ -151,55 +149,21 @@ bootstrap_model <- function(model_data_list,
   ci_upper <- 1-(1-conf_level)/2
   ci_lower <- (1-conf_level)/2
   
-  # first estimate the full model to get analytical point estimates
+  # first object in model_data_list is actual data so use it to get
+  # point estimates
   point_estimates <- estimate_model(model_data_list[[1]], selected_groups, 
                                     composition_var, conditional_var, 
                                     control_var, FALSE, conf_level, 
                                     year_separate)
+  
+  # now remove actual data and parallel process all of the bootstrap samples
   model_data_list <- model_data_list[-1]
-  
-  # Split into chunks
-  bs_chunks <- split(model_data_list, 
-                     ceiling(seq_along(model_data_list) / chunk_size))
-  
-  # Start cluster
-  cl <- makeCluster(num_cores)
-  on.exit(stopCluster(cl))
-  
-  # Export necessary variables and functions
-  clusterExport(cl, varlist = c("selected_groups", "composition_var",
-                                "conditional_var", "control_var",
-                                "conf_level", "year_separate",
-                                "estimate_model", "get_intermar_names", 
-                                "get_permutations", "PAIRINGS"), 
-                envir = environment())
-  
-  # Load libraries on each worker
-  clusterEvalQ(cl, {
-    library(tidyverse)
-    library(marginaleffects)
-  })
-  
-  # loop through chunks and estimate models in parallel
-  results <- list()
-  for (chunk in bs_chunks) {
-    
-    # Export model data list to workers
-    clusterExport(cl, varlist = "chunk", envir = environment())
-    
-    # Parallel estimation of the models
-    chunk_results <- parLapply(cl, seq_along(chunk), function(i) {
-      estimate_model(chunk[[i]], selected_groups, composition_var, 
-                     conditional_var, control_var, FALSE, conf_level, 
-                     year_separate)
-    })
-
-    results <- c(results, chunk_results)
-    
-    # garbage cleanup
-    rm(chunk_results)
-    gc()
-  }
+  results <- future_map(
+    model_data_list,
+    ~ estimate_model(.x, selected_groups, composition_var, 
+                     conditional_var, control_var, 
+                     FALSE, conf_level, year_separate)
+  )
   
   by_vars <- colnames(results[[1]])
   by_vars <- by_vars[by_vars != "estimate"]
