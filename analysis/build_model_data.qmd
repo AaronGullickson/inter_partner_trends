@@ -1,0 +1,95 @@
+---
+title: "Build Model Data"
+params:
+  bootstrap_rep: 3
+format: html
+---
+
+```{r}
+#| label: timestamp-start
+#| echo: false
+
+timestamp()
+```
+
+```{r}
+#| label: setup
+#| include: false
+library(here)
+source(here("utils","check_packages.R"))
+source(here("utils","functions.R"))
+```
+
+```{r}
+#| label: prepare-data
+#| include: false
+
+load(here("data", "data_constructed", "individ_data.RData"))
+
+# relevel year and factor up anything that might go into models
+census <- census |>
+  mutate(year = factor(year),
+         year = relevel(year, "2000"),
+         region = factor(region),
+         division = factor(division),
+         state = factor(state)) |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+")
+```
+
+```{r}
+#| label: generate-state-model-data
+
+data_model_state <- census |>
+  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+```
+
+```{r}
+#| label: generate-state-region-model-data
+
+data_model_state_region <- census |>
+  generate_bootstrap_data(params$bootstrap_rep,
+                          composition_var = "state",
+                          conditional_var = "region")
+```
+
+```{r}
+#| label: generate-best-race-model-data
+
+transform_race <- function(race, subrace, best_race) {
+  
+  race <- as.character(race)
+  race <- case_when(
+    subrace == "PI" ~ "API",
+    race == "Asian" ~ "API",
+    race == "Indigenous" ~ "AIAN",
+    TRUE ~ race
+  )
+  
+  race <- if_else(!is.na(best_race), best_race, race)
+  race <- factor(race, levels = c("White", "Black", "AIAN", "API", "Hispanic"))
+  return(race)
+}
+
+data_model_best_race_state <- census |>
+  mutate(race_husband = transform_race(race_husband, subrace_husband, race_best_husband),
+         race_wife = transform_race(race_wife, subrace_wife, race_best_wife)) |>
+  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+```
+
+```{r}
+#| label: save-data
+
+save(data_model_state, 
+     file = here("data", "data_constructed", "model_data.RData"))
+```
+
+```{r}
+#| label: timestamp-end
+#| echo: false
+
+timestamp()
+```
+
+
+
+
