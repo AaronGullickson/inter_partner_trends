@@ -1,7 +1,7 @@
 ---
 title: "Build Model Data"
 params:
-  bootstrap_rep: 3
+  bootstrap_rep: 50
 format: html
 ---
 
