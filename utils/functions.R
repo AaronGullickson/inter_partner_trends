@@ -99,7 +99,6 @@ generate_bootstrap_data <- function(ind_data,
                                     sample_design = TRUE,
                                     ...) {
   
-  
   # the first element of the list is always the actual
   actual <- list(create_model_data(ind_data,...))
   
@@ -112,7 +111,7 @@ generate_bootstrap_data <- function(ind_data,
         map(function(stratum_data) {
           clusters <- unique(stratum_data$cluster)
           tibble(cluster = sample(clusters, length(clusters), replace = TRUE)) |>
-            left_join(ind_data, by = "cluster", relationship = "many-to-many")
+            left_join(stratum_data, by = "cluster", relationship = "many-to-many")
         }) |>
         bind_rows() |>
         create_model_data(...)
