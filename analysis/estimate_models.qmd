@@ -302,7 +302,7 @@ save(model_cf_best_state_bs,
 
 tic()
 model_state_byregion_bs <- data_model_state_region |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
                   year_separate = TRUE)
 toc()
