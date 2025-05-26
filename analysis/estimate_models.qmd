@@ -279,6 +279,11 @@ model_cf_minority_state_bs <- data_model_state |>
                   composition_var = "state", year_separate = TRUE) |>
   mutate(counterfactual = "Minority")
 toc()
+
+save(model_cf_best_state_bs,
+     model_cf_white_state_bs,
+     model_cf_minority_state_bs,
+     file = here("data", "data_constructed", "models_counterfactual.RData"))
 ```
 
 
