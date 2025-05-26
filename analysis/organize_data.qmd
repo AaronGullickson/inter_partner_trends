@@ -137,9 +137,8 @@ I also include five biracial groups from 2000 on that have a large enough sample
 ```{r}
 #| label: code-race
 
-# subrace will give a more detailed version of race so that we can experiment
-# with breaking out larger race groups
-code_subrace <- function(raced, hispan, year) {
+# we code race in the most detailed categories first
+code_race <- function(raced, hispan, year) {
   
   subrace <- case_when(
     hispan != 0 & raced == 100 & year > 1970 ~ "WhiteHispanic",
@@ -174,26 +173,6 @@ code_subrace <- function(raced, hispan, year) {
                     "Black-AIAN", "Black-PI", "Black-Asian"))
 }
 
-# we can code race by combining subrace categories
-code_race <- function(subrace, year) {
-  
-  race <- case_when(
-    subrace %in% c("WhiteHispanic", "BlackHispanic",
-                   "OtherHispanic", "ResidualHispanic") ~ "Hispanic",
-    subrace %in% c("EastAsian", "SEAsian", 
-                   "SouthAsian", "OtherAsian") ~ "Asian",
-    subrace %in% c("AIAN", "PI") ~ "Indigenous",
-    subrace %in% c("White-AIAN", "White-PI") ~ "White-Indigenous",
-    subrace %in% c("Black-AIAN", "Black-PI") ~ "Black-Indigenous",
-    TRUE ~ subrace
-  )
-    
-  factor(race, 
-         levels = c("White", "Black", "Indigenous", "Asian", "Hispanic",
-                    "White-Black", "White-Indigenous", "White-Asian", 
-                    "Black-Indigenous", "Black-Asian"))
-}
-
 # also code best single race
 code_best_race <- function(race) {
   
@@ -204,10 +183,8 @@ code_best_race <- function(race) {
 }
 
 census <- census |>
-  mutate(subrace_husband = code_subrace(RACED, HISPAN, YEAR),
-         subrace_wife = code_subrace(RACED_SP, HISPAN_SP, YEAR),
-         race_husband = code_race(subrace_husband),
-         race_wife = code_race(subrace_wife),
+  mutate(race_husband = code_race(RACED, HISPAN, YEAR),
+         race_wife = code_race(RACED_SP, HISPAN_SP, YEAR),
          race_best_husband = code_best_race(RACHSING),
          race_best_wife = code_best_race(RACHSING_SP))
 ```
@@ -365,17 +342,17 @@ data_imph <- census |>
   filter((RACED >= 400 & RACED < 700 & HISPAN == 0) & year == "1990",
          !is.na(race_husband)) |>
   bind_rows(census[idxh,]) |>
-  select(state, subrace_husband, subrace_wife, age_husband, age_wife, 
+  select(state, race_husband, race_wife, age_husband, age_wife, 
          educ_husband, educ_wife, dur_mar, year)
 
-imph_subrace <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+imph_race <- mice(data_imph, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
                      printFlag = FALSE) |>
   complete(1) |>
   as_tibble() |>
   filter(year == "1980") |>
-  pull(subrace_husband)
+  pull(race_husband)
 
-table(imph_subrace)
+table(imph_race)
 
 # then wives
 idxw <- which(census$RACED_SP == 650 & census$HISPAN_SP == 0)
@@ -384,23 +361,21 @@ data_impw <- census |>
   filter((RACED_SP >= 400 & RACED_SP < 700 & HISPAN_SP == 0) & year == "1990",
          !is.na(race_wife)) |>
   bind_rows(census[idxw,]) |>
-  select(state, subrace_husband, subrace_wife, age_husband, age_wife, 
+  select(state, race_husband, race_wife, age_husband, age_wife, 
          educ_husband, educ_wife, dur_mar, year)
 
-impw_subrace <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
+impw_race <- mice(data_impw, 1, defaultMethod = c("pmm", "pmm", "pmm", "polr"),
                      printFlag = FALSE) |>
   complete(1) |>
   as_tibble() |>
   filter(year == "1980") |>
-  pull(subrace_wife)
+  pull(race_wife)
 
-table(impw_subrace)
+table(impw_race)
 
 # now replace NA with imputed values
-census[idxh, "subrace_husband"] <- imph_subrace
-census[idxh, "race_husband"] <- code_race(imph_subrace)
-census[idxw, "subrace_wife"] <- impw_subrace
-census[idxw, "race_wife"] <- code_race(impw_subrace)
+census[idxh, "race_husband"] <- imph_race
+census[idxw, "race_wife"] <- impw_race
 ```
 
 ## Check yourself before you wreck yourself
@@ -415,15 +390,11 @@ table(census$EDUCD, census$educ_husband)
 table(census$EDUCD_SP, census$educ_wife)
 table(census$educ_husband, census$educ_wife)
 
-
 table(census$race_husband)
 table(census$race_wife)
 
-table(census$subrace_husband, census$race_husband, exclude = NULL)
-table(census$subrace_wife, census$race_wife, exclude = NULL)
-
-table(census$RACED, census$subrace_husband)
-table(census$RACED_SP, census$subrace_wife)
+table(census$RACED, census$race_husband)
+table(census$RACED_SP, census$race_wife)
 
 census |>
   group_by(YEAR) |>
@@ -965,7 +936,6 @@ Now lets save the data.
 census <- census |> 
   rename(strata = STRATA, cluster = CLUSTER) |>
   select(race_husband, race_wife, 
-         subrace_husband, subrace_wife, 
          race_best_husband, race_best_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
