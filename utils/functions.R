@@ -374,9 +374,7 @@ estimate_model <- function(model_data,
   
   
   # some memory cleanup
-  rm(model_data)
-  rm(model)
-  rm(zero_values)
+  rm(model_data, model, zero_values, vars, formula_model, single_year)
   gc()
   
   return(marg)
