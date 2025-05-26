@@ -10,6 +10,7 @@ project:
     - analysis/organize_data.qmd
     - analysis/model_justification.qmd
     - analysis/build_model_data.qmd
+    - analysis/estimate_models.qmd
     - analysis/analysis.qmd
     - paper/
     - presentation/

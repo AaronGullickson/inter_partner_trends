@@ -1,0 +1,136 @@
+---
+title: "Estimate Models"
+params:
+  n_workers: 3
+format: html
+---
+
+```{r}
+#| label: timestamp-start
+#| echo: false
+
+timestamp()
+```
+
+```{r}
+#| label: setup
+#| include: false
+library(here)
+source(here("utils","check_packages.R"))
+source(here("utils","functions.R"))
+```
+
+```{r}
+#| label: load-data
+#| include: false
+
+load(here("data", "data_constructed", "model_data.RData"))
+```
+
+```{r}
+#| label: set-future-plans
+
+if(interactive()) {
+  plan(multisession, workers = min(detectCores() - 1, params$n_workers))
+} else {
+  plan(multicore, workers = min(detectCores() - 1, params$n_workers))
+}
+```
+
+
+```{r}
+#| label: estimate-state-model-overall
+
+# first do single race groups
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+# now add in each multiracial pairwise comparison
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "White-Black"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Black", "White-Black"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "White-Indigenous"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Indigenous", "White-Indigenous"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "White-Asian"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Asian", "White-Asian"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Black", "Black-Indigenous"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Indigenous", "Black-Indigenous"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Black", "Black-Asian"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state |>
+  bootstrap_model(c("Asian", "Black-Asian"),
+                  composition_var = "state", year_separate = TRUE) |>
+  bind_rows(model_state_bs)
+toc()
+
+model_state_bs <- model_state_bs |>
+  arrange(term, year)
+
+save(model_state_bs, 
+     file = here("data", "data_constructed", "model_state_bs.RData"))
+```
+
+```{r}
+#| label: timestamp-end
+#| echo: false
+
+timestamp()
+```
+
+
