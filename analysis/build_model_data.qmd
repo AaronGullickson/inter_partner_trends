@@ -1,7 +1,7 @@
 ---
 title: "Build Model Data"
 params:
-  bootstrap_rep: 50
+  bootstrap_rep: 5
 format: html
 ---
 
@@ -55,11 +55,11 @@ data_model_state_region <- census |>
 ```{r}
 #| label: generate-best-race-model-data
 
-transform_race <- function(race, subrace, best_race) {
+transform_race <- function(race, best_race) {
   
   race <- as.character(race)
   race <- case_when(
-    subrace == "PI" ~ "API",
+    race == "PI" ~ "API",
     race == "Asian" ~ "API",
     race == "Indigenous" ~ "AIAN",
     TRUE ~ race
@@ -71,15 +71,15 @@ transform_race <- function(race, subrace, best_race) {
 }
 
 data_model_best_race_state <- census |>
-  mutate(race_husband = transform_race(race_husband, subrace_husband, race_best_husband),
-         race_wife = transform_race(race_wife, subrace_wife, race_best_wife)) |>
+  mutate(race_husband = transform_race(race_husband, race_best_husband),
+         race_wife = transform_race(race_wife, race_best_wife)) |>
   generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
 ```
 
 ```{r}
 #| label: save-data
 
-save(data_model_state, 
+save(data_model_state, data_model_state_region, data_model_best_race_state,
      file = here("data", "data_constructed", "model_data.RData"))
 ```
 
