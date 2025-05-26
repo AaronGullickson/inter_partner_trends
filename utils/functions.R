@@ -228,6 +228,12 @@ estimate_model <- function(model_data,
   model_data <- model_data |>
     filter(freq > 0)
   
+  # its possible there may be no race contrast if set to single years so check
+  if(length(unique(model_data$race_husband)) <= 1 |
+     length(unique(model_data$race_wife)) <= 1) {
+    return(NULL)
+  }
+  
   # create required variables
   for(i in 1:(length(selected_groups)-1)) {
     for(j in (i+1):length(selected_groups)) {
