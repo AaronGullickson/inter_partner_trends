@@ -36,12 +36,7 @@ census <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+")
 ```
 
-```{r}
-#| label: generate-state-model-data
-
-data_model_state <- census |>
-  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
-```
+We will do state and region together. We can collapse this back down to states quickly when we estimate those models.
 
 ```{r}
 #| label: generate-state-region-model-data
@@ -51,6 +46,8 @@ data_model_state_region <- census |>
                           composition_var = "state",
                           conditional_var = "region")
 ```
+
+We have to do a separate best race model data because this variable changes at the individual level.
 
 ```{r}
 #| label: generate-best-race-model-data
@@ -79,7 +76,7 @@ data_model_best_race_state <- census |>
 ```{r}
 #| label: save-data
 
-save(data_model_state, data_model_state_region, data_model_best_race_state,
+save(data_model_state_region, data_model_best_race_state,
      file = here("data", "data_constructed", "model_data.RData"))
 ```
 

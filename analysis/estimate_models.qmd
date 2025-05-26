@@ -25,6 +25,17 @@ source(here("utils","functions.R"))
 #| include: false
 
 load(here("data", "data_constructed", "model_data.RData"))
+
+# create one just by state
+tic()
+data_model_state <- data_model_state_region |>
+  future_map(function(model_data) {
+    model_data |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
 ```
 
 ```{r}
@@ -273,7 +284,7 @@ model_cf_minority_state_bs <- data_model_state |>
       mutate(race_husband = counterfactual_race(race_husband, "minority"),
              race_wife = counterfactual_race(race_wife, "minority")) |>
       group_by(race_husband, race_wife, year, state) |>
-      summarize(freq = sum(freq), .groups = "drop")pla
+      summarize(freq = sum(freq), .groups = "drop")
   }) |>
   bootstrap_model(c("White", "Black", "AIAN", "API"),
                   composition_var = "state", year_separate = TRUE) |>
@@ -286,6 +297,19 @@ save(model_cf_best_state_bs,
      file = here("data", "data_constructed", "models_counterfactual.RData"))
 ```
 
+```{r}
+#| label: estimate-model-regional
+
+tic()
+model_state_byregion_bs <- data_model_state_region |>
+  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE)
+toc()
+
+save(model_state_byregion_bs, 
+     file = here("data", "data_constructed", "model_region.RData"))
+```
 
 ```{r}
 #| label: timestamp-end
