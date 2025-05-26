@@ -220,7 +220,6 @@ estimate_lor <- function(ind_data,
 }
 
 create_model_data <- function(ind_data, 
-                              selected_groups,
                               composition_var = NULL,
                               conditional_var = NULL,
                               control_var = NULL,
@@ -237,9 +236,6 @@ create_model_data <- function(ind_data,
   
   # pre-process individual data
   ind_data <- ind_data |>
-    # trim to just selected groups and drop unused factor levels
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
     mutate(year = fct_drop(year)) |>
     # set up a variable for summing frequencies
     mutate(sum_var = 1)
@@ -274,8 +270,6 @@ estimate_model <- function(model_data,
                            composition_var = NULL,
                            conditional_var = NULL,
                            control_var = NULL,
-                           use_weights_age = TRUE,
-                           use_weights_sample = TRUE,
                            se = TRUE,
                            conf_level = 0.83,
                            year_separate = FALSE) {
@@ -287,12 +281,15 @@ estimate_model <- function(model_data,
       model_data |>
         filter(year == y) |>
         estimate_model(selected_groups, composition_var, conditional_var, 
-                       control_var, use_weights_age, use_weights_sample, se,
-                       conf_level, FALSE)
+                       control_var, se, conf_level, FALSE)
     }) |>
       bind_rows()
     return(results)
   }
+  
+  # trim to just selected groups and drop unused factor levels
+  model_data <- model_data |>
+    filter(race_husband %in% selected_groups, race_wife %in% selected_groups)
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
@@ -439,8 +436,6 @@ estimate_model <- function(model_data,
   marg <- marg |>
     select(-contrast, -starts_with("predicted")) |>
     mutate(type = "glm",
-           age_weighted = use_weights_age,
-           sample_weighted = use_weights_sample,
            composition = ifelse(is.null(composition_var),
                                 "none",
                                 paste(composition_var, collapse = ",")),
