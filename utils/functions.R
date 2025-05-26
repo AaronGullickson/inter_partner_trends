@@ -195,8 +195,12 @@ bootstrap_model <- function(model_data_list,
     })
 
     results <- c(results, chunk_results)
+    
+    # garbage cleanup
+    rm(chunk_results)
+    gc()
   }
- 
+  
   by_vars <- colnames(results[[1]])
   by_vars <- by_vars[by_vars != "estimate"]
   # full join here because its possible that some coefficients might be dropped
@@ -416,6 +420,11 @@ estimate_model <- function(model_data,
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
   
+  # some memory cleanup
+  rm(model_data)
+  rm(model)
+  gc()
+  
   ## integrate information about zero cases and remove ##
   # NOTE: There is still some small chance that if we have a zero count 
   # on an endogamy cell (e.g. White/White) but not on either exogamy cell,
@@ -449,11 +458,6 @@ estimate_model <- function(model_data,
     marg <- marg |>
       select(-statistic, -p.value, -s.value)
   }
-  
-  # some memory cleanup
-  rm(model_data)
-  rm(model)
-  gc()
   
   return(marg)
 }
