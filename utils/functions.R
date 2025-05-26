@@ -163,25 +163,20 @@ bootstrap_model <- function(model_data_list,
     ~ estimate_model(.x, selected_groups, composition_var, 
                      conditional_var, control_var, 
                      FALSE, conf_level, year_separate)
-  )
-  
-  by_vars <- colnames(results[[1]])
-  by_vars <- by_vars[by_vars != "estimate"]
-  # full join here because its possible that some coefficients might be dropped
-  # in some bootstrap samples if we get zero values
-  results <- reduce(results, full_join, by = by_vars)
+  ) |>
+    bind_rows()
   
   # summarize results across estimates
   results |>
-    rowwise(by_vars) |>
+    group_by(across(-estimate)) |>
     summarize(
-      std.error = sd(c_across(starts_with("estimate")), na.rm = TRUE),
-      conf.low = quantile(c_across(starts_with("estimate")), ci_lower, na.rm = TRUE),
-      conf.high = quantile(c_across(starts_with("estimate")), ci_upper, na.rm = TRUE),
+      std.error = sd(estimate, na.rm = TRUE),
+      conf.low = quantile(estimate, ci_lower, na.rm = TRUE),
+      conf.high = quantile(estimate, ci_upper, na.rm = TRUE),
       .groups = "drop"
     ) |>
     # join back to the point estimates
-    right_join(point_estimates, by = by_vars) |>
+    right_join(point_estimates, by = setdiff(colnames(results), "estimate")) |>
     # move estimate before inference measures
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
