@@ -99,13 +99,21 @@ generate_bootstrap_data <- function(ind_data,
                                     sample_design = TRUE,
                                     ...) {
   
-  # the first element of the list is always the actual
-  actual <- list(create_model_data(ind_data,...))
+  pb <- progress_bar$new(
+    format = "Resampling [:bar] :percent in :elapsed",
+    total = n_replicates,
+    show_after = 0
+  )
+  pb$tick(0)
   
-  replicates <- map(1:n_replicates, function(i) {
+  results <- vector("list", n_replicates + 1)
+  # the first element of the list is always the actual
+  results[[1]] <- create_model_data(ind_data,...)
+
+  for(i in seq_len(n_replicates)) {
     if(sample_design) {
       # we need to adjust for year and strata
-      ind_data |>
+      resampled <- ind_data |>
         group_by(year, strata) |>
         group_split() |>
         map(function(stratum_data) {
@@ -113,20 +121,21 @@ generate_bootstrap_data <- function(ind_data,
           tibble(cluster = sample(clusters, length(clusters), replace = TRUE)) |>
             left_join(stratum_data, by = "cluster", relationship = "many-to-many")
         }) |>
-        bind_rows() |>
-        create_model_data(...)
+        bind_rows()
     } else {
       # Simple bootstrap but still stratify by year
-      ind_data |>
+      resampled <- ind_data |>
         group_by(year) |>
         group_split() |>
         map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
-        bind_rows() |>
-        create_model_data(...)
+        bind_rows()
     }
-  })
+    
+    results[[i + 1]] <- create_model_data(resampled, ...)
+    pb$tick()
+  }
   
-  return(c(actual, replicates))
+  return(results)
 }
 
 bootstrap_model <- function(model_data_list, 
