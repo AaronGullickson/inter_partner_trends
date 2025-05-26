@@ -60,40 +60,6 @@ B <- 10
 
 # Modeling functions ------------------------------------------------------
 
-generate_bootstrap_indices <- function(ind_data, 
-                                       n_replicates = B, 
-                                       sample_design = TRUE) {
-  
-  # create index variable
-  ind_data <- ind_data |>
-    mutate(idx = seq_len(nrow(ind_data)))
-  
-  map(1:n_replicates, function(i) {
-    if(sample_design) {
-      # we need to adjust for year and strata
-      ind_data |>
-        group_by(year, strata) |>
-        group_split() |>
-        map(function(stratum_data) {
-          clusters <- unique(stratum_data$cluster)
-          tibble(cluster = sample(clusters, length(clusters), replace = TRUE))
-        }) |>
-        bind_rows() |>
-        left_join(ind_data, by = "cluster", relationship = "many-to-many") |>
-        pull(idx)
-    } else {
-      # Simple bootstrap but still stratify by year
-      ind_data |>
-        group_by(year) |>
-        group_split() |>
-        map(function(year_data) {
-          sample(year_data$idx, nrow(year_data), replace = TRUE)
-        }) |>
-        list_c()
-    }
-  })
-}
-
 generate_bootstrap_data <- function(ind_data, 
                                     n_replicates = B, 
                                     sample_design = TRUE,
