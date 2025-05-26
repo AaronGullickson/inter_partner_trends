@@ -372,7 +372,6 @@ estimate_model <- function(model_data,
       select(-statistic, -p.value, -s.value)
   }
   
-  
   # some memory cleanup
   rm(model_data, model, zero_values, vars, formula_model, single_year)
   gc()
