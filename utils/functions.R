@@ -338,11 +338,6 @@ estimate_model <- function(model_data,
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
   
-  # some memory cleanup
-  rm(model_data)
-  rm(model)
-  gc()
-  
   ## integrate information about zero cases and remove ##
   # NOTE: There is still some small chance that if we have a zero count 
   # on an endogamy cell (e.g. White/White) but not on either exogamy cell,
@@ -376,6 +371,13 @@ estimate_model <- function(model_data,
     marg <- marg |>
       select(-statistic, -p.value, -s.value)
   }
+  
+  
+  # some memory cleanup
+  rm(model_data)
+  rm(model)
+  rm(zero_values)
+  gc()
   
   return(marg)
 }
