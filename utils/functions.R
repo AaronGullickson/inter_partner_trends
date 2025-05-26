@@ -97,18 +97,25 @@ generate_bootstrap_indices <- function(ind_data,
 bootstrap_model <- function(ind_data, 
                             selected_groups,
                             bootstrap_indices = bs_indices,
-                            conf_level = 0.83,
-                            show_progress = FALSE,
                             chunk_size = 50,
                             num_cores = 3,
-                            ...) {
+                            show_progress = FALSE,
+                            composition_var = NULL,
+                            conditional_var = NULL,
+                            control_var = NULL,
+                            use_weights_age = TRUE,
+                            use_weights_sample = TRUE,
+                            conf_level = 0.83,
+                            year_separate = FALSE) {
   
   ci_upper <- 1-(1-conf_level)/2
   ci_lower <- (1-conf_level)/2
   
   # first estimate the full model to get analytical point estimates
-  point_estimates <- ind_data |>
-    estimate_lor(selected_groups, se = FALSE, ...)
+  point_estimates <- estimate_lor(ind_data, selected_groups, composition_var, 
+                                  conditional_var,  control_var, 
+                                  use_weights_age, use_weights_sample, FALSE, 
+                                  conf_level, year_separate)
   
   # Split into chunks
   bs_chunks <- split(bootstrap_indices, 
@@ -119,9 +126,12 @@ bootstrap_model <- function(ind_data,
   on.exit(stopCluster(cl))
   
   # Export necessary variables and functions
-  clusterExport(cl, varlist = c("selected_groups", "estimate_model", 
-                                "get_intermar_names", "get_permutations",
-                                "PAIRINGS"), 
+  clusterExport(cl, varlist = c("selected_groups", "composition_var",
+                                "conditional_var", "control_var",
+                                "use_weights_age", "use_weights_sample",
+                                "conf_level", "year_separate",
+                                "estimate_model", "get_intermar_names", 
+                                "get_permutations", "PAIRINGS"), 
                 envir = environment())
   
   # Load libraries on each worker
@@ -137,7 +147,9 @@ bootstrap_model <- function(ind_data,
     
     # Create model data for this chunk
     model_data_list <- map(chunk, function(idx) {
-      create_model_data(ind_data[idx,], selected_groups, ...)
+      create_model_data(ind_data[idx,], selected_groups, composition_var, 
+                        conditional_var, control_var, use_weights_age, 
+                        use_weights_sample)
     })
 
     # Export model data list to workers
@@ -145,7 +157,9 @@ bootstrap_model <- function(ind_data,
     
     # Parallel estimation of the models
     chunk_results <- parLapply(cl, seq_along(model_data_list), function(i) {
-      estimate_model(model_data_list[[i]], selected_groups, se = FALSE, ...)
+      estimate_model(model_data_list[[i]], selected_groups, composition_var, 
+                     conditional_var, control_var, use_weights_age, 
+                     use_weights_sample, FALSE, conf_level, year_separate)
     })
 
     results <- c(results, chunk_results)
@@ -185,9 +199,9 @@ estimate_lor <- function(ind_data,
                          composition_var = NULL,
                          conditional_var = NULL,
                          control_var = NULL,
-                         se = TRUE,
                          use_weights_age = TRUE,
                          use_weights_sample = TRUE,
+                         se = TRUE,
                          conf_level = 0.83,
                          year_separate = FALSE) {
   
@@ -200,22 +214,9 @@ estimate_lor <- function(ind_data,
   rm(ind_data)
   gc()
   
-  # it might be much faster to do individual years separately
-  if(year_separate) {
-    results <- map(unique(model_data$year), function(y) {
-      model_data |>
-        filter(year == y) |>
-        estimate_model(selected_groups, composition_var, conditional_var, 
-                       control_var, se, use_weights_age, use_weights_sample, 
-                       conf_level)
-    }) |>
-      bind_rows()
-    return(results)
-  }
-  
   estimate_model(model_data, selected_groups, composition_var, conditional_var, 
-                 control_var, se, use_weights_age, use_weights_sample, 
-                 conf_level)
+                 control_var, use_weights_age, use_weights_sample, se,
+                 conf_level, year_separate)
 }
 
 create_model_data <- function(ind_data, 
@@ -273,10 +274,25 @@ estimate_model <- function(model_data,
                            composition_var = NULL,
                            conditional_var = NULL,
                            control_var = NULL,
-                           se = TRUE,
                            use_weights_age = TRUE,
                            use_weights_sample = TRUE,
-                           conf_level = 0.83) {
+                           se = TRUE,
+                           conf_level = 0.83,
+                           year_separate = FALSE) {
+  
+  
+  # it might be much faster to do individual years separately
+  if(year_separate) {
+    results <- map(unique(model_data$year), function(y) {
+      model_data |>
+        filter(year == y) |>
+        estimate_model(selected_groups, composition_var, conditional_var, 
+                       control_var, use_weights_age, use_weights_sample, se,
+                       conf_level, FALSE)
+    }) |>
+      bind_rows()
+    return(results)
+  }
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
