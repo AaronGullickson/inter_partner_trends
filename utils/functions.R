@@ -121,9 +121,7 @@ generate_bootstrap_data <- function(ind_data,
       ind_data |>
         group_by(year) |>
         group_split() |>
-        map(function(year_data) {
-          slice_sample(year_data, n = nrow(year_data), replace = TRUE)
-        }) |>
+        map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
         bind_rows() |>
         create_model_data(...)
     }
