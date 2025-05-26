@@ -39,82 +39,119 @@ if(interactive()) {
 
 
 ```{r}
+#| label: load-functions
+
+# function to collapse racial groups
+collapse_race <- function(race) {
+  
+  new_race <- case_when(
+    race %in% c("WhiteHispanic", "BlackHispanic", "OtherHispanic", 
+                "ResidualHispanic") ~ "Hispanic",
+    race %in% c("EastAsian", "SEAsian", "SouthAsian", "OtherAsian",
+                "PI") ~ "API",
+    race %in% c("White-Asian", "White-PI") ~ "White-API",
+    race %in% c("Black-Asian", "Black-PI") ~ "Black-API",
+    TRUE ~ race
+  )
+    
+  factor(new_race, 
+         levels = c("White", "Black", "AIAN", "API", "Hispanic",
+                    "White-Black", "White-AIAN", "White-API", 
+                    "Black-AIAN", "Black-API"))
+}
+```
+
+
+```{r}
 #| label: estimate-state-model-overall
+
+# collapse race
+tic()
+data_model_state_simple <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
 
 # first do single race groups
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
                   composition_var = "state", year_separate = TRUE)
 toc()
 
 # now add in each multiracial pairwise comparison
 tic()
-model_state_bs <- data_model_state |>
+model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-Black"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
+model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "White-Black"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("White", "White-Indigenous"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "White-AIAN"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Indigenous", "White-Indigenous"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("AIAN", "White-AIAN"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("White", "White-Asian"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "White-API"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Asian", "White-Asian"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("API", "White-API"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Black", "Black-Indigenous"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("Black", "Black-AIAN"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Indigenous", "Black-Indigenous"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("AIAN", "Black-AIAN"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Black", "Black-Asian"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("Black", "Black-API"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
-model_state_bs <- data_model_state |>
-  bootstrap_model(c("Asian", "Black-Asian"),
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("API", "Black-API"),
                   composition_var = "state", year_separate = TRUE) |>
   bind_rows(model_state_bs)
 toc()
@@ -122,9 +159,128 @@ toc()
 model_state_bs <- model_state_bs |>
   arrange(term, year)
 
+rm(data_model_state_simple)
+gc()
+
 save(model_state_bs, 
      file = here("data", "data_constructed", "model_state_bs.RData"))
 ```
+
+```{r}
+#| label: estimate-state-model-subgroups
+
+## Hispanic subgroups ##
+tic()
+model_hispanic_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "Black", "WhiteHispanic", "BlackHispanic", 
+                    "OtherHispanic"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+## Asian subgroups ##
+tic()
+model_asian_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+# collapse east and SE asian
+collapse_asian <- function(race) {
+  new_race <- case_when(
+    race == "White" ~ "White",
+    race == "SouthAsian" ~ "SouthAsian",
+    race %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
+  factor(new_race, levels = c("White", "EastAsian", "SouthAsian"))
+}
+
+tic()
+model_asian_sub_simple_state_bs <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_asian(race_husband),
+             race_wife = collapse_asian(race_wife)) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "EastAsian", "SouthAsian", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+## Indigenous subgroups ##
+tic()
+model_indig_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "AIAN", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+save(model_hispanic_sub_state_bs,
+     model_asian_sub_state_bs,
+     model_asian_sub_simple_state_bs,
+     model_indig_sub_state_bs,
+     file = here("data", "data_constructed", "models_subgroups.RData"))
+```
+
+```{r}
+#| label: estimate-state-model-counterfactual
+
+## best race model ##
+tic()
+model_cf_best_state_bs <- data_model_best_race_state |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "Best")
+toc()
+
+counterfactual_race <- function(race, cf) {
+  
+  race <- collapse_race(race)
+  
+  if(cf == "white") {
+    race <- if_else(race == "White-Black", "White", race)
+    race <- if_else(race == "White-API", "White", race)
+    race <- if_else(race == "White-AIAN", "White", race)
+  }
+  if(cf == "minority") {
+    race <- if_else(race == "White-Black", "Black", race)
+    race <- if_else(race == "White-API", "API", race)
+    race <- if_else(race == "White-AIAN", "AIAN", race)
+  }
+
+  return(race)
+
+}
+
+## white model ##
+tic()
+model_cf_white_state_bs <- data_model_state |>
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = counterfactual_race(race_husband, "white"),
+             race_wife = counterfactual_race(race_wife, "white")) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "White")
+toc()
+
+## minority model ##
+tic()
+model_cf_minority_state_bs <- data_model_state |>
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = counterfactual_race(race_husband, "minority"),
+             race_wife = counterfactual_race(race_wife, "minority")) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")pla
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "Minority")
+toc()
+```
+
 
 ```{r}
 #| label: timestamp-end
