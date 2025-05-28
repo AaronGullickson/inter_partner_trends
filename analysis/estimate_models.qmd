@@ -21,24 +21,10 @@ source(here("utils","functions.R"))
 ```
 
 ```{r}
-#| label: load-data
+#| label: load-state-model-data
 #| include: false
 
-load(here("data", "data_constructed", "model_data.RData"))
-
-# create one just by state
-tic()
-data_model_state <- data_model_state_region |>
-  future_map(function(model_data) {
-    model_data |>
-      group_by(race_husband, race_wife, year, state) |>
-      summarize(freq = sum(freq), .groups = "drop")
-  })
-toc()
-
-rm(data_model_state_region)
-gc()
-
+load(here("data", "data_constructed", "data_model_state.RData"))
 ```
 
 ```{r}
@@ -245,6 +231,13 @@ save(model_hispanic_sub_state_bs,
 ```
 
 ```{r}
+#| label: load-state-model-data
+#| include: false
+
+load(here("data", "data_constructed", "data_model_best_race_state.RData"))
+```
+
+```{r}
 #| label: estimate-state-model-counterfactual
 
 ## best race model ##
@@ -308,16 +301,15 @@ save(model_cf_best_state_bs,
      model_cf_white_state_bs,
      model_cf_minority_state_bs,
      file = here("data", "data_constructed", "models_counterfactual.RData"))
+
+rm(data_model_best_race_state)
+gc()
 ```
 
 ```{r}
 #| label: estimate-model-regional
 
 load(here("data", "data_constructed", "model_data.RData"))
-
-rm(data_model_best_race_state)
-rm(data_model_state)
-gc()
 
 tic()
 model_state_byregion_bs <- data_model_state_region |>

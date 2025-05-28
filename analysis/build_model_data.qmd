@@ -26,25 +26,36 @@ source(here("utils","functions.R"))
 
 load(here("data", "data_constructed", "individ_data.RData"))
 
-# relevel year and factor up anything that might go into models
 census <- census |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000"),
-         region = factor(region),
-         division = factor(division),
-         state = factor(state)) |>
+  # relevel year
+  mutate(year = relevel(year, "2000")) |>
+  # only native born
   filter(gen_husband == "2nd+" & gen_wife == "2nd+")
 ```
 
-We will do state and region together. We can collapse this back down to states quickly when we estimate those models.
+We will do state and region together. However, there is no need for a bunch of fake zero columns for region which are just going to take up space. So instead, we will just attach region afterwards.
 
 ```{r}
 #| label: generate-state-region-model-data
 
-data_model_state_region <- census |>
-  generate_bootstrap_data(params$bootstrap_rep,
-                          composition_var = "state",
-                          conditional_var = "region")
+data_model_state <- census |>
+  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+
+# add in the region for each state
+region_crosswalk <- census |>
+  select(state, region) |>
+  distinct()
+data_model_state <- data_model_state |>
+  map(~ {
+    .x |>
+      left_join(region_crosswalk) |>
+      relocate(region, .before = freq)
+  })
+  
+save(data_model_state, 
+     file = here("data", "data_constructed", "data_model_state.RData"))
+rm(data_model_state)
+gc()
 ```
 
 We have to do a separate best race model data because this variable changes at the individual level.
@@ -70,14 +81,11 @@ transform_race <- function(race, best_race) {
 data_model_best_race_state <- census |>
   mutate(race_husband = transform_race(race_husband, race_best_husband),
          race_wife = transform_race(race_wife, race_best_wife)) |>
+  filter(!is.na(race_husband) & !is.na(race_wife)) |>
   generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
-```
 
-```{r}
-#| label: save-data
-
-save(data_model_state_region, data_model_best_race_state,
-     file = here("data", "data_constructed", "model_data.RData"))
+save(data_model_best_race_state, 
+     file = here("data", "data_constructed", "data_model_best_race_state.RData"))
 ```
 
 ```{r}

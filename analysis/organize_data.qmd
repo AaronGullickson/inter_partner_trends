@@ -933,6 +933,13 @@ Now lets save the data.
 ```{r}
 #| label: save-analytical-data
 
+# turn some variables into factors
+census <- census |>
+  mutate(year = factor(year),
+         region = factor(region),
+         division = factor(division),
+         state = factor(state))
+
 census <- census |> 
   rename(strata = STRATA, cluster = CLUSTER) |>
   select(race_husband, race_wife, 
