@@ -231,7 +231,7 @@ save(model_hispanic_sub_state_bs,
 ```
 
 ```{r}
-#| label: load-state-model-data
+#| label: load-best-model-data
 #| include: false
 
 load(here("data", "data_constructed", "data_model_best_race_state.RData"))
@@ -239,6 +239,7 @@ load(here("data", "data_constructed", "data_model_best_race_state.RData"))
 
 ```{r}
 #| label: estimate-state-model-counterfactual
+#| eval: false
 
 ## best race model ##
 tic()
@@ -309,10 +310,8 @@ gc()
 ```{r}
 #| label: estimate-model-regional
 
-load(here("data", "data_constructed", "model_data.RData"))
-
 tic()
-model_state_byregion_bs <- data_model_state_region |>
+model_state_byregion_bs <- data_model_state |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
                   year_separate = TRUE, chunk_size = 25)
