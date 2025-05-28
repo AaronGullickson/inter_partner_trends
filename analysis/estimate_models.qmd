@@ -27,6 +27,8 @@ source(here("utils","functions.R"))
 load(here("data", "data_constructed", "data_model_state.RData"))
 ```
 
+This script will estimate all of the important models via bootstrap. It depends on having already run `buld_model_data.qmd` to create lists of the model data required to estimate the models. This speeds up the estimation procedure enormously here. In addition, I use `future` and `furrr` with multiple workers to speed up the process further. 
+
 ```{r}
 #| label: set-future-plans
 
@@ -61,6 +63,11 @@ collapse_race <- function(race) {
 }
 ```
 
+# Overall models
+
+These models will be estimated for the collapsed five major race groups and five multiracial groups. I estimate all of the single race groups together to get all 10 possible combinations. I estimate each constituent pairing of the single-to-multi interracial marriages separately to avoid taking time to estimate a bunch of pairs that I won't analyze (due too much sampling error largely).
+
+All models adjust for state-level racial composition.
 
 ```{r}
 #| label: estimate-state-model-overall
@@ -173,6 +180,10 @@ save(model_state_bs,
      file = here("data", "data_constructed", "model_state_bs.RData"))
 ```
 
+# Subgroup models
+
+For these models I use the full breakout for Hispanic and API respondents to analyze intermarriage with other single race groups and with each other. 
+
 ```{r}
 #| label: estimate-state-model-subgroups
 
@@ -226,6 +237,16 @@ save(model_hispanic_sub_state_bs,
      model_indig_sub_state_bs,
      file = here("data", "data_constructed", "models_subgroups.RData"))
 ```
+
+# Counterfactual models
+
+In these models, I test counterfactual cases for part-White multiple race respondents. I consider:
+
+1. What if they had all responded as White?
+2. What if they had all responded as the non-White race?
+3. What if they had selected the best race used by IPUMS?
+
+The first two can be done by changing values on spouses's race. The best race model requires the use of a separate model data list.
 
 ```{r}
 #| label: load-best-model-data
@@ -302,6 +323,10 @@ save(model_cf_best_state_bs,
 rm(data_model_best_race_state)
 gc()
 ```
+
+# Regional models
+
+These models are like the overall models for single race groups, but I allow each log odds ratio to vary by region as well.
 
 ```{r}
 #| label: estimate-model-regional
