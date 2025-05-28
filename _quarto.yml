@@ -11,7 +11,7 @@ project:
     #- analysis/model_justification.qmd
     - analysis/build_model_data.qmd
     - analysis/estimate_models.qmd
-    #- analysis/analysis.qmd
+    - analysis/analysis.qmd
     #- paper/
     #- presentation/
     - "!bibliography/"
