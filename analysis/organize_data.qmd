@@ -953,7 +953,7 @@ census <- census |>
          year)
          
 
-save(census, file = here("data", "data_constructed", "individ_data.RData"))
+save(census, file = here("data", "data_constructed", "data_couples_married.RData"))
 ```
 
 

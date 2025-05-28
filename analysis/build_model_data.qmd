@@ -24,7 +24,7 @@ source(here("utils","functions.R"))
 #| label: prepare-data
 #| include: false
 
-load(here("data", "data_constructed", "individ_data.RData"))
+load(here("data", "data_constructed", "data_couples_married.RData"))
 
 census <- census |>
   # relevel year
