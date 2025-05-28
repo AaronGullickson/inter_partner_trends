@@ -1,8 +1,5 @@
 ---
-title: "Run Models"
-# set the number of bootstrap samples here. 10 is good for quick runs
-params:
-  n_workers: 3
+title: "Analysis"
 execute:
   warning: false
   message: false
