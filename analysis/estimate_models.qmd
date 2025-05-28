@@ -72,7 +72,7 @@ data_model_state_simple <- data_model_state |>
     model_data |>
       mutate(race_husband = collapse_race(race_husband),
              race_wife = collapse_race(race_wife)) |>
-      group_by(race_husband, race_wife, year, state) |>
+      group_by(race_husband, race_wife, year, state, region) |>
       summarize(freq = sum(freq), .groups = "drop")
   })
 toc()
@@ -168,9 +168,6 @@ toc()
 
 model_state_bs <- model_state_bs |>
   arrange(term, year)
-
-rm(data_model_state_simple)
-gc()
 
 save(model_state_bs, 
      file = here("data", "data_constructed", "model_state_bs.RData"))
@@ -310,7 +307,7 @@ gc()
 #| label: estimate-model-regional
 
 tic()
-model_state_byregion_bs <- data_model_state |>
+model_state_byregion_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
                   year_separate = TRUE, chunk_size = 25)
