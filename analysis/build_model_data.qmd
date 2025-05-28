@@ -36,7 +36,7 @@ census <- census |>
 This script reads in the full couple-level level dataset across all census/ACS years and creates a list of actual and bootstrap sampled model level data. This model level data is a contingency table and is produced by the function `create_model-data` although here that is wrapped in a `generate_bootstrap_data` function that repeats this procedure multiple times. The first dataset in the produced list is for the actual data and the remaining datasets in the list are for the bootstrapped samples. This list structure can then be read into `bootstrap_model` to estimate actual models.
 
 ```{r}
-#| tbl-show-boostrap-values
+#| label: tbl-show-boostrap-values
 #| tbl-cap: Table summarizing important values for the bootstrap procedure
 #| echo: false
 
