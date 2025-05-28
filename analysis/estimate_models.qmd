@@ -239,7 +239,6 @@ load(here("data", "data_constructed", "data_model_best_race_state.RData"))
 
 ```{r}
 #| label: estimate-state-model-counterfactual
-#| eval: false
 
 ## best race model ##
 tic()
