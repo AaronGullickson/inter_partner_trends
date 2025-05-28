@@ -71,12 +71,20 @@ generate_bootstrap_data <- function(ind_data,
   # the first element of the list is always the actual
   results[[1]] <- create_model_data(ind_data,...)
 
+  # pre-split ind_data
+  if(sample_design) {
+    ind_data <- ind_data |>
+      group_by(year, strata) |>
+      group_split()
+  } else {
+    ind_data <- ind_data |>
+      group_by(year)
+  }
+  
   for(i in seq_len(n_replicates)) {
     if(sample_design) {
       # we need to adjust for year and strata
       resampled <- ind_data |>
-        group_by(year, strata) |>
-        group_split() |>
         map(function(stratum_data) {
           clusters <- unique(stratum_data$cluster)
           tibble(cluster = sample(clusters, length(clusters), replace = TRUE)) |>
@@ -86,8 +94,6 @@ generate_bootstrap_data <- function(ind_data,
     } else {
       # Simple bootstrap but still stratify by year
       resampled <- ind_data |>
-        group_by(year) |>
-        group_split() |>
         map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
         bind_rows()
     }
