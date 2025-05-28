@@ -33,7 +33,27 @@ census <- census |>
   filter(gen_husband == "2nd+" & gen_wife == "2nd+")
 ```
 
-We will do state and region together. However, there is no need for a bunch of fake zero columns for region which are just going to take up space. So instead, we will just attach region afterwards.
+This script reads in the full couple-level level dataset across all census/ACS years and creates a list of actual and bootstrap sampled model level data. This model level data is a contingency table and is produced by the function `create_model-data` although here that is wrapped in a `generate_bootstrap_data` function that repeats this procedure multiple times. The first dataset in the produced list is for the actual data and the remaining datasets in the list are for the bootstrapped samples. This list structure can then be read into `bootstrap_model` to estimate actual models.
+
+```{r}
+#| tbl-show-boostrap-values
+#| tbl-cap: Table summarizing important values for the bootstrap procedure
+#| echo: false
+
+tribble( 
+  ~name, ~value,
+  "Number of bootstrap samples", params$bootstrap_rep,
+  "Number of couple observations", nrow(census)
+) |>
+  gt() |>
+  fmt_number(value, decimals = 0)
+```
+
+# State Data
+
+The workhorse model data structure will group observations by the race of both spouses, the state, and year. For models which estimate different rates by region, I also need a region variable. However, since each state can only be in one region, adding region to the grouping would lead to a bloated dataset with a bunch of zero values. So, instead, I just attach region afterwards with a join. 
+
+Note that I can still collapse racial groups on the model data structure later by mutating `race_husband` and `race_wife` and then re-running a `group_by` and `summarize` on the frequencies.
 
 ```{r}
 #| label: generate-state-region-model-data
@@ -60,7 +80,9 @@ rm(data_model_state)
 gc()
 ```
 
-We have to do a separate best race model data because this variable changes at the individual level.
+## Best race model
+
+For the models using a person's best race, I need to generate a separate model data structure as this variable changes at the individual level.
 
 ```{r}
 #| label: generate-best-race-model-data
