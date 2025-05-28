@@ -60,13 +60,6 @@ generate_bootstrap_data <- function(ind_data,
                                     sample_design = TRUE,
                                     ...) {
   
-  pb <- progress_bar$new(
-    format = "Resampling [:bar] :percent in :elapsed",
-    total = n_replicates,
-    show_after = 0
-  )
-  pb$tick(0)
-  
   results <- vector("list", n_replicates + 1)
   # the first element of the list is always the actual
   results[[1]] <- create_model_data(ind_data,...)
@@ -81,14 +74,26 @@ generate_bootstrap_data <- function(ind_data,
       group_by(year)
   }
   
+  pb <- progress_bar$new(
+    format = "Resampling [:bar] :percent in :elapsed",
+    total = n_replicates,
+    show_after = 0
+  )
+  pb$tick(0)
+  
   for(i in seq_len(n_replicates)) {
     if(sample_design) {
       # we need to adjust for year and strata
       resampled <- ind_data |>
         map(function(stratum_data) {
-          clusters <- unique(stratum_data$cluster)
-          tibble(cluster = sample(clusters, length(clusters), replace = TRUE)) |>
-            left_join(stratum_data, by = "cluster", relationship = "many-to-many")
+          # sample by row indices to speed up process
+          cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
+          cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
+          sampled_clusters <- sample(cluster_to_rows,
+                                     size = length(cluster_to_rows),
+                                     replace = TRUE)|>
+            unlist(use.names = FALSE)
+          slice(stratum_data, sampled_clusters)
         }) |>
         bind_rows()
     } else {
