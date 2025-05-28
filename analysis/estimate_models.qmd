@@ -36,6 +36,9 @@ data_model_state <- data_model_state_region |>
   })
 toc()
 
+rm(data_model_state_region)
+gc()
+
 ```
 
 ```{r}
@@ -100,70 +103,80 @@ toc()
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-Black"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "White-Black"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-AIAN"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("AIAN", "White-AIAN"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-API"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("API", "White-API"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "Black-AIAN"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("AIAN", "Black-AIAN"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "Black-API"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
 tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("API", "Black-API"),
-                  composition_var = "state", year_separate = TRUE) |>
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -300,11 +313,17 @@ save(model_cf_best_state_bs,
 ```{r}
 #| label: estimate-model-regional
 
+load(here("data", "data_constructed", "model_data.RData"))
+
+rm(data_model_best_race_state)
+rm(data_model_state)
+gc()
+
 tic()
 model_state_byregion_bs <- data_model_state_region |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE)
+                  year_separate = TRUE, chunk_size = 25)
 toc()
 
 save(model_state_byregion_bs, 

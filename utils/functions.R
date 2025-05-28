@@ -101,6 +101,7 @@ generate_bootstrap_data <- function(ind_data,
 
 bootstrap_model <- function(model_data_list, 
                             selected_groups,
+                            chunk_size = 100,
                             composition_var = NULL,
                             conditional_var = NULL,
                             control_var = NULL,
@@ -119,13 +120,28 @@ bootstrap_model <- function(model_data_list,
   
   # now remove actual data and parallel process all of the bootstrap samples
   model_data_list <- model_data_list[-1]
-  results <- future_map(
-    model_data_list,
-    ~ estimate_model(.x, selected_groups, composition_var, 
-                     conditional_var, control_var, 
-                     FALSE, conf_level, year_separate)
-  ) |>
-    bind_rows()
+  
+  # chunk results into sizes of 50 to keep down memory pressure
+  chunks <- split(model_data_list, ceiling(seq_along(model_data_list) / chunk_size))
+  chunked_results <- vector("list", length(chunks))
+  for (i in seq_along(chunks)) {
+    chunk_results <- future_map_dfr(
+      chunks[[i]],
+      ~ estimate_model(.x, selected_groups, composition_var, 
+                       conditional_var, control_var, 
+                       FALSE, conf_level, year_separate),
+      .progress = TRUE,
+      .options = furrr_options(seed = TRUE)
+    )
+    
+    chunked_results[[i]] <- chunk_results
+    rm(chunk_results)
+    gc()
+  }
+  
+  results <- bind_rows(chunked_results)
+  rm(chunked_results)
+  gc()
   
   # summarize results across estimates
   results |>
