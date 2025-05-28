@@ -547,38 +547,6 @@ model_state_byregion_bs |>
   theme_bw()
 ```
 
-# Save Final Models
-
-```{r}
-save(
-  # basic models
-  marg_single_bs, 
-  marg_single_state_bs,
-  # age restricted models
-  marg_single_dur5,
-  # education models
-  marg_single_educ_state,
-  # multiple race models
-  marg_multi_wb_state_bs,
-  marg_multi_wa_state_bs,
-  marg_multi_wi_state_bs,
-  marg_multi_ba_state_bs,
-  marg_multi_bi_state_bs,
-  # counterfactual models
-  marg_single_cf_best_state_bs,
-  marg_single_cf_white_state_bs,
-  marg_single_cf_minority_state_bs,
-  marg_single_cf_none_state_bs,
-  # subgroup models
-  marg_hispanic_sub_state_bs,
-  marg_asian_sub_state_bs,
-  marg_asian_sub_simple_state_bs,
-  marg_indig_sub_state_bs,
-  # regional models
-  marg_single_byregion_bs,   
-  file = here("data", "data_constructed", "models.RData"))
-```
-
 ```{r}
 #| label: timestamp-end
 #| echo: false
