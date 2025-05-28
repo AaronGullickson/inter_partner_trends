@@ -69,14 +69,13 @@ transform_race <- function(race, best_race) {
   
   race <- as.character(race)
   race <- case_when(
-    race == "PI" ~ "API",
-    race == "Asian" ~ "API",
-    race == "Indigenous" ~ "AIAN",
+    race %in% c("EastAsian", "SEAsian", "SouthAsian", "OtherAsian", 
+                "PI") ~ "API",
     TRUE ~ race
   )
   
   race <- if_else(!is.na(best_race), best_race, race)
-  race <- factor(race, levels = c("White", "Black", "AIAN", "API", "Hispanic"))
+  race <- factor(race, levels = c("White", "Black", "AIAN", "API"))
   return(race)
 }
 
