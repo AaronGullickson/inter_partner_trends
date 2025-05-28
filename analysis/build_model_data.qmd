@@ -38,8 +38,10 @@ We will do state and region together. However, there is no need for a bunch of f
 ```{r}
 #| label: generate-state-region-model-data
 
+tic()
 data_model_state <- census |>
   generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+toc()
 
 # add in the region for each state
 region_crosswalk <- census |>
@@ -48,7 +50,7 @@ region_crosswalk <- census |>
 data_model_state <- data_model_state |>
   map(~ {
     .x |>
-      left_join(region_crosswalk) |>
+      left_join(region_crosswalk, by = "state") |>
       relocate(region, .before = freq)
   })
   
