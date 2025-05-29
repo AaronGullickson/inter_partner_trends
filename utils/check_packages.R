@@ -15,7 +15,8 @@ packages = c(
   "mice", # for imputing values
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
-  "tictoc", "progress" # for tracking processing time
+  "tictoc", "progress", # for tracking processing time
+  "parallel", "future", "furrr" # for parallel processing
 )
 
 package.check <- lapply(packages, FUN = function(x) {

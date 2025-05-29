@@ -1,0 +1,358 @@
+---
+title: "Estimate Models"
+params:
+  n_workers: 5
+format: html
+---
+
+```{r}
+#| label: timestamp-start
+#| echo: false
+
+timestamp()
+```
+
+```{r}
+#| label: setup
+#| include: false
+library(here)
+source(here("utils","check_packages.R"))
+source(here("utils","functions.R"))
+```
+
+```{r}
+#| label: load-state-model-data
+#| include: false
+
+load(here("data", "data_constructed", "data_model_state.RData"))
+```
+
+This script will estimate all of the important models via bootstrap. It depends on having already run `buld_model_data.qmd` to create lists of the model data required to estimate the models. This speeds up the estimation procedure enormously here. In addition, I use `future` and `furrr` with multiple workers to speed up the process further. 
+
+```{r}
+#| label: set-future-plans
+
+if(interactive()) {
+  plan(multisession, workers = min(detectCores() - 1, params$n_workers))
+} else {
+  plan(multicore, workers = min(detectCores() - 1, params$n_workers))
+}
+```
+
+
+```{r}
+#| label: load-functions
+
+# function to collapse racial groups
+collapse_race <- function(race) {
+  
+  new_race <- case_when(
+    race %in% c("WhiteHispanic", "BlackHispanic", "OtherHispanic", 
+                "ResidualHispanic") ~ "Hispanic",
+    race %in% c("EastAsian", "SEAsian", "SouthAsian", "OtherAsian",
+                "PI") ~ "API",
+    race %in% c("White-Asian", "White-PI") ~ "White-API",
+    race %in% c("Black-Asian", "Black-PI") ~ "Black-API",
+    TRUE ~ race
+  )
+    
+  factor(new_race, 
+         levels = c("White", "Black", "AIAN", "API", "Hispanic",
+                    "White-Black", "White-AIAN", "White-API", 
+                    "Black-AIAN", "Black-API"))
+}
+```
+
+# Overall models
+
+These models will be estimated for the collapsed five major race groups and five multiracial groups. I estimate all of the single race groups together to get all 10 possible combinations. I estimate each constituent pairing of the single-to-multi interracial marriages separately to avoid taking time to estimate a bunch of pairs that I won't analyze (due too much sampling error largely).
+
+All models adjust for state-level racial composition.
+
+```{r}
+#| label: estimate-state-model-overall
+
+# collapse race
+tic()
+data_model_state_simple <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state, region) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
+
+# first do single race groups
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+# now add in each multiracial pairwise comparison
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "White-Black"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("Black", "White-Black"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "White-AIAN"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("AIAN", "White-AIAN"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "White-API"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("API", "White-API"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("Black", "Black-AIAN"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("AIAN", "Black-AIAN"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("Black", "Black-API"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+tic()
+model_state_bs <- data_model_state_simple |>
+  bootstrap_model(c("API", "Black-API"),
+                  composition_var = "state", year_separate = TRUE,
+                  chunk_size = 250) |>
+  bind_rows(model_state_bs)
+toc()
+
+model_state_bs <- model_state_bs |>
+  arrange(term, year)
+
+save(model_state_bs, 
+     file = here("data", "data_constructed", "model_state_bs.RData"))
+```
+
+# Subgroup models
+
+For these models I use the full breakout for Hispanic and API respondents to analyze intermarriage with other single race groups and with each other. 
+
+```{r}
+#| label: estimate-state-model-subgroups
+
+## Hispanic subgroups ##
+tic()
+model_hispanic_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "Black", "WhiteHispanic", "BlackHispanic", 
+                    "OtherHispanic"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+## Asian subgroups ##
+tic()
+model_asian_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+# collapse east and SE asian
+collapse_asian <- function(race) {
+  new_race <- case_when(
+    race == "White" ~ "White",
+    race == "SouthAsian" ~ "SouthAsian",
+    race %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
+  factor(new_race, levels = c("White", "EastAsian", "SouthAsian"))
+}
+
+tic()
+model_asian_sub_simple_state_bs <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_asian(race_husband),
+             race_wife = collapse_asian(race_wife)) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "EastAsian", "SouthAsian", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+## Indigenous subgroups ##
+tic()
+model_indig_sub_state_bs <- data_model_state |>
+  bootstrap_model(c("White", "AIAN", "PI"),
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+save(model_hispanic_sub_state_bs,
+     model_asian_sub_state_bs,
+     model_asian_sub_simple_state_bs,
+     model_indig_sub_state_bs,
+     file = here("data", "data_constructed", "models_subgroups.RData"))
+```
+
+# Counterfactual models
+
+In these models, I test counterfactual cases for part-White multiple race respondents. I consider:
+
+1. What if they had all responded as White?
+2. What if they had all responded as the non-White race?
+3. What if they had selected the best race used by IPUMS?
+
+The first two can be done by changing values on spouses's race. The best race model requires the use of a separate model data list.
+
+```{r}
+#| label: load-best-model-data
+#| include: false
+
+load(here("data", "data_constructed", "data_model_best_race_state.RData"))
+```
+
+```{r}
+#| label: estimate-state-model-counterfactual
+
+## best race model ##
+tic()
+model_cf_best_state_bs <- data_model_best_race_state |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "Best")
+toc()
+
+counterfactual_race <- function(race, cf) {
+  
+  race <- collapse_race(race)
+  
+  if(cf == "white") {
+    race <- if_else(race == "White-Black", "White", race)
+    race <- if_else(race == "White-API", "White", race)
+    race <- if_else(race == "White-AIAN", "White", race)
+  }
+  if(cf == "minority") {
+    race <- if_else(race == "White-Black", "Black", race)
+    race <- if_else(race == "White-API", "API", race)
+    race <- if_else(race == "White-AIAN", "AIAN", race)
+  }
+
+  return(race)
+
+}
+
+## white model ##
+tic()
+model_cf_white_state_bs <- data_model_state |>
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = counterfactual_race(race_husband, "white"),
+             race_wife = counterfactual_race(race_wife, "white")) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "White")
+toc()
+
+## minority model ##
+tic()
+model_cf_minority_state_bs <- data_model_state |>
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = counterfactual_race(race_husband, "minority"),
+             race_wife = counterfactual_race(race_wife, "minority")) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API"),
+                  composition_var = "state", year_separate = TRUE) |>
+  mutate(counterfactual = "Minority")
+toc()
+
+save(model_cf_best_state_bs,
+     model_cf_white_state_bs,
+     model_cf_minority_state_bs,
+     file = here("data", "data_constructed", "models_counterfactual.RData"))
+
+rm(data_model_best_race_state)
+gc()
+```
+
+# Regional models
+
+These models are like the overall models for single race groups, but I allow each log odds ratio to vary by region as well.
+
+```{r}
+#| label: estimate-model-regional
+
+tic()
+model_state_byregion_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE, chunk_size = 25)
+toc()
+
+save(model_state_byregion_bs, 
+     file = here("data", "data_constructed", "model_region.RData"))
+```
+
+```{r}
+#| label: shut-down-workers
+
+plan(sequential)
+```
+
+```{r}
+#| label: timestamp-end
+#| echo: false
+
+timestamp()
+```
+
+

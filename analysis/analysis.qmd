@@ -1,8 +1,5 @@
 ---
-title: "Run Models"
-# set the number of bootstrap samples here. 10 is good for quick runs
-params:
-  bootstrap_rep: 3
+title: "Analysis"
 execute:
   warning: false
   message: false
@@ -24,27 +21,13 @@ source(here("utils","functions.R"))
 ```
 
 ```{r}
-#| label: prepare-data
+#| label: load-data
 #| include: false
 
-load(here("data", "data_constructed", "individ_data.RData"))
-
-# relevel year and factor up anything that might go into models
-census <- census |>
-  mutate(year = factor(year),
-         year = relevel(year, "2000"),
-         region = factor(region),
-         division = factor(division),
-         state = factor(state)) |>
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+")
-```
-
-```{r}
-#| label: set-globals
-
-# number of bootstrap samples
-B <- params$bootstrap_rep
-B
+load(here("data", "data_constructed", "model_state_bs.RData"))
+load(here("data", "data_constructed", "models_subgroups.RData"))
+load(here("data", "data_constructed", "models_counterfactual.RData"))
+load(here("data", "data_constructed", "model_region.RData"))
 ```
 
 ```{r}
@@ -53,27 +36,27 @@ B
 palette <- c(
   # Single race combinations
   "White/Black"                   = "#E69F00",  # rich orange
-  "White/Indigenous"              = "#009E73",  # teal green
-  "White/Asian"                   = "#CC79A7",  # muted magenta
+  "White/AIAN"                    = "#009E73",  # teal green
+  "White/API"                     = "#CC79A7",  # muted magenta
   "White/Hispanic"                = "#661100",  # deep rust
-  "Black/Indigenous"              = "#A65628",  # warm brown
-  "Black/Asian"                   = "#74AA99",  # muted cyan
+  "Black/AIAN"                    = "#A65628",  # warm brown
+  "Black/API"                     = "#74AA99",  # muted cyan
   "Black/Hispanic"                = "#882255",  # deep burgundy
-  "Indigenous/Asian"              = "#56B4E9",  # desaturated turquoise
-  "Indigenous/Hispanic"           = "#AA4499",  # dusty rose
-  "Asian/Hispanic"                = "#117733",  # forest green
+  "AIAN/API"                      = "#56B4E9",  # desaturated turquoise
+  "AIAN/Hispanic"                 = "#AA4499",  # dusty rose
+  "API/Hispanic"                  = "#117733",  # forest green
   
   # Single race to multiracial combinations
   "White/White-Black"             = "#47AC11",  # vivid spring green
   "Black/White-Black"             = "#471624",  # deep maroon-brown
-  "White/White-Indigenous"        = "#361892",  # royal indigo
-  "Indigenous/White-Indigenous"   = "#23A4BB",  # bright teal-blue
-  "White/White-Asian"             = "#667AA3",  # slate blue
-  "Asian/White-Asian"             = "#6D7003",  # olive drab
-  "Black/Black-Asian"             = "#1117AA",  # bold cobalt blue
-  "Asian/Black-Asian"             = "#6D4113",  # dark umber
-  "Black/Black-Indigenous"        = "#7171BB",  # muted periwinkle
-  "Indigenous/Black-Indigenous"   = "#422D13",  # earthy espresso
+  "White/White-AIAN"              = "#361892",  # royal indigo
+  "AIAN/White-AIAN"               = "#23A4BB",  # bright teal-blue
+  "White/White-API"               = "#667AA3",  # slate blue
+  "API/White-API"                 = "#6D7003",  # olive drab
+  "Black/Black-API"               = "#1117AA",  # bold cobalt blue
+  "API/Black-API"                 = "#6D4113",  # dark umber
+  "Black/Black-AIAN"              = "#7171BB",  # muted periwinkle
+  "AIAN/Black-AIAN"               = "#422D13",  # earthy espresso
 
   # Hispanic subgroups with White and Black
   "White/WhiteHispanic"           = "#9E9E00",  # olive yellow
@@ -108,291 +91,6 @@ palette <- c(
 
 ```
 
-# Model set up
-
-We use the function `estimate_lor` to estimate our key intermarriage log odds ratio parameters. At a basic level, all we need to feed in to this function is the couple level Census/ACS data and a vector of the names of racial groups we want to include. All pairings of this vector will be estimated in the model. In some cases, the user may want to manually restrict the Census/ACS data (e.g. by age) before piping it into `estimate_lor`.
-
-The default model will not include any composition, conditional, or control variables, but this can be modified with the following argument:
-
-`composition_var`
-: This is a variable or vector of variables that will adjust the marginal distributions of race for compositional effects, such as state or region.
-
-`conditional_var`
-: This is a variable or vector of variables that will be interacted with the intermarriage parameters to allow the log odds ratios to vary by both year and this variable, such as calculating different log odds ratios by region. There is not need to also specify this variable as `composition_var`.
-
-`control_var`
-: These should be the first part of spouse specific variables where we want to control for assortative mating. For example, if we use "educ" here, the function would look for and `educ_husband` and `educ_wife` variable and adjust for their association with race and their interaction, applying this over time and the `composition_var` as well. 
-
-In total, the full structure of the formula for the `glm` will look like this:
-
-```
-freq~((race_husband+race_wife)*(composition_var)+(intermar_parameters))*(year*conditional_var)+
-     ((race_husband*conrol_husband+race_wife*control_wife)*(composition_var)*(conditional_var)+
-      control_husband*control_wife)*year
-```
-
-## Speeding up performance
-
-For simple models, the processing time is quite quick, but for more complex models it can grow exponentially. The calculation of standard errors by `marginaleffects` can slow things down. To produce results without standard errors and confidence intervals, use `se = FALSE`. Note that when using the bootstrap methods below, this is automatically set to `FALSE` and inference measures are calculated via the bootstrap. In certain cases, this can make the bootstrap method faster or equivalent to the base approach where SEs are being calculated.
-
-Reducing the number of selected groups can also speed up overall model time. Setting `pairwise = TRUE` will break the full model into a set of models with only two groups and estimate them separately. The results will be the same, but this can improve speed in more complex cases with more than two groups, without the user having to manually enter each pairwise case. However, in simpler models, this approach will be slower.
-
-Probably the fastest way to speed up the models it do each year separately as year needs to be interacted with just about everything. this can be done with `year_separate = TRUE`. In simple models, this may not be necessary and may slow down the computation, but in more complex models, this will result in a very large speed improvement.
-
-## Weighting and Bootstrapping
-
-By default, the `estimate_lor` will use the sum of the product of the age weights and the sample weights as the frequency dependent variable for the models. This can be set to raw frequency counts with `use_weights_age = FALSE` and `use_weights_sample = FALSE` although in this case, unless further restrictions by age are made by the user, the entire stock of marriages will be included and equally weighted.
-
-When using weights, the default standard errors created by `estimate_lor` will not be correct because they do not take account of the variability in the weights. Estimating correct SEs by sample design is not easy in this case, so instead I use a bootstrap technique to derive inference estimates that are more accurate. This is defined by a `bootstrap_model` wrapper function that can take all the same arguments as `estimate_lor`. The number of bootstrap samples is defined by `B` which is determined at the top of this document. For most exploratory purposes a small `B` will speed up computation and seems to work pretty well, but for final products, this should be increased substantially.
-
-Because we are estimating each model `B` times, computation time is substantially increased, although we get some savings back by not having to estimate SEs for each model. Still, be careful about estimating super complex models by bootstrap.
-
-We create the bootstrapped samples at the top. For memory reasons, we just save the row indices for each bootstrapped sample.
-
-```{r}
-#| label: generate-bootstrap-samples
-
-tic()
-bs_indices <- census |>
-  generate_bootstrap_indices()
-toc()
-```
-
-Because the bootstrap samples are created here, it is important that `census` is not further modified or changed before being entired into `bootstrap_model` commands.
-
-Lets compare processing time of bootstrapped vs non-bootstrapped model for single race groups.
-
-```{r}
-#| label: estimate-model-time-benchmarks
-
-tic()
-marg_single <- census |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"))
-toc()
-
-tic()
-marg_single_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
-                  show_progress = TRUE)
-toc()
-```
-
-Thats not too bad. Lets compare the estimates from bootstrapping to the glm estimates where `B` is `r B`.
-
-```{r}
-#| label: fig-compare-bootstrap-analytical
-#| fig-cap: Comparison of bootstrapped parameters to GLM model parameters
-
-marg_single |>
-  bind_rows(marg_single_bs) |>
-  ggplot(aes(x = year, y = estimate, color = type))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = type),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.5, size = 0.5)+
-  geom_line(alpha = 0.5)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("navy", "red"))+
-  scale_fill_manual(values = c("navy","red"))+
-  theme_bw()
-```
-
-Point estimates are the same, as expected. The bootstrapped results have a larger confidence interval because they are taking account of the variability in weights properly. For this reason, we will generally prefer bootstrapped estimates.
-
-# Age Restrictions
-
-How does the age weighting compare to 
-
-- a model that restricts by certain age segments? 
-- a model that takes the unweighted total stock of marriages?
-- a model that takes recent duration marriages?
-
-```{r}
-#| label: estimate-age-restricted-models
-
-marg_single_age_h2029 <- census |>
-  filter(age_husband >= 20 & age_husband < 30) |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  mutate(restriction = "husband 20-29")
-
-marg_single_age_h2534 <- census |>
-  filter(age_husband >= 25 & age_husband < 35) |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  mutate(restriction = "husband 25-34")
-
-marg_single_age_w2029 <- census |>
-  filter(age_wife >= 20 & age_wife < 30) |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  mutate(restriction = "wife 20-29")
-
-marg_single_age_w2534 <- census |>
-  filter(age_wife >= 25 & age_wife < 35) |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  mutate(restriction = "wife 25-34")
-
-marg_single_unweighted <- census |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  mutate(restriction = "full unweighted")
-
-marg_single_dur5 <- census |>
-  filter(dur_mar <= 5) |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               use_weights_age = FALSE) |>
-  # need to add missing values from 1990-2007 to get lines to break
-  bind_rows(expand_grid(term = unique(marg_single_bs$term), 
-                        year = c(1990, 2000:2007))) |>
-  mutate(restriction = "marriage duration <5")
-  
-```
-
-```{r}
-#| label: fig-compare-restrictions-husband
-#| fig-cap: Comparison of model parameters under different types of sample restrictions
-
-marg_single_bs |>
-  mutate(restriction = "full weighted") |>
-  bind_rows(marg_single_age_h2029) |>
-  bind_rows(marg_single_age_h2534) |>
-  bind_rows(marg_single_unweighted) |>
-  bind_rows(marg_single_dur5) |>
-  ggplot(aes(x = year, y = estimate, color = restriction))+
-  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
-  #            alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("darkorange", "red", "darkgreen", "skyblue", "gold"))+
-  scale_fill_manual(values = c("darkorange", "red", "darkgreen", "skyblue", "gold"))+
-  theme_bw()
-
-```
-
-```{r}
-#| label: fig-compare-restrictions-spouses
-#| fig-cap: Comparison of model parameters restricting husband's vs. wive's age
-
-marg_single_age_w2029 |>
-  bind_rows(marg_single_age_w2534) |>
-  bind_rows(marg_single_age_h2029) |>
-  bind_rows(marg_single_age_h2534) |>
-  ggplot(aes(x = year, y = estimate, color = restriction))+
-  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
-  #            alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("darkgreen", "navy", "lightgreen", "skyblue", "gold"))+
-  scale_fill_manual(values = c("darkgreen", "navy", "lightgreen", "skyblue", "gold"))+
-  theme_bw()
-
-```
-
-```{r}
-#| label: fig-compare-restrictions-two
-#| fig-cap: Comparison of model parameters from weighted model to recent marriages
-
-marg_single_bs |>
-  mutate(restriction = "full weighted") |>
-  bind_rows(marg_single_dur5) |>
-  ggplot(aes(x = year, y = estimate, color = restriction))+
-  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = restriction),
-  #            alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("navy", "red"))+
-  scale_fill_manual(values = c("navy", "red"))+
-  theme_bw()
-```
-
-# Compositional Factors
-
-Lets adjust for state, division, and region. We will bootstrap all of them, but its absolutely necessary to do the state one separately by year. The division model also gets some slight gains to useing a separate year approach.
-
-```{r}
-#| label: estimate-geo-compositional-models
-
-tic()
-marg_single_state_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-
-tic()
-marg_single_division_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  composition_var = "division", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-
-tic()
-marg_single_region_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-                  composition_var = "region", year_separate = FALSE,
-                  show_progress = TRUE)
-toc()
-```
-
-```{r}
-#| label: fig-compare-composition
-#| fig-cap: Comparison of model parameters from models with different geographic composition adjustments
-
-marg_single_bs |>
-  bind_rows(marg_single_state_bs) |>
-  bind_rows(marg_single_division_bs) |>
-  bind_rows(marg_single_region_bs) |>
-  mutate(composition = factor(composition, 
-                              levels = c("none", "region", "division", "state"))) |>
-  ggplot(aes(x = year, y = estimate, color = composition))+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = composition),
-              alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
-  scale_fill_manual(values = c("red", "darkgreen", "skyblue", "navy"))+
-  theme_bw()
-
-```
-
-# Control for Education
-
-Running state composition and educational controls in the same model slows them down quite a bit - almost 2 minutes per model (20 minutes for 10 bootstrapped models), so for now I am just going to run a single model and ignore standard errors.
-
-```{r}
-#| label: estimate-educ-models
-
-tic()
-marg_single_educ_state <- census |>
-  estimate_lor(c("White", "Black", "Indigenous", "Asian", "Hispanic"), 
-               composition_var = "state", control_var = "educ", 
-               year_separate = TRUE, se = FALSE)
-toc()
-```
-
-```{r}
-#| label: fig-educ
-#| fig-cap: Comparison of model parameters when controlling for spousal education differences across race in models that also adjust for racial composition by state
-
-marg_single_state_bs |>
-  bind_rows(marg_single_educ_state) |>
-  ggplot(aes(x = year, y = estimate, color = control))+
-  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = control),
-  #            alpha = 0.3, color = NA)+
-  geom_point(alpha = 0.7, size = 0.5)+
-  geom_line(alpha = 0.5, linewidth = 1.25)+
-  facet_wrap(~term, scales = "free_y")+
-  scale_color_manual(values = c("red", "navy"))+
-  scale_fill_manual(values = c("red", "navy"))+
-  theme_bw()
-
-```
-
 # Overall Trends
 
 ```{r}
@@ -406,10 +104,13 @@ marg_single_state_bs |>
 #|    - Asian partner
 #|    - Hispanic partner
 
-lims <- exp(c(min(marg_single_state_bs$conf.low), 
-              max(marg_single_state_bs$conf.high)))
+model_single_state_bs <- model_state_bs |>
+  filter(!str_detect(term, "-"))
 
-marg_single_state_bs |>
+lims <- exp(c(min(model_single_state_bs$conf.low), 
+              max(model_single_state_bs$conf.high)))
+
+model_single_state_bs |>
   filter(str_detect(term, "White")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -422,7 +123,7 @@ marg_single_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_state_bs |>
+model_single_state_bs |>
   filter(str_detect(term, "Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -435,8 +136,8 @@ marg_single_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_state_bs |>
-  filter(str_detect(term, "Indigenous")) |>
+model_single_state_bs |>
+  filter(str_detect(term, "AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -448,8 +149,8 @@ marg_single_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_state_bs |>
-  filter(str_detect(term, "Asian")) |>
+model_single_state_bs |>
+  filter(str_detect(term, "API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -461,7 +162,7 @@ marg_single_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_single_state_bs |>
+model_single_state_bs |>
   filter(str_detect(term, "Hispanic")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -476,47 +177,18 @@ marg_single_state_bs |>
 ```
 
 ```{r}
-#| label: estimate-models-multiracial
-
-marg_multi_wb_state_bs <- census |>
-  bootstrap_model(c("White", "Black", "White-Black"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = FALSE)
-
-marg_multi_wi_state_bs <- census |>
-  bootstrap_model(c("White", "Indigenous", "White-Indigenous"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = FALSE)
-
-marg_multi_wa_state_bs <- census |>
-  bootstrap_model(c("White", "Asian", "White-Asian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = FALSE)
-
-marg_multi_bi_state_bs <- census |>
-  bootstrap_model(c("Black", "Indigenous", "Black-Indigenous"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = FALSE)
-
-marg_multi_ba_state_bs <- census |>
-  bootstrap_model(c("Black", "Asian", "Black-Asian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = FALSE)
-
-```
-
-```{r}
 #| label: fig-intermar-multi-overall
 #| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
 #| layout-ncol: 2
 #| fig-subcap: 
 #|    - White-Black
-#|    - White-Indigenous
-#|    - White-Asian
-#|    - Black-Indigenous
-#|    - Black-Asian
+#|    - White-AIAN
+#|    - White-API
+#|    - Black-AIAN
+#|    - Black-API
 
-marg_multi_wb_state_bs |>
+model_state_bs |>
+  filter(term == "White/Black" | str_detect(term, "White-Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -528,7 +200,8 @@ marg_multi_wb_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_multi_wi_state_bs |>
+model_state_bs |>
+  filter(term == "White/AIAN" | str_detect(term, "White-AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -540,7 +213,8 @@ marg_multi_wi_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_multi_wa_state_bs |>
+model_state_bs |>
+  filter(term == "White/API" | str_detect(term, "White-API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -552,7 +226,8 @@ marg_multi_wa_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_multi_bi_state_bs |>
+model_state_bs |>
+  filter(term == "Black/AIAN" | str_detect(term, "Black-AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -564,7 +239,8 @@ marg_multi_bi_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_multi_ba_state_bs |>
+model_state_bs |>
+  filter(term == "Black/API" | str_detect(term, "Black-API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -579,111 +255,18 @@ marg_multi_ba_state_bs |>
 
 # Counterfactual Race Assignment
 
-```{r}
-#| label: estimate-models-counterfactual-race
-
-# for the best race case, we need to use the AIAN and API categories 
-transform_race <- function(race, subrace, best_race, cf = "best") {
-  
-  race <- as.character(race)
-  
-  race <- case_when(
-    subrace == "PI" ~ "API",
-    race == "Asian" ~ "API",
-    race == "Indigenous" ~ "AIAN",
-    TRUE ~ race
-  )
-  
-  if(cf == "white") {
-    race <- if_else(race == "White-Black", "White", race)
-    race <- if_else(race == "White-Asian", "White", race)
-    race <- if_else(race == "White-Indigenous", "White", race)
-  }
-  if(cf == "minority") {
-    race <- if_else(race == "White-Black", "Black", race)
-    race <- if_else(race == "White-Asian", "API", race)
-    race <- if_else(race != "White-Indigenous", race,
-                    if_else(subrace == "PI", "API", "AIAN"))
-  }
-  if(cf == "best") {
-    race <- if_else(!is.na(best_race), best_race, race)
-  }
-
-  race <- factor(race, levels = c("White", "Black", "AIAN", "API", "Hispanic"))
-}
-
-tic()
-marg_single_cf_none_state_bs <- census |>
-  mutate(
-    race_husband = transform_race(
-      race_husband, subrace_husband, race_best_husband, "none"
-    ),
-    race_wife = transform_race(
-      race_wife, subrace_wife, race_best_wife, "none"
-    )
-  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "Actual")
-toc()
-
-tic()
-marg_single_cf_white_state_bs <- census |>
-  mutate(
-    race_husband = transform_race(
-      race_husband, subrace_husband, race_best_husband, "white"
-    ),
-    race_wife = transform_race(
-      race_wife, subrace_wife, race_best_wife, "white"
-    )
-  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "White")
-toc()
-
-tic()
-marg_single_cf_minority_state_bs <- census |>
-  mutate(
-    race_husband = transform_race(
-      race_husband, subrace_husband, race_best_husband, "minority"
-    ),
-    race_wife = transform_race(
-      race_wife, subrace_wife, race_best_wife, "minority"
-    )
-  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "Non-White")
-toc()
-
-tic()
-marg_single_cf_best_state_bs <- census |>
-  mutate(
-    race_husband = transform_race(
-      race_husband, subrace_husband, race_best_husband, "best"
-    ),
-    race_wife = transform_race(
-      race_wife, subrace_wife, race_best_wife, "best"
-    )
-  ) |> bootstrap_model(c("White", "Black", "AIAN", "API"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE) |>
-  mutate(counterfactual = "Best")
-toc()
-```
 
 ```{r}
 #| label: fig-multi-wb-counterf
 #| fig-cap: Comparison of White/Black exogamy when White-Black partners are re-assigned as Black or White
 
-marg_single_cf_none_state_bs |>
+model_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_single_cf_white_state_bs) |>
-  bind_rows(marg_single_cf_minority_state_bs) |>
-  bind_rows(marg_single_cf_best_state_bs) |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
   filter(term == "White/Black") |>
-  mutate(counterfactual = if_else(counterfactual == "Non-White", "Black",
+  mutate(counterfactual = if_else(counterfactual == "Minority", "Black",
                                   counterfactual),
          counterfactual = factor(counterfactual, 
                                  levels = c("Actual", "White", "Black", 
@@ -705,13 +288,13 @@ marg_single_cf_none_state_bs |>
 #| label: fig-multi-wa-counterf
 #| fig-cap: Comparison of White/API exogamy when White-API partners are re-assigned as API or White
 
-marg_single_cf_none_state_bs |>
+model_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_single_cf_white_state_bs) |>
-  bind_rows(marg_single_cf_minority_state_bs) |>
-  bind_rows(marg_single_cf_best_state_bs) |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
   filter(term == "White/API") |>
-  mutate(counterfactual = if_else(counterfactual == "Non-White", "API",
+  mutate(counterfactual = if_else(counterfactual == "Minority", "API",
                                   counterfactual),
          counterfactual = factor(counterfactual, 
                                  levels = c("Actual", "White", "API", 
@@ -733,13 +316,13 @@ marg_single_cf_none_state_bs |>
 #| label: fig-multi-wi-counterf
 #| fig-cap: Comparison of White/AIAN exogamy when White-AIAN partners are re-assigned as AIAN or White
 
-marg_single_cf_none_state_bs |>
+model_state_bs |>
   mutate(counterfactual = "Actual") |>
-  bind_rows(marg_single_cf_white_state_bs) |>
-  bind_rows(marg_single_cf_minority_state_bs) |>
-  bind_rows(marg_single_cf_best_state_bs) |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
   filter(term == "White/AIAN") |>
-  mutate(counterfactual = if_else(counterfactual == "Non-White", "AIAN",
+  mutate(counterfactual = if_else(counterfactual == "Minority", "AIAN",
                                   counterfactual),
          counterfactual = factor(counterfactual, 
                                  levels = c("Actual", "White", "AIAN", 
@@ -759,59 +342,6 @@ marg_single_cf_none_state_bs |>
 # Subrace Analysis
 
 ```{r}
-#| label: estimate-models-sub-race
-
-## Hispanic subgroups ##
-tic()
-marg_hispanic_sub_state_bs <- census |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "Black", "WhiteHispanic", "BlackHispanic", 
-                    "OtherHispanic"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-
-## Asian subgroups ##
-tic()
-marg_asian_sub_state_bs <- census |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "EastAsian", "SEAsian", "SouthAsian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-
-
-## Asian subgroups, combining East and SE ##
-combine_race <- function(subrace) {
-  race <- case_when(
-    subrace == "White" ~ "White",
-    subrace == "SouthAsian" ~ "SouthAsian",
-    subrace %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
-  factor(race, levels = c("White", "EastAsian", "SouthAsian"))
-}
-
-tic()
-marg_asian_sub_simple_state_bs <- census |>
-  mutate(race_husband = combine_race(subrace_husband),
-         race_wife = combine_race(subrace_wife)) |>
-  bootstrap_model(c("White", "EastAsian", "SouthAsian"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-
-tic()
-marg_indig_sub_state_bs <- census |>
-  mutate(race_husband = subrace_husband,
-         race_wife = subrace_wife) |>
-  bootstrap_model(c("White", "AIAN", "PI"),
-                  composition_var = "state", year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-```
-
-```{r}
 #| label: fig-sub-hispanic
 #| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
 #| layout-ncol: 2
@@ -819,10 +349,10 @@ toc()
 #|   - White partner
 #|   - Black partner
 
-lims <- exp(c(min(marg_hispanic_sub_state_bs$conf.low), 
-              max(marg_hispanic_sub_state_bs$conf.high)))
+lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low), 
+              max(model_hispanic_sub_state_bs$conf.high)))
 
-marg_hispanic_sub_state_bs |>
+model_hispanic_sub_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -835,7 +365,7 @@ marg_hispanic_sub_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 
-marg_hispanic_sub_state_bs |>
+model_hispanic_sub_state_bs |>
   filter(str_detect(term, "^Black/") | term == "White/Black") |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -853,8 +383,8 @@ marg_hispanic_sub_state_bs |>
 #| label: fig-pan-hispanic
 #| fig-cap: Exogamy of Hispanic subgroups with each other
 
-marg_hispanic_sub_state_bs |>
-  filter(str_detect(term, "^Black/") | term == "White/Black") |>
+model_hispanic_sub_state_bs |>
+  filter(!str_detect(term, "^Black/|^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -872,7 +402,7 @@ marg_hispanic_sub_state_bs |>
 #| label: fig-sub-asian-full
 #| fig-cap: Exogamy of Asian subgroups with White partners. 
 
-marg_asian_sub_state_bs |>
+model_asian_sub_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -890,7 +420,7 @@ marg_asian_sub_state_bs |>
 #| label: fig-pan-asian-full
 #| fig-cap: Exogamy of Asian subgroups with each other
 
-marg_asian_sub_state_bs |>
+model_asian_sub_state_bs |>
   filter(!str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -910,7 +440,7 @@ marg_asian_sub_state_bs |>
 #| label: fig-sub-asian-simple
 #| fig-cap: Exogamy of Asian subgroups with White partners, where East Asian and SE Asian have been combined into East Asian
 
-marg_asian_sub_simple_state_bs |>
+model_asian_sub_simple_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -928,7 +458,7 @@ marg_asian_sub_simple_state_bs |>
 #| label: fig-pan-asian-simple
 #| fig-cap: Exogamy of Asian subgroups with each other, where East Asian and SE Asian have been combined into East Asian
 
-marg_asian_sub_simple_state_bs |>
+model_asian_sub_simple_state_bs |>
   filter(!str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -946,7 +476,7 @@ marg_asian_sub_simple_state_bs |>
 #| label: fig-sub-indigenous
 #| fig-cap: Exogamy of Indigenous subgroups with White partners.
 
-marg_indig_sub_state_bs |>
+model_indig_sub_state_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -964,7 +494,7 @@ marg_indig_sub_state_bs |>
 #| label: fig-pan-indigenous
 #| fig-cap: Exogamy of Indigenous subgroups with each other
 
-marg_indig_sub_state_bs |>
+model_indig_sub_state_bs |>
   filter(!str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -981,23 +511,10 @@ marg_indig_sub_state_bs |>
 # Regional Models
 
 ```{r}
-#| label: estimate-models-regional
-
-tic()
-marg_single_byregion_bs <- census |>
-  bootstrap_model(c("White", "Black", "Indigenous", "Asian", "Hispanic"),
-                  composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE,
-                  show_progress = TRUE)
-toc()
-```
-
-
-```{r}
 #| label: fig-region
 #| fig-cap: Exogamy of single race groups, separately by region
 
-marg_single_byregion_bs |>
+model_state_byregion_bs |>
   ggplot(aes(x = year, y = exp(estimate), color = region))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = region),
@@ -1015,7 +532,7 @@ marg_single_byregion_bs |>
 #| label: fig-region-white
 #| fig-cap: Exogamy involving White partners, separately by region
 
-marg_single_byregion_bs |>
+model_state_byregion_bs |>
   filter(str_detect(term, "^White/")) |>
   ggplot(aes(x = year, y = exp(estimate), color = region))+
   geom_vline(xintercept = 2000, linetype = 2)+
@@ -1028,38 +545,6 @@ marg_single_byregion_bs |>
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
-```
-
-# Save Final Models
-
-```{r}
-save(
-  # basic models
-  marg_single_bs, 
-  marg_single_state_bs,
-  # age restricted models
-  marg_single_dur5,
-  # education models
-  marg_single_educ_state,
-  # multiple race models
-  marg_multi_wb_state_bs,
-  marg_multi_wa_state_bs,
-  marg_multi_wi_state_bs,
-  marg_multi_ba_state_bs,
-  marg_multi_bi_state_bs,
-  # counterfactual models
-  marg_single_cf_best_state_bs,
-  marg_single_cf_white_state_bs,
-  marg_single_cf_minority_state_bs,
-  marg_single_cf_none_state_bs,
-  # subgroup models
-  marg_hispanic_sub_state_bs,
-  marg_asian_sub_state_bs,
-  marg_asian_sub_simple_state_bs,
-  marg_indig_sub_state_bs,
-  # regional models
-  marg_single_byregion_bs,   
-  file = here("data", "data_constructed", "models.RData"))
 ```
 
 ```{r}

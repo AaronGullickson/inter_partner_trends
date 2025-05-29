@@ -27,20 +27,22 @@ PAIRINGS <- c(
   "Black/BlackHispanic",
   "Black/OtherHispanic",
   "Indigenous/Asian",
-  "Indigenous/Hispanic",
-  "Asian/Hispanic",
   "AIAN/API",
+  "Indigenous/Hispanic",
+  "AIAN/Hispanic",
+  "Asian/Hispanic",
+  "API/Hispanic",
   # single to multi race pairings
   "White/White-Black",
   "Black/White-Black",
-  "White/White-Indigenous",
-  "Indigenous/White-Indigenous",
-  "White/White-Asian",
-  "Asian/White-Asian",
-  "Black/Black-Asian",
-  "Asian/Black-Asian",
-  "Black/Black-Indigenous",
-  "Indigenous/Black-Indigenous",
+  "White/White-AIAN",
+  "AIAN/White-AIAN",
+  "White/White-API",
+  "API/White-API",
+  "Black/Black-API",
+  "API/Black-API",
+  "Black/Black-AIAN",
+  "AIAN/Black-AIAN",
   # panethnic pairings
   "WhiteHispanic/BlackHispanic",
   "WhiteHispanic/OtherHispanic",
@@ -51,133 +53,130 @@ PAIRINGS <- c(
   "AIAN/PI"
 )
 
-# number of bootstrap samples
-# his is way too low for final analysis, but should be sufficient for
-# preliminary runs where we just want a reasonably close estimate. The actual
-# B will typically be set in the quarto doc where it is used.
-B <- 10
-
-
 # Modeling functions ------------------------------------------------------
 
-generate_bootstrap_indices <- function(ind_data, 
-                                       n_replicates = B, 
-                                       sample_design = TRUE) {
+generate_bootstrap_data <- function(ind_data, 
+                                    n_replicates, 
+                                    sample_design = TRUE,
+                                    ...) {
   
-  # create index variable
-  ind_data <- ind_data |>
-    mutate(idx = seq_len(nrow(ind_data)))
+  results <- vector("list", n_replicates + 1)
+  # the first element of the list is always the actual
+  results[[1]] <- create_model_data(ind_data,...)
+
+  # pre-split ind_data
+  if(sample_design) {
+    ind_data <- ind_data |>
+      group_by(year, strata) |>
+      group_split()
+  } else {
+    ind_data <- ind_data |>
+      group_by(year)
+  }
   
-  map(1:n_replicates, function(i) {
+  pb <- progress_bar$new(
+    format = "Resampling [:bar] :percent in :elapsed",
+    total = n_replicates,
+    show_after = 0
+  )
+  pb$tick(0)
+  
+  for(i in seq_len(n_replicates)) {
     if(sample_design) {
       # we need to adjust for year and strata
-      ind_data |>
-        group_by(year, strata) |>
-        group_split() |>
+      resampled <- ind_data |>
         map(function(stratum_data) {
-          clusters <- unique(stratum_data$cluster)
-          tibble(cluster = sample(clusters, length(clusters), replace = TRUE))
+          # sample by row indices to speed up process
+          cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
+          cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
+          sampled_clusters <- sample(cluster_to_rows,
+                                     size = length(cluster_to_rows),
+                                     replace = TRUE)|>
+            unlist(use.names = FALSE)
+          slice(stratum_data, sampled_clusters)
         }) |>
-        bind_rows() |>
-        left_join(ind_data, by = "cluster", relationship = "many-to-many") |>
-        pull(idx)
+        bind_rows()
     } else {
       # Simple bootstrap but still stratify by year
-      ind_data |>
-        group_by(year) |>
-        group_split() |>
-        map(function(year_data) {
-          sample(year_data$idx, nrow(year_data), replace = TRUE)
-        }) |>
-        list_c()
+      resampled <- ind_data |>
+        map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
+        bind_rows()
     }
-  })
+    
+    results[[i + 1]] <- create_model_data(resampled, ...)
+    pb$tick()
+  }
+  
+  return(results)
 }
 
-bootstrap_model <- function(ind_data, 
+bootstrap_model <- function(model_data_list, 
                             selected_groups,
-                            bootstrap_indices = bs_indices,
+                            chunk_size = 100,
+                            composition_var = NULL,
+                            conditional_var = NULL,
+                            control_var = NULL,
                             conf_level = 0.83,
-                            show_progress = FALSE,
-                            ...) {
+                            year_separate = FALSE) {
   
   ci_upper <- 1-(1-conf_level)/2
   ci_lower <- (1-conf_level)/2
   
-  if(show_progress) {
-    pb <- progress_bar$new(format = "[:bar] :percent in :elapsed",
-                           total = length(bootstrap_indices) + 1,
-                           show_after = 0)
-    pb$tick(0)
-  }
-
-  # first estimate the full model to get analytical point estimates
-  point_estimates <- ind_data |>
-    estimate_lor(selected_groups, se = FALSE, ...)
-  if(show_progress) {
-    pb$tick()
-  }
+  # first object in model_data_list is actual data so use it to get
+  # point estimates
+  point_estimates <- estimate_model(model_data_list[[1]], selected_groups, 
+                                    composition_var, conditional_var, 
+                                    control_var, FALSE, conf_level, 
+                                    year_separate)
   
-  # now loop for the bootstrap
-  results <- vector("list", length(bootstrap_indices))
-  for(i in seq_len(length(bootstrap_indices))) {
-    results[[i]] <- estimate_lor(ind_data[bootstrap_indices[[i]],],
-                                 selected_groups, se = FALSE, ...)
+  # now remove actual data and parallel process all of the bootstrap samples
+  model_data_list <- model_data_list[-1]
+  
+  # chunk results into sizes of 50 to keep down memory pressure
+  chunks <- split(model_data_list, ceiling(seq_along(model_data_list) / chunk_size))
+  chunked_results <- vector("list", length(chunks))
+  for (i in seq_along(chunks)) {
+    chunk_results <- future_map_dfr(
+      chunks[[i]],
+      ~ estimate_model(.x, selected_groups, composition_var, 
+                       conditional_var, control_var, 
+                       FALSE, conf_level, year_separate),
+      .progress = TRUE,
+      .options = furrr_options(seed = TRUE)
+    )
     
-    if (show_progress) {
-      pb$tick()
-    }
+    chunked_results[[i]] <- chunk_results
+    rm(chunk_results)
+    gc()
   }
   
-  by_vars <- colnames(results[[1]])
-  by_vars <- by_vars[by_vars != "estimate"]
-  # full join here because its possible that some coefficients might be dropped
-  # in some bootstrap samples if we get zero values
-  results <- reduce(results, full_join, by = by_vars)
+  results <- bind_rows(chunked_results)
+  rm(chunked_results)
+  gc()
   
   # summarize results across estimates
   results |>
-    rowwise(by_vars) |>
+    group_by(across(-estimate)) |>
     summarize(
-      std.error = sd(c_across(starts_with("estimate")), na.rm = TRUE),
-      conf.low = quantile(c_across(starts_with("estimate")), ci_lower, na.rm = TRUE),
-      conf.high = quantile(c_across(starts_with("estimate")), ci_upper, na.rm = TRUE),
+      std.error = sd(estimate, na.rm = TRUE),
+      conf.low = quantile(estimate, ci_lower, na.rm = TRUE),
+      conf.high = quantile(estimate, ci_upper, na.rm = TRUE),
       .groups = "drop"
     ) |>
     # join back to the point estimates
-    right_join(point_estimates, by = by_vars) |>
+    right_join(point_estimates, by = setdiff(colnames(results), "estimate")) |>
     # move estimate before inference measures
     relocate(estimate, .before = std.error) |>
     # change type to bootstrap
-    mutate(type = paste0("bootstrap", length(bootstrap_indices)))
+    mutate(type = paste0("bootstrap", length(model_data_list)))
 }
 
-estimate_lor <- function(ind_data, 
-                         selected_groups,
-                         composition_var = NULL,
-                         conditional_var = NULL,
-                         control_var = NULL,
-                         se = TRUE,
-                         use_weights_age = TRUE,
-                         use_weights_sample = TRUE,
-                         conf_level = 0.83,
-                         year_separate = FALSE) {
-  
-  
-  # it might also be much faster to do individual years separately
-  if(year_separate) {
-    results <- map(unique(ind_data$year), function(y) {
-      ind_data |>
-        filter(year == y) |>
-        estimate_lor(selected_groups, 
-                     composition_var, conditional_var, control_var,
-                     se, use_weights_age, use_weights_sample, conf_level, 
-                     pairwise, year_separate = FALSE)
-    }) |>
-      bind_rows()
-    return(results)
-  }
-  
+create_model_data <- function(ind_data, 
+                              composition_var = NULL,
+                              conditional_var = NULL,
+                              control_var = NULL,
+                              use_weights_age = TRUE,
+                              use_weights_sample = TRUE) {
   
   ## prepare model data ##
   controls <- NULL
@@ -189,9 +188,6 @@ estimate_lor <- function(ind_data,
   
   # pre-process individual data
   ind_data <- ind_data |>
-    # trim to just selected groups and drop unused factor levels
-    filter(race_husband %in% selected_groups,
-           race_wife %in% selected_groups) |>
     mutate(year = fct_drop(year)) |>
     # set up a variable for summing frequencies
     mutate(sum_var = 1)
@@ -218,9 +214,35 @@ estimate_lor <- function(ind_data,
     group_by(!!!syms(grouping_vars), .drop = FALSE) |>
     summarize(freq = sum(sum_var), .groups = "drop")
   
-  # clean up the memory here now that we don't need individual data
-  rm(ind_data)
-  gc()
+  return(model_data)
+}
+
+estimate_model <- function(model_data, 
+                           selected_groups,
+                           composition_var = NULL,
+                           conditional_var = NULL,
+                           control_var = NULL,
+                           se = TRUE,
+                           conf_level = 0.83,
+                           year_separate = FALSE) {
+  
+  
+  # it might be much faster to do individual years separately
+  if(year_separate) {
+    results <- map(unique(model_data$year), function(y) {
+      model_data |>
+        filter(year == y) |>
+        estimate_model(selected_groups, composition_var, conditional_var, 
+                       control_var, se, conf_level, FALSE)
+    }) |>
+      bind_rows()
+    return(results)
+  }
+  
+  # trim to just selected groups and drop unused factor levels
+  model_data <- model_data |>
+    filter(race_husband %in% selected_groups, race_wife %in% selected_groups) |>
+    mutate(year = fct_drop(year))
   
   # hunt for zero values to identify bad estimates later. We first need to 
   # aggregate data, ignoring compositional and control variables
@@ -234,6 +256,12 @@ estimate_lor <- function(ind_data,
   # now remove zero values from the data or they will mess up the models
   model_data <- model_data |>
     filter(freq > 0)
+  
+  # its possible there may be no race contrast if set to single years so check
+  if(length(unique(model_data$race_husband)) <= 1 |
+     length(unique(model_data$race_wife)) <= 1) {
+    return(NULL)
+  }
   
   # create required variables
   for(i in 1:(length(selected_groups)-1)) {
@@ -327,8 +355,8 @@ estimate_lor <- function(ind_data,
   } else {
     model <- glm(formula_model, data = model_data, family = quasipoisson)
   }
-
-   ## get marginal effects of variables we want ##
+  
+  ## get marginal effects of variables we want ##
   vars  <- str_subset(names(model$coef), "^inter_(.+)TRUE$") |> 
     str_remove("TRUE$")
   
@@ -340,7 +368,7 @@ estimate_lor <- function(ind_data,
                type = "link",
                vcov = se, 
                conf_level = conf_level)
-    ) |>
+  ) |>
     as_tibble() |>
     mutate(year = as.numeric(paste(year)),
            term = get_intermar_names(term))
@@ -367,8 +395,6 @@ estimate_lor <- function(ind_data,
   marg <- marg |>
     select(-contrast, -starts_with("predicted")) |>
     mutate(type = "glm",
-           age_weighted = use_weights_age,
-           sample_weighted = use_weights_sample,
            composition = ifelse(is.null(composition_var),
                                 "none",
                                 paste(composition_var, collapse = ",")),
@@ -382,8 +408,7 @@ estimate_lor <- function(ind_data,
   }
   
   # some memory cleanup
-  rm(model_data)
-  rm(model)
+  rm(model_data, model, zero_values, vars, formula_model, single_year)
   gc()
   
   return(marg)
