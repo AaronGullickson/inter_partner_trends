@@ -11,6 +11,7 @@ packages = c(
   "readr","haven", "googlesheets4", # I/O
   "tidyverse","lubridate","broom", #tidyverse and friends
   "ggrepel", # plotting extras
+  "srvyr", # for adjusting by sample design
   "marginaleffects", # for computing log-odds from models
   "mice", # for imputing values
   "modelsummary","gt", # for table output
