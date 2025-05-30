@@ -453,3 +453,23 @@ get_permutations <- function(groups) {
   return(permutations)
   
 }
+
+
+# function to collapse racial groups
+collapse_race <- function(race) {
+  
+  new_race <- case_when(
+    race %in% c("WhiteHispanic", "BlackHispanic", "OtherHispanic", 
+                "ResidualHispanic") ~ "Hispanic",
+    race %in% c("EastAsian", "SEAsian", "SouthAsian", "OtherAsian",
+                "PI") ~ "API",
+    race %in% c("White-Asian", "White-PI") ~ "White-API",
+    race %in% c("Black-Asian", "Black-PI") ~ "Black-API",
+    TRUE ~ race
+  )
+  
+  factor(new_race, 
+         levels = c("White", "Black", "AIAN", "API", "Hispanic",
+                    "White-Black", "White-AIAN", "White-API", 
+                    "Black-AIAN", "Black-API"))
+}

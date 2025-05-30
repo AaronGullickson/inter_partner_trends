@@ -39,29 +39,6 @@ if(interactive()) {
 }
 ```
 
-```{r}
-#| label: load-functions
-
-# function to collapse racial groups
-collapse_race <- function(race) {
-  
-  new_race <- case_when(
-    race %in% c("WhiteHispanic", "BlackHispanic", "OtherHispanic", 
-                "ResidualHispanic") ~ "Hispanic",
-    race %in% c("EastAsian", "SEAsian", "SouthAsian", "OtherAsian",
-                "PI") ~ "API",
-    race %in% c("White-Asian", "White-PI") ~ "White-API",
-    race %in% c("Black-Asian", "Black-PI") ~ "Black-API",
-    TRUE ~ race
-  )
-    
-  factor(new_race, 
-         levels = c("White", "Black", "AIAN", "API", "Hispanic",
-                    "White-Black", "White-AIAN", "White-API", 
-                    "Black-AIAN", "Black-API"))
-}
-```
-
 # Overall models
 
 These models will be estimated for the collapsed five major race groups and five multiracial groups. I estimate all of the single race groups together to get all 10 possible combinations. I estimate each constituent pairing of the single-to-multi interracial marriages separately to avoid taking time to estimate a bunch of pairs that I won't analyze (due too much sampling error largely).
