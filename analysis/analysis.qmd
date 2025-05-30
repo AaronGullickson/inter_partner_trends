@@ -24,6 +24,7 @@ source(here("utils","functions.R"))
 #| label: load-data
 #| include: false
 
+load(here("data", "data_constructed", "data_couples.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
 load(here("data", "data_constructed", "models_subgroups.RData"))
 load(here("data", "data_constructed", "models_counterfactual.RData"))
@@ -91,7 +92,100 @@ palette <- c(
 
 ```
 
-# Overall Trends
+# Basic Trends in Outmarriage
+
+```{r}
+#| label: fig-outmarriage-overall
+#| fig-cap: The trend in the probability that a marriage is racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners.
+ 
+exogamy_trend <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+",
+         union_type == "marriage") |>
+  mutate(weight_combined = weight_age * weight_sample,
+         weight_combined = weight_combined / mean(weight_combined),
+         exogamy = factor(race_husband != race_wife, 
+                          levels = c(FALSE, TRUE),
+                          labels = c("endogamy", "exogamy"))) |>
+  group_by(exogamy, year) |>
+  summarize(sum_weight = sum(weight_combined), .groups = "drop") |>
+  pivot_wider(names_from = exogamy, values_from = sum_weight) |>
+  mutate(prop = exogamy/(endogamy+exogamy)) |>
+  select(year, prop) |>
+  mutate(year = as.numeric(paste(year)))
+  
+  
+ggplot(exogamy_trend, aes(x = year, y = prop, group = 1))+
+  geom_line()+
+  geom_point()+
+  scale_y_continuous(labels = scales::percent)+
+  labs(y = "percent of marriages that are racially exogamous")+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-outmarriage-race
+#| fig-cap: The trend in the probability that a spouse of a given race is racially exogamous, separately by gender. Values in all years are weighted to reflect the joint age distribution of newlywed partners.
+
+exogamy_trend_husband <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+",
+         union_type == "marriage") |>
+  mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+  mutate(weight_combined = weight_age * weight_sample,
+         weight_combined = weight_combined / mean(weight_combined),
+         exogamy = factor(race_husband != race_wife, 
+                          levels = c(FALSE, TRUE),
+                          labels = c("endogamy", "exogamy"))) |>
+  group_by(exogamy, race_husband, year) |>
+  summarize(sum_weight = sum(weight_combined), .groups = "drop") |>
+  pivot_wider(names_from = exogamy, values_from = sum_weight) |>
+  mutate(prop = exogamy/(endogamy+exogamy)) |>
+  rename(race = race_husband, endogamy_husband = endogamy,
+         exogamy_husband = exogamy, prop_husband = prop) |>
+  mutate(year = as.numeric(paste(year)))
+  
+exogamy_trend_wife <- census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+",
+         union_type == "marriage") |>
+  mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+  mutate(weight_combined = weight_age * weight_sample,
+         weight_combined = weight_combined / mean(weight_combined),
+         exogamy = factor(race_husband != race_wife, 
+                          levels = c(FALSE, TRUE),
+                          labels = c("endogamy", "exogamy"))) |>
+  group_by(exogamy, race_wife, year) |>
+  summarize(sum_weight = sum(weight_combined), .groups = "drop") |>
+  pivot_wider(names_from = exogamy, values_from = sum_weight) |>
+  mutate(prop = exogamy/(endogamy+exogamy)) |>
+  rename(race = race_wife, endogamy_wife = endogamy,
+         exogamy_wife = exogamy, prop_wife = prop) |>
+  mutate(year = as.numeric(paste(year)))
+
+exogamy_trend_race <- exogamy_trend_husband |>
+  full_join(exogamy_trend_wife, by = c("race", "year")) |>
+  mutate(prop_both = (exogamy_husband + exogamy_wife) / 
+           (endogamy_husband + endogamy_wife + 
+              exogamy_husband + exogamy_wife)) |>
+  select(race, year, starts_with("prop_")) |>
+  pivot_longer(cols = starts_with("prop_"), names_prefix = "prop_",
+               names_to = "type", values_to = "prop")
+
+exogamy_trend_race |>
+  filter(!str_detect(race, "-")) |>
+  ggplot(aes(x = year, y = prop, color = type, group = type))+
+  geom_line(alpha = 0.7)+
+  geom_point(size = 1, alpha = 0.7)+
+  facet_wrap(~race)+
+  labs(y = "percent of spouses of given race that are racially exogamous")+
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_manual(values = c("red", "navy", "gold"))+
+  theme_bw()
+```
+
+
+
+# Overall Trends in Odds Ratios
 
 ```{r}
 #| label: fig-intermar-single-overall
