@@ -160,6 +160,8 @@ gc()
 Lets remove any cases that were allocated race or hispanicity for either spouse, as spousal race may have been used in the allocation procedure. A zero value indicates an unedited response on the quality flags, although in years where the quality flag is not available we get missing values that need to be checked.
 
 ```{r}
+#| label: remove-race-allocated-responses
+
 table(census$YEAR, census$QRACE, exclude = NULL)
 table(census$YEAR, census$QHISPAN_SP, exclude = NULL)
 
