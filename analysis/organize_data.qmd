@@ -81,7 +81,7 @@ table(census$SEX, census$SEX_SP)
 # Read in cohabitor data
 
 ```{r}
-#| label: read-spousal-data
+#| label: read-cohab-data
 
 cohab <- read_fwf(here("data", "data_raw", "acs_census", "usa_00150.dat.gz"),
                   col_positions = fwf_cols(YEAR = c(1,4),
