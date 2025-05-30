@@ -1,7 +1,7 @@
 ---
 title: "Build Model Data"
 params:
-  bootstrap_rep: 5
+  bootstrap_rep: 3
 format: html
 ---
 
@@ -24,13 +24,11 @@ source(here("utils","functions.R"))
 #| label: prepare-data
 #| include: false
 
-load(here("data", "data_constructed", "data_couples_married.RData"))
+load(here("data", "data_constructed", "data_couples.RData"))
 
 census <- census |>
   # relevel year
-  mutate(year = relevel(year, "2000")) |>
-  # only native born
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+")
+  mutate(year = relevel(year, "2000"))
 ```
 
 This script reads in the full couple-level level dataset across all census/ACS years and creates a list of actual and bootstrap sampled model level data. This model level data is a contingency table and is produced by the function `create_model-data` although here that is wrapped in a `generate_bootstrap_data` function that repeats this procedure multiple times. The first dataset in the produced list is for the actual data and the remaining datasets in the list are for the bootstrapped samples. This list structure can then be read into `bootstrap_model` to estimate actual models.
@@ -49,7 +47,7 @@ tribble(
   fmt_number(value, decimals = 0)
 ```
 
-# State Data
+# State marriage data
 
 The workhorse model data structure will group observations by the race of both spouses, the state, and year. For models which estimate different rates by region, I also need a region variable. However, since each state can only be in one region, adding region to the grouping would lead to a bloated dataset with a bunch of zero values. So, instead, I just attach region afterwards with a join. 
 
@@ -60,6 +58,10 @@ Note that I can still collapse racial groups on the model data structure later b
 
 tic()
 data_model_state <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  # only marriages
+  filter(union_type == "marriage") |>
   generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
 toc()
 
@@ -67,6 +69,7 @@ toc()
 region_crosswalk <- census |>
   select(state, region) |>
   distinct()
+
 data_model_state <- data_model_state |>
   map(~ {
     .x |>
@@ -80,7 +83,35 @@ rm(data_model_state)
 gc()
 ```
 
-## Best race model
+## Cohabitation
+
+```{r}
+#| label: generate-cohab-data
+
+tic()
+data_model_state_cohab <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  # only marriages
+  filter(union_type == "cohabitation") |>
+  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+toc()
+
+data_model_state_cohab <- data_model_state_cohab |>
+  map(~ {
+    .x |>
+      left_join(region_crosswalk, by = "state") |>
+      relocate(region, .before = freq)
+  })
+  
+save(data_model_state_cohab, 
+     file = here("data", "data_constructed", "data_model_state_cohab.RData"))
+rm(data_model_state_cohab)
+gc()
+```
+
+
+## Best race data
 
 For the models using a person's best race, I need to generate a separate model data structure as this variable changes at the individual level.
 
@@ -101,11 +132,17 @@ transform_race <- function(race, best_race) {
   return(race)
 }
 
+tic()
 data_model_best_race_state <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  # only marriages
+  filter(union_type == "marriage") |>
   mutate(race_husband = transform_race(race_husband, race_best_husband),
          race_wife = transform_race(race_wife, race_best_wife)) |>
   filter(!is.na(race_husband) & !is.na(race_wife)) |>
   generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+toc()
 
 save(data_model_best_race_state, 
      file = here("data", "data_constructed", "data_model_best_race_state.RData"))
