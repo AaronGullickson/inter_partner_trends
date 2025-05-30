@@ -18,12 +18,12 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
-# Read in Census/ACS data
+# Read in spousal data
 
 This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
 
 ```{r}
-#| label: read-data
+#| label: read-spousal-data
 
 census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00149.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
@@ -43,7 +43,6 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00149.dat.gz"),
                                             RACED = c(99, 101),
                                             RACHSING = 119,
                                             HISPAN = 102,
-                                            HISP1970 = 118,
                                             BPL = c(106, 108),
                                             YRIMMIG = c(114, 117),
                                             EDUCD = c(122, 124),
@@ -54,7 +53,6 @@ census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00149.dat.gz"),
                                             RACED_SP = c(149, 151),
                                             RACHSING_SP = 161,
                                             HISPAN_SP = 152,
-                                            HISP1970_SP = 160,
                                             BPL_SP = c(153, 155),
                                             YRIMMIG_SP = c(156, 159),
                                             EDUCD_SP = c(164, 166),
@@ -78,6 +76,86 @@ census <- census |>
 
 table(census$SEX, census$SEX_SP)
 ```
+
+
+# Read in cohabitor data
+
+```{r}
+#| label: read-spousal-data
+
+cohab <- read_fwf(here("data", "data_raw", "acs_census", "usa_00150.dat.gz"),
+                  col_positions = fwf_cols(YEAR = c(1,4),
+                                           SAMPLE = c(5, 10),
+                                           SERIAL = c(11, 18),
+                                           HHWT = c(32, 41),
+                                           PERWT = c(76, 85),
+                                           STRATA = c(59, 70),
+                                           CLUSTER = c(42, 54),
+                                           REGION = c(55, 56),
+                                           STATEFIP = c(57, 58),
+                                           RELATED = c(88, 91),
+                                           SEX = 92,
+                                           AGE = c(93, 95),
+                                           RACED = c(98, 100),
+                                           RACHSING = 117,
+                                           HISPAN = 101,
+                                           BPL = c(105, 107),
+                                           YRIMMIG = c(113, 116),
+                                           EDUCD = c(120, 122),
+                                           QRACE = 124,
+                                           QHISPAN = 123),
+                  col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
+                                   HHWT = "d", PERWT = "d", PERWT = "d"))
+```
+
+Now combine heads of households with unmarried partners to get cohabitations and add this to the full data.
+
+```{r}
+#| label: add-cohabitors
+
+# get unique household ids
+cohab <- cohab |>
+  mutate(hhid = paste0(SAMPLE, SERIAL))
+
+
+hh_cohab <- cohab |> filter(RELATED == 101)
+partner_cohab <- cohab |> filter(RELATED == 1114) |>
+  rename(PERWT_SP = PERWT,
+         SEX_SP = SEX,
+         AGE_SP = AGE,
+         RACED_SP = RACED,
+         RACHSING_SP = RACHSING,
+         HISPAN_SP = HISPAN,
+         BPL_SP = BPL,
+         YRIMMIG_SP = YRIMMIG,
+         EDUCD_SP = EDUCD,
+         QRACE_SP = QRACE,
+         QHISPAN_SP = QHISPAN) |>
+  select(hhid, ends_with("_SP"))
+
+# join them back up - right join to drop other kinds of heads of household
+cohab <- hh_cohab |>
+  right_join(partner_cohab, by = "hhid") |>
+  # only opposite sex cohabitors
+  filter(SEX != SEX_SP) |>
+  select(-SERIAL, -RELATED, -hhid) |>
+  mutate(union_type = "cohabitation")
+
+# now add to full data
+census <- census |>
+  mutate(union_type = "marriage") |>
+  bind_rows(cohab)
+
+# check
+table(census$YEAR, census$union_type)
+
+# free up memory
+rm(cohab, hh_cohab, partner_cohab)
+gc()
+```
+
+
+# Remove race allocated cases
 
 Lets remove any cases that were allocated race or hispanicity for either spouse, as spousal race may have been used in the allocation procedure. A zero value indicates an unedited response on the quality flags, although in years where the quality flag is not available we get missing values that need to be checked.
 
@@ -109,7 +187,7 @@ census <- fips_codes |>
   mutate(STATEFIP = as.numeric(state_code)) |>
   select(state, STATEFIP) |>
   distinct() |>
-  right_join(census)
+  right_join(census, by = "STATEFIP")
 ```
 
 ## Coding race
@@ -424,13 +502,13 @@ Thes age groups are already coded in as numeric values in the `age_group_` varia
 
 # long format table of joint distribution of spouse's age by year
 prop_age_year_recent <- census |>
-  filter(dur_mar <= 1 & YEAR >= 2008) |>
+  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
   group_by(age_group_husband, age_group_wife, YEAR) |>
   summarize(n_dur = n()) |>
   ungroup()
 
 prop_age_year_recent <- census |>
-  filter(dur_mar <= 1) |>
+  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
   group_by(YEAR) |>
   summarize(n_total = n()) |>
   ungroup() |>
@@ -871,21 +949,22 @@ Now that I have the joint distribution of age for recent marriages, I can comput
 #| label: calculate-weights
 
 prop_age_year <- census |>
-  group_by(age_group_husband, age_group_wife, YEAR) |>
+  group_by(age_group_husband, age_group_wife, union_type, YEAR) |>
   summarize(n_dur = n()) |>
   ungroup()
 
 prop_age_year <- census |>
-  group_by(YEAR) |>
+  group_by(union_type, YEAR) |>
   summarize(n_total = n()) |>
   ungroup() |>
-  right_join(prop_age_year) |>
+  right_join(prop_age_year, by = c("union_type", "YEAR")) |>
   mutate(prop_total = n_dur / n_total) |>
-  select(age_group_husband, age_group_wife, YEAR, prop_total)
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop_total)
 
 prop_age_year |>
-  group_by(YEAR) |>
+  group_by(union_type, YEAR) |>
   summarize(sum = sum(prop_total)) |>
+  pivot_wider(names_from = union_type, values_from = sum) |>
   gt()
 
 weighting <- full_join(prop_age_year, prop_age_year_recent) |>
@@ -903,8 +982,9 @@ I confirm that the mean of the weights in each year is 1.
 
 # confirm that the mean weight in each year is 1
 census |>
-  group_by(YEAR) |>
+  group_by(union_type, YEAR) |>
   summarize(mean = mean(weight_age)) |>
+  pivot_wider(names_from = union_type, values_from = mean) |>
   gt()
 ```
 
@@ -915,7 +995,7 @@ As a test case, lets see how the weights adjust the distribution in 2008.
 #| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the blue histogram applies age weights to the full distribution to bring them in line with recent marriages.
 
 census |>
-  filter(year == "2008") |>
+  filter(year == "2008" & union_type == "marriage") |>
   ggplot(aes(x = age_husband, y = after_stat(density)))+
   geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
   geom_histogram(alpha = 0.7, fill = "navy", binwidth = 1, 
@@ -942,7 +1022,8 @@ census <- census |>
 
 census <- census |> 
   rename(strata = STRATA, cluster = CLUSTER) |>
-  select(race_husband, race_wife, 
+  select(union_type,
+         race_husband, race_wife, 
          race_best_husband, race_best_wife,
          educ_husband, educ_wife, 
          age_husband, age_wife, 
