@@ -253,6 +253,45 @@ model_state_bs |>
   theme_bw()
 ```
 
+# Cohabitation Analysis
+
+```{r}
+#| label: load-cohab-models
+
+load(here("data", "data_constructed", "models_cohab.RData"))
+```
+
+
+```{r}
+#| label: fig-intermar-cohab
+#| fig-cap: Odds of racial exogamy for single race groups by different union types
+
+model_state_bs <- model_state_bs |>
+  mutate(union_type = "marriage")
+
+model_state_combine_bs <- model_state_combine_bs |>
+  mutate(union_type = "both")
+
+model_state_cohab_bs |>
+  mutate(union_type = "cohabitation") |>
+  bind_rows(model_state_combine_bs) |>
+  bind_rows(model_state_bs) |>
+  filter(!str_detect(term, "-")) |>
+  mutate(union_type = factor(union_type, 
+                             levels = c("marriage", "cohabitation", "both"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = union_type))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  theme_bw()
+```
+
 # Counterfactual Race Assignment
 
 

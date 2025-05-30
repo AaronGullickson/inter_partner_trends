@@ -39,7 +39,6 @@ if(interactive()) {
 }
 ```
 
-
 ```{r}
 #| label: load-functions
 
@@ -178,6 +177,97 @@ model_state_bs <- model_state_bs |>
 
 save(model_state_bs, 
      file = here("data", "data_constructed", "model_state_bs.RData"))
+```
+
+# Cohabitation models
+
+```{r}
+#| label: load-cohab-model-data
+#| include: false
+
+load(here("data", "data_constructed", "data_model_state_cohab.RData"))
+```
+
+```{r}
+#| label: estimate-cohab-model
+
+# collapse race
+tic()
+data_model_state_cohab_simple <- data_model_state_cohab |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
+tic()
+model_state_cohab_bs <- data_model_state_cohab_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+```
+
+```{r}
+#| label: estimate-combine-model
+
+# collapse race
+tic()
+data_model_state_combine_simple <- map2(
+  data_model_state_simple, 
+  data_model_state_cohab_simple, 
+  bind_rows
+) |>
+  future_map(function(model_data) {
+    model_data |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
+tic()
+model_state_combine_bs <- data_model_state_combine_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+```
+
+
+```{r}
+#| label: save-cohab-models
+
+save(model_state_cohab_bs, model_state_combine_bs,
+     file = here("data", "data_constructed", "models_cohab.RData"))
+
+# memory cleanup
+rm(data_model_state_cohab, 
+   data_model_state_cohab_simple,
+   data_model_state_combine_simple)
+gc()
+```
+
+# Regional models
+
+These models are like the overall models for single race groups, but I allow each log odds ratio to vary by region as well.
+
+```{r}
+#| label: estimate-model-regional
+
+tic()
+model_state_byregion_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE, chunk_size = 25)
+toc()
+
+save(model_state_byregion_bs, 
+     file = here("data", "data_constructed", "model_region.RData"))
+
+# we should be done with data_model_state_simple now
+rm(data_model_state_simple)
+gc()
 ```
 
 # Subgroup models
@@ -322,24 +412,6 @@ save(model_cf_best_state_bs,
 
 rm(data_model_best_race_state)
 gc()
-```
-
-# Regional models
-
-These models are like the overall models for single race groups, but I allow each log odds ratio to vary by region as well.
-
-```{r}
-#| label: estimate-model-regional
-
-tic()
-model_state_byregion_bs <- data_model_state_simple |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
-                  composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE, chunk_size = 25)
-toc()
-
-save(model_state_byregion_bs, 
-     file = here("data", "data_constructed", "model_region.RData"))
 ```
 
 ```{r}
