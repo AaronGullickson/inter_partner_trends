@@ -11,6 +11,7 @@ project:
     #- analysis/model_justification.qmd
     - analysis/build_model_data.qmd
     - analysis/estimate_models.qmd
+    - analysis/estimate_outmarriage_props.qmd
     - analysis/analysis.qmd
     #- paper/
     #- presentation/

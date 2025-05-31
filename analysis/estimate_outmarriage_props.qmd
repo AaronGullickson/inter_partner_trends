@@ -1,0 +1,131 @@
+---
+title: "Estimate Outmarriage Proportions"
+---
+
+```{r}
+#| label: timestamp-start
+#| echo: false
+
+timestamp()
+```
+
+```{r}
+#| label: setup
+#| include: false
+library(here)
+source(here("utils","check_packages.R"))
+source(here("utils","functions.R"))
+```
+
+```{r}
+#| label: load-data
+#| include: false
+
+load(here("data", "data_constructed", "data_couples.RData"))
+```
+
+```{r}
+#| label: prepare-data
+
+census <- census |>
+    filter(gen_husband == "2nd+" & gen_wife == "2nd+",
+           union_type == "marriage") |>#,
+           #!str_detect(race_husband, "-"),
+           #!str_detect(race_wife, "-")) |>
+    mutate(race_husband = fct_drop(collapse_race(race_husband)),
+           race_wife = fct_drop(collapse_race(race_wife)),
+           exogamy = as.numeric(race_husband != race_wife),
+           weight_combined = weight_age * weight_sample) |>
+  select(year, exogamy, race_husband, race_wife, weight_combined, strata, cluster)
+```
+
+```{r}
+#| label: estimate-outmarriage-props
+
+# to deal with lonely psu problem
+options(survey.lonely.psu = "adjust")
+
+years <- unique(census$year)
+
+# initialize
+exogamy_trend <- vector("list", length(years))
+exogamy_trend_husband <- vector("list", length(years))
+exogamy_trend_wife <- vector("list", length(years))
+
+pb <- progress_bar$new(
+  format = "[:bar] :percent in :elapsed",
+  total = length(years),
+  show_after = 0
+)
+pb$tick(0)
+
+for(i in seq_along(years)) {
+  
+  pb$tick(0)
+  
+  dsn <- census |>
+    filter(year == years[i]) |>
+    mutate(weight_combined = weight_combined / mean(weight_combined)) |>
+    # we will ignore clusters because it produced big problems
+    as_survey_design(strata = strata, weights = weight_combined, 
+                     nest = FALSE, check_strata = FALSE)
+  
+  exogamy_trend[[i]] <- dsn |>
+    summarize(exogamy = survey_mean(exogamy), vartype = "se") |>
+    mutate(year = years[i])
+  
+  exogamy_trend_husband[[i]] <- dsn |>
+    group_by(race_husband) |>
+    summarize(exogamy = survey_mean(exogamy), vartype = "se") |>
+    mutate(year = years[i]) |>
+    mutate(spouse = "husband")
+  
+  exogamy_trend_wife[[i]] <- dsn |>
+    group_by(race_wife) |>
+    summarize(exogamy = survey_mean(exogamy), vartype = "se") |>
+    mutate(year = years[i]) |>
+    mutate(spouse = "wife")
+ 
+  # to handle memory 
+  rm(dsn)
+  gc()
+  
+  pb$tick()
+}
+
+exogamy_trend <- bind_rows(exogamy_trend)
+exogamy_trend_husband <- bind_rows(exogamy_trend_husband)
+exogamy_trend_wife <- bind_rows(exogamy_trend_wife)
+
+exogamy_trend <- exogamy_trend |>
+  mutate(year = as.numeric(paste(year)))
+
+exogamy_trend_husband <- exogamy_trend_husband |>
+  mutate(spouse = "husband",
+         year = as.numeric(paste(year))) |>
+  rename(race = race_husband)
+
+exogamy_trend_wife <- exogamy_trend_wife |>
+  mutate(spouse = "wife",
+         year = as.numeric(paste(year))) |>
+  rename(race = race_wife)
+
+exogamy_trend_race <- bind_rows(exogamy_trend_husband, exogamy_trend_wife)
+
+```
+
+
+```{r}
+#| label: save-data
+
+save(exogamy_trend, exogamy_trend_race,
+     file = here("data", "data_constructed", "exogamy_trends.RData"))
+```
+
+```{r}
+#| label: timestamp-end
+#| echo: false
+
+timestamp()
+```
+
