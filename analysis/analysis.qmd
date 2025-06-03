@@ -346,7 +346,7 @@ ggplot(model_single_fertility_bymar,
        aes(x = year, y = exp(estimate), color = marstat, group = marstat))+
    geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = marstat),
               alpha = 0.3, color = NA)+
-    geom_vline(xintercept = 2013.5, linetype = 2, color = "grey")+
+  geom_vline(xintercept = 2013.5, linetype = 2, color = "grey")+
   geom_point(size = 1)+
   geom_line()+
   facet_wrap(~term, scales = "free_y")+
