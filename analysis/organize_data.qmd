@@ -25,7 +25,7 @@ This script will read in Census and ACS data from 1960 to 2019 to construct broa
 ```{r}
 #| label: read-spousal-data
 
-census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00149.dat.gz"),
+census <- read_fwf(here("data", "data_raw", "acs_census", "usa_00151.dat.gz"),
                    col_positions = fwf_cols(YEAR = c(1,4),
                                             SAMPLE = c(5, 10),
                                             HHWT = c(32, 41),
@@ -83,7 +83,7 @@ table(census$SEX, census$SEX_SP)
 ```{r}
 #| label: read-cohab-data
 
-cohab <- read_fwf(here("data", "data_raw", "acs_census", "usa_00150.dat.gz"),
+cohab <- read_fwf(here("data", "data_raw", "acs_census", "usa_00152.dat.gz"),
                   col_positions = fwf_cols(YEAR = c(1,4),
                                            SAMPLE = c(5, 10),
                                            SERIAL = c(11, 18),
