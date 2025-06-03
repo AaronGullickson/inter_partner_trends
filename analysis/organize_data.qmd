@@ -293,6 +293,20 @@ code_educ <- function(educd) {
   return(education)
 }
 
+code_time_period <- function(year) {
+  year <- case_when(
+    year <= 2000 ~ year,
+    year <= 2005 ~ 2003,
+    year <= 2010 ~ 2008,
+    year <= 2015 ~ 2013,
+    year <= 2019 ~ 2017.5,
+    year <= 2023 ~ 2022
+  )
+  
+  year <- factor(year)
+  return(year)
+}
+
 code_generation <- function(bpl) {
   factor(if_else(bpl <= 99, "2nd+", "1st"))
 }
@@ -350,17 +364,8 @@ census <- census |>
            REGION == 41 ~ "Mountain",
            REGION == 42 ~ "Pacific"
          ),
-         year = case_when(
-           YEAR <= 2000 ~ YEAR,
-           YEAR <= 2003 ~ 2002,
-           YEAR <= 2006 ~ 2005,
-           YEAR <= 2009 ~ 2008,
-           YEAR <= 2012 ~ 2011,
-           YEAR <= 2015 ~ 2014,
-           YEAR <= 2018 ~ 2017
-         )) |>
-  # remove 2019
-  filter(YEAR != 2019)
+         year = code_time_period(YEAR)
+  )
 ```
 
 ## Code weights
@@ -997,12 +1002,12 @@ As a test case, lets see how the weights adjust the distribution in 2008.
 #| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the blue histogram applies age weights to the full distribution to bring them in line with recent marriages.
 
 census |>
-  filter(union_type == "marriage" & year == "2008") |>
+  filter(union_type == "marriage" & year == "2000") |>
   ggplot(aes(x = age_husband, y = after_stat(density)))+
   geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
   geom_histogram(alpha = 0.7, fill = "navy", binwidth = 1, 
                  aes(weight = weight_age))+
-  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
+  geom_histogram(data = filter(census, year == "2000" & dur_mar <= 1),
                fill = NA, color = "black", linetype = 2, 
                binwidth = 1)+
   theme_bw()
@@ -1176,7 +1181,6 @@ for(path in paths) {
     bind_rows(births1423)
 }
 ```
-
 
 
 ```{r}
