@@ -156,6 +156,25 @@ save(model_state_bs,
      file = here("data", "data_constructed", "model_state_bs.RData"))
 ```
 
+I will also do a model that does not control for state.
+
+```{r}
+#| label: estimate-basic-model
+
+tic()
+model_basic_bs <- data_model_state_simple |>
+  future_map(function(model_data) {
+    model_data |>
+      group_by(race_husband, race_wife, year) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"))
+toc()
+
+save(model_basic_bs, 
+     file = here("data", "data_constructed", "model_basic_bs.RData"))
+```
+
 # Cohabitation models
 
 ```{r}

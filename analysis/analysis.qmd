@@ -24,8 +24,10 @@ source(here("utils","functions.R"))
 #| label: load-data
 #| include: false
 
+load(here("data", "data_constructed", "births.RData"))
 load(here("data", "data_constructed", "exogamy_trends.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
+load(here("data", "data_constructed", "model_basic_bs.RData"))
 load(here("data", "data_constructed", "models_subgroups.RData"))
 load(here("data", "data_constructed", "models_counterfactual.RData"))
 load(here("data", "data_constructed", "model_region.RData"))
@@ -291,6 +293,69 @@ model_state_bs |>
   theme_bw()
 ```
 
+
+# Fertility Comparison
+
+We do not have state of residence in natality data so we need to compare to a partnership model that ignores state too.
+
+```{r}
+#| label: fig-fertility-marriage-compare
+#| fig-cap: Comparison of exogamy odds ratio in marriage and among births in the same time period. 
+
+model_single_fertility <- births |> 
+  group_by(race_dad, race_mom, year,  .drop = FALSE) |>
+  summarize(freq = n(), .groups = "drop") |>
+  mutate(year = as.factor(year)) |>
+  rename(race_husband = race_dad, race_wife = race_mom) |>
+  drop_na() |>
+  estimate_model(c("White", "Black", "AIAN", "API", "Hispanic")) |>
+  mutate(type = "birth")
+
+model_basic_bs |>
+  mutate(type = "marriage") |>
+  bind_rows(model_single_fertility) |>
+  filter(year >= 2000) |>
+  ggplot(aes(x = year, y = exp(estimate), color = type, group = type))+
+   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = type),
+              alpha = 0.3, color = NA)+
+  geom_vline(xintercept = 2013.5, linetype = 2, color = "grey")+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("red", "navy"))+
+  scale_fill_manual(values = c("red", "navy"))+
+  scale_y_log10()+
+  theme_bw()
+```
+
+
+```{r}
+#| label: fig-fertility-by-marstat
+#| fig-cap: Exogamy odds ratios over time by martial status of parents
+
+model_single_fertility_bymar <- births |> 
+  group_by(race_dad, race_mom, marstat, year,  .drop = FALSE) |>
+  summarize(freq = n(), .groups = "drop") |>
+  mutate(year = as.factor(year)) |>
+  rename(race_husband = race_dad, race_wife = race_mom) |>
+  drop_na() |>
+  estimate_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+                 conditional_var = "marstat")
+
+ggplot(model_single_fertility_bymar,
+       aes(x = year, y = exp(estimate), color = marstat, group = marstat))+
+   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = marstat),
+              alpha = 0.3, color = NA)+
+    geom_vline(xintercept = 2013.5, linetype = 2, color = "grey")+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term, scales = "free_y")+
+  scale_color_manual(values = c("red", "navy"))+
+  scale_fill_manual(values = c("red", "navy"))+
+  scale_y_log10()+
+  theme_bw()
+```
+
 # Cohabitation Analysis
 
 ```{r}
@@ -331,7 +396,6 @@ model_state_cohab_bs |>
 ```
 
 # Counterfactual Race Assignment
-
 
 ```{r}
 #| label: fig-multi-wb-counterf
