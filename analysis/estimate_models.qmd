@@ -53,6 +53,7 @@ tic()
 data_model_state_simple <- data_model_state |> 
   future_map(function(model_data) {
     model_data |>
+      filter(gen_husband == "2nd+", gen_wife == "2nd+") |>
       mutate(race_husband = collapse_race(race_husband),
              race_wife = collapse_race(race_wife)) |>
       group_by(race_husband, race_wife, year, state, region) |>
@@ -173,6 +174,47 @@ toc()
 
 save(model_basic_bs, 
      file = here("data", "data_constructed", "model_basic_bs.RData"))
+```
+
+# Generational models
+
+Now lets get models for the single race groups that:
+
+* use all generations including 1st
+* use 1.5 and 2nd+ generations
+
+```{r}
+#| label: estimate-generational-models
+
+tic()
+model_state_single_all_gen_bs <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state, region) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+tic()
+model_state_single_no_first_gen_bs <- data_model_state |> 
+  future_map(function(model_data) {
+    model_data |>
+      filter(gen_husband != "1st", gen_wife != "1st") |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state, region) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  }) |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+
+save(model_state_single_all_gen_bs, model_state_single_no_first_gen_bs,
+     file = here("data", "data_constructed", "models_state_gen_bs.RData"))
 ```
 
 # Cohabitation models

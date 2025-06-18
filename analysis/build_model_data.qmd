@@ -53,16 +53,18 @@ The workhorse model data structure will group observations by the race of both s
 
 Note that I can still collapse racial groups on the model data structure later by mutating `race_husband` and `race_wife` and then re-running a `group_by` and `summarize` on the frequencies.
 
+I also use `control_var = "gen"` here to separate results by generational status so that I can build those models for comparison.
+
 ```{r}
 #| label: generate-state-region-model-data
 
 tic()
 data_model_state <- census |>
-  # only native born
-  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   # only marriages
   filter(union_type == "marriage") |>
-  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+  generate_bootstrap_data(params$bootstrap_rep, 
+                          composition_var = "state",
+                          control_var = "gen")
 toc()
 
 # add in the region for each state
