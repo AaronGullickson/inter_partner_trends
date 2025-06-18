@@ -307,8 +307,20 @@ code_time_period <- function(year) {
   return(year)
 }
 
-code_generation <- function(bpl) {
-  factor(if_else(bpl <= 99, "2nd+", "1st"))
+code_generation <- function(bpl, year_immig, year) {
+  year_immig <- if_else(year_immig == 0, NA, year_immig)
+  age_immig <- year - year_immig
+  # based on some of the year groupings identified in earlier data we 
+  # can effectively identify 15 or younger but not younger than 15
+  # note that in 1970 and 1980, this value is missing for 
+  # individuals from outlying areas, so we get some missing values for
+  # people not born in the US. 
+  gen <- case_when(
+    bpl <= 99 ~ "2nd+",
+    !is.na(age_immig) & age_immig <= 15 ~ "1.5",
+    TRUE ~ "1st"
+  )
+  factor(gen, levels = c("1st", "1.5", "2nd+"))
 }
 
 # for the age weighting, we will need five year age groups. Just code
@@ -339,8 +351,8 @@ census <- census |>
          age_wife = AGE_SP,
          age_group_husband = create_age_group(age_husband),
          age_group_wife = create_age_group(age_wife),
-         gen_husband = code_generation(BPL),
-         gen_wife = code_generation(BPL_SP),
+         gen_husband = code_generation(BPL, YRIMMIG, YEAR),
+         gen_wife = code_generation(BPL_SP, YRIMMIG_SP, YEAR),
          dur_mar = case_when(
            YEAR >= 2008 ~ YEAR-YRMARR,
            YEAR <= 1980 & MARRNO == 1 ~ AGE-AGEMARR,
@@ -480,6 +492,9 @@ table(census$race_wife)
 
 table(census$RACED, census$race_husband)
 table(census$RACED_SP, census$race_wife)
+
+table(census$gen_husband)
+table(census$gen_wife)
 
 census |>
   group_by(YEAR) |>
