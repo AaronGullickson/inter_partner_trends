@@ -82,32 +82,37 @@ generate_bootstrap_data <- function(ind_data,
   pb$tick(0)
   
   for(i in seq_len(n_replicates)) {
-    if(sample_design) {
-      # we need to adjust for year and strata
-      resampled <- ind_data |>
-        map(function(stratum_data) {
-          # sample by row indices to speed up process
-          cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
-          cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
-          sampled_clusters <- sample(cluster_to_rows,
-                                     size = length(cluster_to_rows),
-                                     replace = TRUE)|>
-            unlist(use.names = FALSE)
-          slice(stratum_data, sampled_clusters)
-        }) |>
-        bind_rows()
-    } else {
-      # Simple bootstrap but still stratify by year
-      resampled <- ind_data |>
-        map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
-        bind_rows()
-    }
-    
-    results[[i + 1]] <- create_model_data(resampled, ...)
+    results[[i + 1]] <- resample_data(ind_data, sample_design, ...)
     pb$tick()
   }
   
   return(results)
+}
+
+resample_data <- function(ind_data, sample_design, ...) {
+  
+  if(sample_design) {
+    # we need to adjust for year and strata
+    resampled <- ind_data |>
+      map(function(stratum_data) {
+        # sample by row indices to speed up process
+        cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
+        cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
+        sampled_clusters <- sample(cluster_to_rows,
+                                   size = length(cluster_to_rows),
+                                   replace = TRUE)|>
+          unlist(use.names = FALSE)
+        slice(stratum_data, sampled_clusters)
+      }) |>
+      bind_rows()
+  } else {
+    # Simple bootstrap but still stratify by year
+    resampled <- ind_data |>
+      map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
+      bind_rows()
+  }
+  
+  return(create_model_data(resampled, ...))
 }
 
 bootstrap_model <- function(model_data_list, 
