@@ -60,11 +60,12 @@ I also use `control_var = "gen"` here to separate results by generational status
 
 tic()
 data_model_state <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
   # only marriages
   filter(union_type == "marriage") |>
   generate_bootstrap_data(params$bootstrap_rep, 
-                          composition_var = "state",
-                          control_var = "gen")
+                          composition_var = "state")
 toc()
 
 # add in the region for each state
@@ -85,7 +86,40 @@ rm(data_model_state)
 gc()
 ```
 
-## Cohabitation
+# Generational status
+
+```{r}
+#| label: generate-state-gen-data
+
+tic()
+data_model_state_no_first_gen <- census |>
+  # only native born
+  filter(gen_husband != "1st" & gen_wife != "1st") |>
+  # drop 1960
+  filter(year != "1960") |>
+  # only marriages
+  filter(union_type == "marriage") |>
+  generate_bootstrap_data(params$bootstrap_rep, 
+                          composition_var = "state")
+toc()
+
+tic()
+data_model_state_all_gen <- census |>
+  # drop 1960
+  filter(year != "1960") |>
+  # only marriages
+  filter(union_type == "marriage") |>
+  generate_bootstrap_data(params$bootstrap_rep, 
+                          composition_var = "state")
+toc()
+
+save(data_model_state_no_first_gen, data_model_state_all_gen,
+     file = here("data", "data_constructed", "data_model_state_gen.RData"))
+rm(data_model_state_all_gen, data_model_state_no_first_gen)
+gc()
+```
+
+# Cohabitation
 
 ```{r}
 #| label: generate-cohab-data
@@ -113,7 +147,7 @@ gc()
 ```
 
 
-## Best race data
+# Best race data
 
 For the models using a person's best race, I need to generate a separate model data structure as this variable changes at the individual level.
 
