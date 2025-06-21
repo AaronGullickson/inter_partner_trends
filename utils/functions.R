@@ -60,6 +60,14 @@ generate_bootstrap_data <- function(ind_data,
                                     sample_design = TRUE,
                                     ...) {
 
+  # check to see if directory exists
+  if(dir_exists(here("data", "bootstrap_reps"))) {
+    # remove it
+    dir_delete(here("data", "bootstrap_reps"))
+  }
+  # create the directory
+  dir_create(here("data", "bootstrap_reps"))
+  
   # get real model data before I split ind_data
   real_model_data <- create_model_data(ind_data,...)
 
@@ -89,8 +97,11 @@ generate_bootstrap_data <- function(ind_data,
   }
   
   # now retrieve the results
-  files <- list.files(here("data", "bootstrap_reps"), full.names = TRUE)
+  files <- dir_ls(here("data", "bootstrap_reps"), type = "file", glob = "*.rds$")
   results <- map(files, readRDS)
+  # now remove directory
+  dir_delete(here("data", "bootstrap_reps"))
+  
   # first index of results should be real data
   results <- c(list(real_model_data), results)
   return(results)
