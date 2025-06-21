@@ -89,16 +89,26 @@ generate_bootstrap_data <- function(ind_data,
   )
   pb$tick(0)
   
+  batch_size <- 10
+  results <- list()
+  idx_batch <- 1
   for(i in seq_len(n_replicates)) {
-    result <- resample_data(ind_data, sample_design, ...)
-    saveRDS(result, file = here("data", "bootstrap_reps",
-                                sprintf("bootstrap_chunk_%03d.rds", i)))
+    results[[idx_batch]] <- resample_data(ind_data, sample_design, ...)
+    idx_batch <- idx_batch + 1
+    
+    if (i %% batch_size == 0 || i == n_replicates) {
+      saveRDS(results, file = here("data", "bootstrap_reps",
+                                  sprintf("bootstrap_chunk_%03d.rds", i)))
+      results <- list() # clear results
+      idx_batch <- 1    # reset batch index
+      gc()              # clear memory
+    }
     pb$tick()
   }
   
   # now retrieve the results
   files <- dir_ls(here("data", "bootstrap_reps"), type = "file", glob = "*.rds$")
-  results <- map(files, readRDS)
+  results <- map(files, readRDS) |> flatten()
   # now remove directory
   dir_delete(here("data", "bootstrap_reps"))
   
@@ -130,7 +140,12 @@ resample_data <- function(ind_data, sample_design, ...) {
       bind_rows()
   }
   
-  return(create_model_data(resampled, ...))
+  model_data <- create_model_data(resampled, ...)
+  # memory clean up
+  rm(resampled)
+  gc()
+  
+  return(model_data)
 }
 
 bootstrap_model <- function(model_data_list, 
