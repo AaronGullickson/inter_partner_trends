@@ -59,10 +59,9 @@ generate_bootstrap_data <- function(ind_data,
                                     n_replicates, 
                                     sample_design = TRUE,
                                     ...) {
-  
-  results <- vector("list", n_replicates + 1)
-  # the first element of the list is always the actual
-  results[[1]] <- create_model_data(ind_data,...)
+
+  # get real model data before I split ind_data
+  real_model_data <- create_model_data(ind_data,...)
 
   # pre-split ind_data
   if(sample_design) {
@@ -83,10 +82,17 @@ generate_bootstrap_data <- function(ind_data,
   pb$tick(0)
   
   for(i in seq_len(n_replicates)) {
-    results[[i + 1]] <- resample_data(ind_data, sample_design, ...)
+    result <- resample_data(ind_data, sample_design, ...)
+    saveRDS(result, file = here("data", "bootstrap_reps",
+                                sprintf("bootstrap_chunk_%03d.rds", i)))
     pb$tick()
   }
   
+  # now retrieve the results
+  files <- list.files(here("data", "bootstrap_reps"), full.names = TRUE)
+  results <- map(files, readRDS)
+  # first index of results should be real data
+  results <- c(list(real_model_data), results)
   return(results)
 }
 
