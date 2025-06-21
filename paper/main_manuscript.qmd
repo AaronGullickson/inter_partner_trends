@@ -10,16 +10,14 @@ csl: ../bibliography/chicago-parenthetical.csl
 format:
   aog-article-pdf:
     keep-tex: false
-    include-in-header: 
-      text: |
-        \usepackage{dcolumn}
 #  submittable-pdf:
 #     keep-tex: false
 #     fig-pos: "!t"
 #     include-in-header: 
 #       text: |
 #         \usepackage{dcolumn}
-  submittable-docx: default
+  submittable-docx: 
+    fig-format: pdf
 ---
 
 ```{r}
@@ -30,13 +28,62 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
-# Introduction
 
-This quarto doc is for writing the manuscript. This is a test citation [@alba1990].
+```{r}
+#| label: load-data
+
+load(here("data", "data_constructed", "exogamy_trends.RData"))
+load(here("data", "data_constructed", "model_state_bs.RData"))
+load(here("data", "data_constructed", "model_basic_bs.RData"))
+load(here("data", "data_constructed", "models_subgroups.RData"))
+load(here("data", "data_constructed", "models_counterfactual.RData"))
+load(here("data", "data_constructed", "model_region.RData"))
+load(here("data", "data_constructed", "models_state_gen_bs.RData"))
+```
+
+# Introduction
 
 # Background
 
 # Data and Methods
+
+Data for this analysis are derived from the microdata Census samples for Census 1960, 1970, 1980, 1990, and 2000, and the American Community Survey (ACS) data from 2001 to 2023, with the exception of 2020. All data were extracted via the Integrated Public Use Microdata Sample system <!-- TODO: cite source -->. ACS data from 2020 is removed due to issues with data collection during the COVID pandemic.
+
+The data include all extant heterosexual married couples in each sample. I also include a secondary sample of heterosexual cohabiting couples, based on data from 1990 at which point "unmarried partner" is provided as a choice for relationship to head of household. <!-- TODO: justify heterosexual -->
+
+For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases, where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with ethnoracial preferences. This may be less true of individuals who arrived as children (i.e. the 1.5 generation). In supplementary analysis discussed later, I consider estimates of interracial marriage that are less restrictive on national origin. 
+
+## Measuring Interracial Marriage
+
+One common approach to measure interracial marriage "rates" is to take the outmarriage ratio, or proportion. This outmarriage ratio is simply the proportion of individuals of a certain group (or the entire population) that are married to someone of a different race. This approach provides a reasonable measure of the experience of interracial marriage, for either the population at large, or for specific groups. However, it has other significant limitations. First, it makes no adjustment for group size in determining the likelihood of an interracial marriage. Groups that make up a larger share of the overall population will, even in the absence of racial preferences for spouses, have lower outmarriage rates because they have more in-group choices for marriage. Thus, meaningful inferences cannot be drawn by comparing these outmarriage ratios across groups. Second, the outmarriage ratio does not give a pairwise accounting of social distance between any two groups but rather a measure that indicates the inverse of endogamy for a single group. Outmarriage ratios could be extended into a full conditional distribution the race of spouse, by the race of each partner, but this will simply exacerbate the first problem of group size.
+
+For these reasons, the preferred measure of the strength of intermarriage has long been the odds ratio or cross-product resulting from a cross-tabulation of husband's race by wife's race. 
+
+```{r}
+
+x <- tibble(
+  "hrace" = c("Group 1", "Group 2", "Group 3"),
+  "g1" = c("F11", "F21", "F31"),
+  "g2" = c("F12", "F22", "F32"),
+  "g3" = c("F11", "F21", "F31"),
+) 
+
+```
+
+
+## Measuring Stocks vs. Flows
+
+Ideally, I would use data on recent marriages rather ("flow") than extant marriages ("stock"). The stock of current marriages includes marriages that were formed decades prior to the data of data collection and thus will indicate the conditions of that time period rather than the current time period. Furthermore, extant marriages reflect not only marriage patterns but also, implicitly, patterns of marriage dissolution through divorce or widowhood. Prior work has shown that interracial marriages have higher rates of divorce than intraracial marriages <!-- TODO: cite -->. Both of these factors will likely lead intermarriage rates calculated from the stock of current marriages to underestimate the tendency of interracial marriage in recent marriage cohorts. 
+
+However, information on marital timing is not available for a substantial subset of the time period here. From 1960 to 1980, the Census asked about the age of first marriage for all married respondents. Marital duration questions were removed from Census 1990. A question on the year of the current marriage was added to the ACS in 2007 onward. Thus, between 1990 and 2006, I have no way to identify recent marriage cohorts.
+
+This issue has often been addressed by restricting the sample by the age of one or both partners <!-- TODO: cite examples -->. By selecting younger partners, we can be assured that the marriage was relatively recently formed. However, this approach can also introduce a host of other biases as younger couples may differ in other ways from the full set of recent marriage cohorts. Furthermore, the age of marriage for both husbands and wives has increased substantially over this time period, meaning that any static restriction by age will lead to different kinds of couples across the time period. 
+
+Rather than subset by age, I take all extant marriages but apply weights to each couple to match the joint age distribution of partners for that time period. This approach basically generalizes the approach of taking a restricted age group, but instead of arbitrarily deciding on an age group, I allow each age group (or joint age group) to be represented proportionally to its share of recent marriage cohorts. Because, these weights are measured relative to the joint age group for the time period, this approach also gives me a more consistent estimate across time. 
+
+From 2007 onwards, I can estimate joint age distributions of recent marriage cohorts using data from ACS 2007 on couples married in the last year. Prior to 2007, I use publicly available tables on the joint distribution of the age spouses from US vital statistics reports on marriages for 1960, 1970, 1980, and 1988 <!-- TODO: cite -->. After 1988, these reports were no longer produced for marriage. From 1990 to 2006, I use linear interpolation of the estimates to produce joint distributions. Appendix XX <!-- TODO: replace --> of the supplementary materials provides more information on this weighting procedure.
+
+
 
 # Results
 
