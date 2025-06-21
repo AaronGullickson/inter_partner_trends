@@ -17,4 +17,16 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
+```{r}
+#| label: load-data
+
+load(here("data", "data_constructed", "exogamy_trends.RData"))
+load(here("data", "data_constructed", "model_state_bs.RData"))
+load(here("data", "data_constructed", "model_basic_bs.RData"))
+load(here("data", "data_constructed", "models_subgroups.RData"))
+load(here("data", "data_constructed", "models_counterfactual.RData"))
+load(here("data", "data_constructed", "model_region.RData"))
+load(here("data", "data_constructed", "models_state_gen_bs.RData"))
+```
+
 This document is for supplementary materials
