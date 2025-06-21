@@ -57,12 +57,20 @@ PAIRINGS <- c(
 
 generate_bootstrap_data <- function(ind_data, 
                                     n_replicates, 
+                                    batch_size = 50,
                                     sample_design = TRUE,
                                     ...) {
+
+  # check to see if directory exists
+  if(dir_exists(here("data", "bootstrap_reps"))) {
+    # remove it
+    dir_delete(here("data", "bootstrap_reps"))
+  }
+  # create the directory
+  dir_create(here("data", "bootstrap_reps"))
   
-  results <- vector("list", n_replicates + 1)
-  # the first element of the list is always the actual
-  results[[1]] <- create_model_data(ind_data,...)
+  # get real model data before I split ind_data
+  real_model_data <- create_model_data(ind_data,...)
 
   # pre-split ind_data
   if(sample_design) {
@@ -71,7 +79,8 @@ generate_bootstrap_data <- function(ind_data,
       group_split()
   } else {
     ind_data <- ind_data |>
-      group_by(year)
+      group_by(year) |>
+      group_split()
   }
   
   pb <- progress_bar$new(
@@ -81,33 +90,59 @@ generate_bootstrap_data <- function(ind_data,
   )
   pb$tick(0)
   
+  results <- list()
+  idx_batch <- 1
   for(i in seq_len(n_replicates)) {
-    if(sample_design) {
-      # we need to adjust for year and strata
-      resampled <- ind_data |>
-        map(function(stratum_data) {
-          # sample by row indices to speed up process
-          cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
-          cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
-          sampled_clusters <- sample(cluster_to_rows,
-                                     size = length(cluster_to_rows),
-                                     replace = TRUE)|>
-            unlist(use.names = FALSE)
-          slice(stratum_data, sampled_clusters)
-        }) |>
-        bind_rows()
-    } else {
-      # Simple bootstrap but still stratify by year
-      resampled <- ind_data |>
-        map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
-        bind_rows()
-    }
+    resampled_data <- resample_data(ind_data, sample_design)
+    results[[idx_batch]] <- create_model_data(resampled_data, ...)
+    rm(resampled_data)
+    idx_batch <- idx_batch + 1
     
-    results[[i + 1]] <- create_model_data(resampled, ...)
+    if (i %% batch_size == 0 || i == n_replicates) {
+      saveRDS(results, file = here("data", "bootstrap_reps",
+                                  sprintf("bootstrap_chunk_%03d.rds", i)))
+      results <- list() # clear results
+      idx_batch <- 1    # reset batch index
+      gc()              # clear memory
+    }
     pb$tick()
   }
   
+  # now retrieve the results
+  files <- dir_ls(here("data", "bootstrap_reps"), type = "file", glob = "*.rds$")
+  results <- map(files, readRDS) |> flatten()
+  # now remove directory
+  dir_delete(here("data", "bootstrap_reps"))
+  
+  # first index of results should be real data
+  results <- c(list(real_model_data), results)
   return(results)
+}
+
+resample_data <- function(ind_data, sample_design, ...) {
+  
+  if(sample_design) {
+    # we need to adjust for year and strata
+    resampled <- ind_data |>
+      map(function(stratum_data) {
+        # sample by row indices to speed up process
+        cluster_id <- match(stratum_data$cluster, unique(stratum_data$cluster))
+        cluster_to_rows <- split(seq_len(nrow(stratum_data)), cluster_id)
+        sampled_clusters <- sample(cluster_to_rows,
+                                   size = length(cluster_to_rows),
+                                   replace = TRUE)|>
+          unlist(use.names = FALSE)
+        slice(stratum_data, sampled_clusters)
+      }) |>
+      bind_rows()
+  } else {
+    # Simple bootstrap but still stratify by year
+    resampled <- ind_data |>
+      map(~ slice_sample(.x, n = nrow(.x), replace = TRUE)) |>
+      bind_rows()
+  }
+  
+  return(resampled)
 }
 
 bootstrap_model <- function(model_data_list, 
