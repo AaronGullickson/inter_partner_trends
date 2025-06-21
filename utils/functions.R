@@ -57,6 +57,7 @@ PAIRINGS <- c(
 
 generate_bootstrap_data <- function(ind_data, 
                                     n_replicates, 
+                                    batch_size = 50,
                                     sample_design = TRUE,
                                     ...) {
 
@@ -89,11 +90,12 @@ generate_bootstrap_data <- function(ind_data,
   )
   pb$tick(0)
   
-  batch_size <- 10
   results <- list()
   idx_batch <- 1
   for(i in seq_len(n_replicates)) {
-    results[[idx_batch]] <- resample_data(ind_data, sample_design, ...)
+    resampled_data <- resample_data(ind_data, sample_design)
+    results[[idx_batch]] <- create_model_data(resampled_data, ...)
+    rm(resampled_data)
     idx_batch <- idx_batch + 1
     
     if (i %% batch_size == 0 || i == n_replicates) {
@@ -140,12 +142,7 @@ resample_data <- function(ind_data, sample_design, ...) {
       bind_rows()
   }
   
-  model_data <- create_model_data(resampled, ...)
-  # memory clean up
-  rm(resampled)
-  gc()
-  
-  return(model_data)
+  return(resampled)
 }
 
 bootstrap_model <- function(model_data_list, 
