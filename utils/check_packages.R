@@ -17,7 +17,8 @@ packages = c(
   "modelsummary","gt", # for table output
   "tidycensus", # for statefip names
   "tictoc", "progress", # for tracking processing time
-  "parallel", "future", "furrr" # for parallel processing
+  "parallel", "future", "furrr", # for parallel processing
+  "fs" # for file system interaction
 )
 
 package.check <- lapply(packages, FUN = function(x) {
