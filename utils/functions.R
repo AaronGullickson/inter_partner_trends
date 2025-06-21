@@ -71,7 +71,8 @@ generate_bootstrap_data <- function(ind_data,
       group_split()
   } else {
     ind_data <- ind_data |>
-      group_by(year)
+      group_by(year) |>
+      group_split()
   }
   
   pb <- progress_bar$new(
