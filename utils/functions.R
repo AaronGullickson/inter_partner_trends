@@ -147,7 +147,7 @@ resample_data <- function(ind_data, sample_design, ...) {
 
 bootstrap_model <- function(model_data_list, 
                             selected_groups,
-                            chunk_size = 100,
+                            chunk_size = 50,
                             composition_var = NULL,
                             conditional_var = NULL,
                             control_var = NULL,
@@ -176,7 +176,7 @@ bootstrap_model <- function(model_data_list,
       ~ estimate_model(.x, selected_groups, composition_var, 
                        conditional_var, control_var, 
                        FALSE, conf_level, year_separate),
-      .progress = TRUE,
+      .progress = FALSE,
       .options = furrr_options(seed = TRUE)
     )
     
