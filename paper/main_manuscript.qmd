@@ -32,12 +32,74 @@ source(here("utils","functions.R"))
 #| label: load-data
 
 load(here("data", "data_constructed", "exogamy_trends.RData"))
+load(here("data", "data_constructed", "exogamy_trends.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
-load(here("data", "data_constructed", "model_basic_bs.RData"))
 load(here("data", "data_constructed", "models_subgroups.RData"))
 load(here("data", "data_constructed", "models_counterfactual.RData"))
 load(here("data", "data_constructed", "model_region.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
+load(here("data", "data_constructed", "model_recent_mar.RData"))
+```
+
+```{r}
+#| label: set-color-palette
+
+palette <- c(
+  # Single race combinations
+  "White/Black"                   = "#E69F00",  # rich orange
+  "White/AIAN"                    = "#009E73",  # teal green
+  "White/API"                     = "#CC79A7",  # muted magenta
+  "White/Hispanic"                = "#661100",  # deep rust
+  "Black/AIAN"                    = "#A65628",  # warm brown
+  "Black/API"                     = "#74AA99",  # muted cyan
+  "Black/Hispanic"                = "#882255",  # deep burgundy
+  "AIAN/API"                      = "#56B4E9",  # desaturated turquoise
+  "AIAN/Hispanic"                 = "#AA4499",  # dusty rose
+  "API/Hispanic"                  = "#117733",  # forest green
+  
+  # Single race to multiracial combinations
+  "White/White-Black"             = "#47AC11",  # vivid spring green
+  "Black/White-Black"             = "#471624",  # deep maroon-brown
+  "White/White-AIAN"              = "#361892",  # royal indigo
+  "AIAN/White-AIAN"               = "#23A4BB",  # bright teal-blue
+  "White/White-API"               = "#667AA3",  # slate blue
+  "API/White-API"                 = "#6D7003",  # olive drab
+  "Black/Black-API"               = "#1117AA",  # bold cobalt blue
+  "API/Black-API"                 = "#6D4113",  # dark umber
+  "Black/Black-AIAN"              = "#7171BB",  # muted periwinkle
+  "AIAN/Black-AIAN"               = "#422D13",  # earthy espresso
+
+  # Hispanic subgroups with White and Black
+  "White/WhiteHispanic"           = "#9E9E00",  # olive yellow
+  "White/BlackHispanic"           = "#AA0055",  # rose plum
+  "White/OtherHispanic"           = "#4FAA37",  # leafy green
+  "Black/WhiteHispanic"           = "#552288",  # soft purple
+  "Black/BlackHispanic"           = "#AA3344",  # reddish brick
+  "Black/OtherHispanic"           = "#2C37DA",  # vivid sapphire
+
+  # Asian subgroups with White
+  "White/EastAsian"               = "#3366AA",  # steely blue
+  "White/SEAsian"                 = "#118877",  # sea green
+  "White/SouthAsian"              = "#9933AA",  # muted violet-magenta
+
+  # Indigenous subgroups with White
+  "White/AIAN"                    = "#CC4477",  # muted raspberry rose
+  "White/PI"                      = "#1177BB",  # steel sky blue
+  
+  # Intra-Hispanic
+  "WhiteHispanic/BlackHispanic"   = "#BB8866",  # muted tan
+  "WhiteHispanic/OtherHispanic"   = "#885577",  # dusty mauve
+  "BlackHispanic/OtherHispanic"   = "#AA8844",  # muted amber
+  
+  # Intra-Asian
+  "EastAsian/SEAsian"             = "#336633",  # forest moss
+  "EastAsian/SouthAsian"          = "#993399",  # grape violet
+  "SEAsian/SouthAsian"            = "#CC6666",  # muted rose
+
+  # Intra-Indigenous
+  "AIAN/PI"                       = "#447777"   # muted teal gray
+)
+
 ```
 
 # Introduction
@@ -171,5 +233,293 @@ This approach cannot eliminate every bias from the use of the stock of marriages
 For analysis that includes cohabiting couples, I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting to cohabiting couples as I do to married couples. This approach provides a kind of counterfactual case in which I can ask how different the interracial marriage patterns would be if cohabitors of a similar age as newlyweds had gotten married rather than remained in a cohabiting union. 
 
 # Results
+
+```{r}
+#| label: fig-outmarriage-overall
+#| fig-cap: The trend in the proportion of marriagest that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
+  
+ggplot(exogamy_trend, aes(x = year, y = exogamy, group = 1))+
+  geom_ribbon(aes(ymin = exogamy-1.96*exogamy_se,
+                  ymax = exogamy+1.96*exogamy_se),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point()+
+  scale_y_continuous(labels = scales::percent)+
+  labs(y = "percent of marriages that are racially exogamous")+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-outmarriage-race
+#| fig-cap: The trend in the proportion of spouses of a given race and gender that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 83% confidence bands shown.
+
+exogamy_trend_race |>
+  filter(!str_detect(race, "-")) |>
+  ggplot(aes(x = year, y = exogamy, color = spouse, group = spouse))+
+  geom_ribbon(aes(ymin = exogamy-1.83*exogamy_se,
+                  ymax = exogamy+1.83*exogamy_se, 
+                  fill = spouse),
+              alpha = 0.3, color = NA)+
+  geom_line(alpha = 0.7)+
+  geom_point(size = 1, alpha = 0.7)+
+  facet_wrap(~race)+
+  labs(y = "percent of spouses of given race that are racially exogamous")+
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_manual(values = c("red", "navy", "gold"))+
+  theme_bw()
+```
+
+
+```{r}
+#| label: fig-intermar-single-overall
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse
+#| fig-height: 4.2
+#| fig-pos: "p"
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White partner
+#|    - Black partner
+#|    - AIAN partner
+#|    - API partner
+#|    - Hispanic partner
+
+model_single_state_bs <- model_state_bs |>
+  filter(!str_detect(term, "-"))
+
+lims <- exp(c(min(model_single_state_bs$conf.low), 
+              max(model_single_state_bs$conf.high)))
+
+model_single_state_bs |>
+  filter(str_detect(term, "White")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_single_state_bs |>
+  filter(str_detect(term, "Black")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_single_state_bs |>
+  filter(str_detect(term, "AIAN")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_single_state_bs |>
+  filter(str_detect(term, "API")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_single_state_bs |>
+  filter(str_detect(term, "Hispanic")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-intermar-multi-overall
+#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White-Black
+#|    - White-AIAN
+#|    - White-API
+
+model_state_bs |>
+  filter(term == "White/Black" | str_detect(term, "White-Black")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_state_bs |>
+  filter(term == "White/AIAN" | str_detect(term, "White-AIAN")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_state_bs |>
+  filter(term == "White/API" | str_detect(term, "White-API")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
+
+
+```{r}
+#| label: fig-multi-wb-counterf
+#| fig-cap: Comparison of part-White exogamy trends with different counterfactual assumptions about single race reporting among multiracial respondents
+#| layout-ncol: 2
+#| fig-subcap: 
+#|    - White/Black
+#|    - White/API
+#|    - White/AIAN
+
+model_state_bs |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
+  filter(term == "White/Black") |>
+  mutate(counterfactual = if_else(counterfactual == "Minority", "Black",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "Black", 
+                                            "Best"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
+                  fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  theme_bw()
+
+model_state_bs |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
+  filter(term == "White/API") |>
+  mutate(counterfactual = if_else(counterfactual == "Minority", "API",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "API", 
+                                            "Best"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
+                  fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  theme_bw()
+
+model_state_bs |>
+  mutate(counterfactual = "Actual") |>
+  bind_rows(model_cf_white_state_bs) |>
+  bind_rows(model_cf_minority_state_bs) |>
+  bind_rows(model_cf_best_state_bs) |>
+  filter(term == "White/AIAN") |>
+  mutate(counterfactual = if_else(counterfactual == "Minority", "AIAN",
+                                  counterfactual),
+         counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "AIAN", 
+                                            "Best"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  theme_bw()
+```
+
+
+```{r}
+#| label: fig-sub-hispanic
+#| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - White partner
+#|   - Black partner
+
+lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low), 
+              max(model_hispanic_sub_state_bs$conf.high)))
+
+model_hispanic_sub_state_bs |>
+  filter(str_detect(term, "^White/") & !str_detect(term, "Black$")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+
+model_hispanic_sub_state_bs |>
+  filter(str_detect(term, "^Black/")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10(limits = lims)+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
 
 # Conclusions
