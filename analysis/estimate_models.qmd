@@ -301,11 +301,28 @@ These models are like the overall models for single race groups, but I allow eac
 ```{r}
 #| label: estimate-model-regional
 
+# we can do white, black, hispanic together and the other white/* as pairs
 tic()
 model_state_byregion_bs <- data_model_state_simple |>
-  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"),
+  bootstrap_model(c("White", "Black", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
                   year_separate = TRUE, chunk_size = 25)
+toc()
+
+tic()
+model_state_byregion_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "AIAN"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE, chunk_size = 25) |>
+  bind_rows(model_state_byregion_bs)
+toc()
+
+tic()
+model_state_byregion_bs <- data_model_state_simple |>
+  bootstrap_model(c("White", "API"),
+                  composition_var = "state", conditional_var = "region",
+                  year_separate = TRUE, chunk_size = 25) |>
+  bind_rows(model_state_byregion_bs)
 toc()
 
 save(model_state_byregion_bs, 
