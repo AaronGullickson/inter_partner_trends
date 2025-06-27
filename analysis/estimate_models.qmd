@@ -483,6 +483,36 @@ rm(data_model_best_race_state)
 gc()
 ```
 
+# Model for recent marriages
+
+```{r}
+#| label: estimate-recent-marriage-model
+
+load(here("data", "data_constructed", "data_couples.RData"))
+
+
+tic()
+model_recent_mar <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  # only marriages
+  filter(union_type == "marriage") |>
+  # within last year
+  filter(dur_mar <= 1) |>
+  mutate(race_husband = collapse_race(race_husband),
+         race_wife = collapse_race(race_wife)) |>
+  create_model_data(composition_var = "state", use_weights_age = FALSE) |>
+  estimate_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                 composition_var = "state", year_separate = TRUE)
+toc()
+
+save(model_recent_mar, 
+     file = here("data", "data_constructed", "model_recent_mar.RData"))
+rm(census)
+gc()
+```
+
+
 ```{r}
 #| label: shut-down-workers
 

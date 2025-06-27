@@ -32,6 +32,7 @@ load(here("data", "data_constructed", "models_subgroups.RData"))
 load(here("data", "data_constructed", "models_counterfactual.RData"))
 load(here("data", "data_constructed", "model_region.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
+load(here("data", "data_constructed", "model_recent_mar.RData"))
 ```
 
 ```{r}
@@ -294,11 +295,43 @@ model_state_bs |>
   theme_bw()
 ```
 
+
+# Current Marriage Comparison
+
+```{r}
+#| label: fig-intermar-cur-mar
+#| fig-cap: Odds of racial exogamy for single race groups, by age weighting and recent marriages
+
+# add in missing values to break line
+model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
+                                year = c(1990, 2000:2007),) |>
+  bind_rows(model_recent_mar) |>
+  mutate(identifier = "<= 1 year duration")
+
+model_single_state_bs |>
+  mutate(identifier = "age weighted") |>
+  bind_rows(model_recent_mar) |>
+  ggplot(aes(x = year, y = exp(estimate), group = identifier, color = identifier))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = identifier),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10()+
+  theme_bw()
+
+
+
+```
+
 # Generation Comparison
 
 ```{r}
 #| label: fig-intermar-single-gen
 #| fig-cap: Odds of racial exogamy for single race groups, by different generational composition
+
 model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
   mutate(gen = "all")
 
