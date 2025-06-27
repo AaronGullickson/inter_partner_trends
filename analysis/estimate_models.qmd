@@ -249,6 +249,10 @@ data_model_state_cohab_simple <- data_model_state_cohab |>
   })
 toc()
 
+# we don't need the original cohab data any more
+rm(data_model_state_cohab)
+gc()
+
 tic()
 model_state_cohab_bs <- data_model_state_cohab_simple |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
@@ -273,6 +277,10 @@ data_model_state_combine_simple <- map2(
   })
 toc()
 
+# we don't need the separate cohab data anymore
+rm(data_model_state_cohab_simple)
+gc()
+
 tic()
 model_state_combine_bs <- data_model_state_combine_simple |>
   bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
@@ -288,9 +296,7 @@ save(model_state_cohab_bs, model_state_combine_bs,
      file = here("data", "data_constructed", "models_cohab.RData"))
 
 # memory cleanup
-rm(data_model_state_cohab, 
-   data_model_state_cohab_simple,
-   data_model_state_combine_simple)
+rm(data_model_state_combine_simple)
 gc()
 ```
 
@@ -306,7 +312,7 @@ tic()
 model_state_byregion_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "Black", "Hispanic"),
                   composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE, chunk_size = 25)
+                  year_separate = TRUE, chunk_size = 10)
 toc()
 
 tic()
