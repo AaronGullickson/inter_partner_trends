@@ -8,7 +8,7 @@ reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 format:
-  aog-article-pdf:
+  pdf:
     keep-tex: false
 #  submittable-pdf:
 #     keep-tex: false
@@ -16,8 +16,8 @@ format:
 #     include-in-header: 
 #       text: |
 #         \usepackage{dcolumn}
-  submittable-docx: 
-    fig-format: pdf
+#  submittable-docx: 
+#    fig-format: pdf
 ---
 
 ```{r}
@@ -27,7 +27,6 @@ library(here)
 source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
-
 
 ```{r}
 #| label: load-data
@@ -51,39 +50,103 @@ Data for this analysis are derived from the microdata Census samples for Census 
 
 The data include all extant heterosexual married couples in each sample. I also include a secondary sample of heterosexual cohabiting couples, based on data from 1990 at which point "unmarried partner" is provided as a choice for relationship to head of household. <!-- TODO: justify heterosexual -->
 
-For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases, where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with ethnoracial preferences. This may be less true of individuals who arrived as children (i.e. the 1.5 generation). In supplementary analysis discussed later, I consider estimates of interracial marriage that are less restrictive on national origin. 
+For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases, where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with ethnoracial preferences. This may be less true of individuals who arrived as children (i.e. the 1.5 generation). In supplementary analysis discussed later, I consider estimates of interracial marriage that are less restrictive on national origin.
 
 ## Measuring Interracial Marriage
 
-One common approach to measure interracial marriage "rates" is to take the outmarriage ratio, or proportion. This outmarriage ratio is simply the proportion of individuals of a certain group (or the entire population) that are married to someone of a different race. This approach provides a reasonable measure of the experience of interracial marriage, for either the population at large, or for specific groups. However, it has other significant limitations. First, it makes no adjustment for group size in determining the likelihood of an interracial marriage. Groups that make up a larger share of the overall population will, even in the absence of racial preferences for spouses, have lower outmarriage rates because they have more in-group choices for marriage. Thus, meaningful inferences cannot be drawn by comparing these outmarriage ratios across groups. Second, the outmarriage ratio does not give a pairwise accounting of social distance between any two groups but rather a measure that indicates the inverse of endogamy for a single group. Outmarriage ratios could be extended into a full conditional distribution the race of spouse, by the race of each partner, but this will simply exacerbate the first problem of group size.
-
-For these reasons, the preferred measure of the strength of intermarriage has long been the odds ratio or cross-product resulting from a cross-tabulation of husband's race by wife's race. 
+To help fix ideas, @tbl-cross-product provides an abstract view of the frequency of intergroup marriage for three groups when marriages are cross-tabulated by the race of husband and wife.
 
 ```{r}
+#| label: tbl-cross-product
+#| tbl-cap: Abstract table of the frequency of interracial marriage across three groups, cross-tabulated by husband's race and wife's race.
 
-x <- tibble(
+tibble(
   "hrace" = c("Group 1", "Group 2", "Group 3"),
-  "g1" = c("F11", "F21", "F31"),
-  "g2" = c("F12", "F22", "F32"),
-  "g3" = c("F11", "F21", "F31"),
-) 
-
+  "g1" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
+  "g2" = c("$F_{12}$", "$F_{22}$", "$F_{32}$"),
+  "g3" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
+)  |> 
+  gt() |>
+  fmt_markdown() |>
+  cols_align("center", columns = starts_with("g")) |>
+  cols_label(hrace = "Husband",
+             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
+  tab_spanner(label = "Wife", columns = starts_with("g"))
 ```
 
+One common approach to measure interracial marriage "rates" is to calculate the outmarriage ratio, or proportion. This outmarriage ratio is simply the proportion of individuals of a certain group (or the entire population) that are married to someone of a different race. In @tbl-cross-product, the outmarriage ratio for Group 1 is given by:
+
+$$
+\text{outmarriage ratio} = \frac{F_{12}+F_{13}+F_{21}+F_{31}}{F_{11}+F_{12}+F_{13}+F_{21}+F_{31}}
+$$ {#eq-outmarriage-ratio}
+
+This approach provides a reasonable measure of the experience of interracial marriage, for either the population at large, or for specific groups. However, it has other significant limitations. First, it makes no adjustment for group size in determining the likelihood of an interracial marriage. Groups that make up a larger share of the overall population will, even in the absence of racial preferences for spouses, have lower outmarriage ratios because they have more in-group choices for marriage. Thus, meaningful inferences about social boundaries cannot be drawn by comparing outmarriage ratios across groups. Second, the outmarriage ratio is simply the complement to a measure of endogamy for a single group and therefore does not provide a pairwise measure of the tendency to intermarry between two groups. While outmarriage ratios could be extended into a full conditional distribution of the race of other partner by the race of focal partner, this approach will exacerbate the first problem of group size. Most notably, the outmarriage ratio of Group 1 to Group 2 will not be the same as the outmarriage ratio of Group 2 to Group 1, unless those groups are equal in size. This finding is not a substantive finding of difference, but rather a mechanical limitation.
+
+For these reasons, the preferred measure of the strength of intermarriage across group combinations has long been the odds ratio or cross-product resulting from a cross-tabulation of husband's race by wife's race. From @tbl-cross-product, I can estimate the odds ratio of intergroup marriage between Group 1 and Group 2 as:
+
+$$
+\text{odds ratio} = \frac{F_{12}F_{21}}{F_{11}F_{22}}
+$$ {#eq-cross-prod}
+
+This cross-product can be interpreted as the odds ratio of an individual from one group having a wife from the other group relative to those same odds for an individual from the other group. When this cross-product equals one, there are no barriers to intergroup marriage. Values lower than one indicate barriers to intergroup marriage. Unlike the outmarriage ratio, the cross-product adjusts for group size and thuse the odds ratios across different groups are directly comparable.
+
+Although this odds ratio and its standard error can be estimated directly from a cross-tabulation shown in @tbl-cross-product, I will prefer a model approach to estimate these values for the analysis. By using a model, I can condition the results on a variety of other factors, discussed below. To estimate the odds ratios, I use a log-linear model approach, where the outcome variable are the frequency counts estimated by a cross-tabulation like @tbl-cross-product. For a single year of the analysis, I can estimate the following model:
+
+$$
+\log(F_{ij})=\lambda+\lambda_i+\lambda_j+\beta_{ij}+\alpha_{ij}
+$$ {#eq-model-basic}
+
+Where $F_{ij}$ is the frequency count of marriages with a husband of race $i$ and a wife of race $j$. The model accounts for the marginal distributions of husband's race ($\lambda_i$) and wife's race ($\lambda_j$). The $\beta_{ij}$ and $\alpha_{ij}$ parameters account for the saturated interaction between husband's and wife's race. The $\beta_{ij}$ parameters estimate the desired log odds ratios for each non-endogamous pairing of husband's and wife's race. The $\alpha_{ij}$ parameters are residual parameters that must also be estimated to fully saturate the interaction between husband's and wife's race. For example, in a three-by-three table like @tbl-cross-product, one can identify four non-redundant odds ratios, but only three intermarriage odds ratios ($\beta_{ij}$) can be estimated for the three pairwise group comparisons. The fourth unique odds ratio is estimated with $\alpha_{ij}$.
+
+To clarify this approach, @tbl-model-param, shows the parameter coding that would be used for a model in the three group case shown in @tbl-cross-product. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The single $\alpha$ parameter is estimated via ANOVA style coding for one of the pairings. Using this modeling approach, the $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product.
+
+```{r}
+#| label: tbl-model-param
+#| tbl-cap: Log-linear model parameters applied to a cross-tabulation of husband's race and wife's race for three groups.
+
+tibble(
+  "hrace" = c("Group 1", "Group 2", "Group 3"),
+  "g1" = c("$0$", "$0$", "$0$"),
+  "g2" = c("$\\beta_{12}$", "$0$", "$-\\alpha_{23}$"),
+  "g3" = c("$\\beta_{13}$", "$\\beta_{23}+\\alpha_{23}$", "$0$"),
+)  |> 
+  gt() |>
+  fmt_markdown() |>
+  cols_align("center", columns = starts_with("g")) |>
+  cols_label(hrace = "Husband",
+             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
+  tab_spanner(label = "Wife", columns = starts_with("g"))
+```
+
+In most of the models used in the analysis to follow, I make two additional adjustments to the model outlined in @eq-model-basic. First, I use a single model across time and allow all of the parameters from @eq-model-basic to vary by time. Second, I include state of residence to adjust for subnational variation in population distribution by race. CITE have shown that such subnational variation importantly affects the strength of intermarriage. Estimates based on national data will downwardly bias estimates of interracial marriage because they do not fully account for the population share of different racial groups in a spouses marriage market.
+
+The full model is thus given by:
+
+$$
+\log(F_{ijkt}) = \lambda+\lambda_i+\lambda_j+\lambda_k+\lambda_t+\lambda_{ik}+\lambda_{jk}+\lambda_{it}+\lambda_{jt}+\lambda_{ikt}+\lambda_{jkt}+\beta_{ijt}+\alpha_{ijt}
+$$ {#eq-model-full}
+
+where $j$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time. In this model setup, I do not allow the $\beta$ parameters to vary by state, as such models would be very noisy and difficult to estimate for many comparisons. However, I do allow the $\beta$ parameters to vary by region in some of the analyses that follow.
 
 ## Measuring Stocks vs. Flows
 
-Ideally, I would use data on recent marriages rather ("flow") than extant marriages ("stock"). The stock of current marriages includes marriages that were formed decades prior to the data of data collection and thus will indicate the conditions of that time period rather than the current time period. Furthermore, extant marriages reflect not only marriage patterns but also, implicitly, patterns of marriage dissolution through divorce or widowhood. Prior work has shown that interracial marriages have higher rates of divorce than intraracial marriages <!-- TODO: cite -->. Both of these factors will likely lead intermarriage rates calculated from the stock of current marriages to underestimate the tendency of interracial marriage in recent marriage cohorts. 
+Ideally, I would use data on the "flow" of recent marriages rather than the "stock" of extant marriages. The stock of current marriages includes marriages that were formed decades prior to the date of data collection and thus will indicate the conditions of that time period rather than the current time period. Furthermore, extant marriages reflect not only marriage patterns but also, implicitly, patterns of marriage dissolution through divorce or widowhood. Prior work has shown that interracial marriages have higher rates of divorce than intraracial marriages<!-- TODO: cite -->. Both of these factors will contribution to underestimation of the tendency toward interracial marriage in recent marriage cohorts.
 
-However, information on marital timing is not available for a substantial subset of the time period here. From 1960 to 1980, the Census asked about the age of first marriage for all married respondents. Marital duration questions were removed from Census 1990. A question on the year of the current marriage was added to the ACS in 2007 onward. Thus, between 1990 and 2006, I have no way to identify recent marriage cohorts.
+However, information on marital timing is not available for a substantial subset of the time period here. From 1960 to 1980, the Census asked about the age of first marriage for all married respondents. Marital duration questions were removed from Census 1990. A question on the year of the current marriage was added to the ACS in 2007 onward. Thus, between 1990 and 2006, I have no way to identify recent marriage cohorts. And in the period before 1990, I can only identify timing of marriage for first marriages.
 
-This issue has often been addressed by restricting the sample by the age of one or both partners <!-- TODO: cite examples -->. By selecting younger partners, we can be assured that the marriage was relatively recently formed. However, this approach can also introduce a host of other biases as younger couples may differ in other ways from the full set of recent marriage cohorts. Furthermore, the age of marriage for both husbands and wives has increased substantially over this time period, meaning that any static restriction by age will lead to different kinds of couples across the time period. 
+This issue has often been addressed by restricting the sample by the age of one or both partners<!-- TODO: cite examples -->. By selecting younger partners, we can be assured that the marriage was relatively recently formed. However, this approach can also introduce a host of other biases as younger couples may differ in other ways from the full set of recent marriage cohorts. Furthermore, the age of marriage for both husbands and wives has increased substantially over this time period, meaning that any static restriction by age will lead to different kinds of couples across the time period.
 
-Rather than subset by age, I take all extant marriages but apply weights to each couple to match the joint age distribution of partners for that time period. This approach basically generalizes the approach of taking a restricted age group, but instead of arbitrarily deciding on an age group, I allow each age group (or joint age group) to be represented proportionally to its share of recent marriage cohorts. Because, these weights are measured relative to the joint age group for the time period, this approach also gives me a more consistent estimate across time. 
+Rather than subset by age, I take all extant marriages but apply weights to each couple to match the joint age distribution of newlywed partners for that time period. This approach generalizes the method of taking a restricted age group, but instead of arbitrarily deciding on an age group, I allow each age group (or joint age group) to be represented proportionally to its share of the most recent marriage cohort. Because these weights are derived from to the joint age distribution within each time period, this approach also intrinsically adjusts for changes in the timing of marriage for both husbands and wives over the time period.
 
-From 2007 onwards, I can estimate joint age distributions of recent marriage cohorts using data from ACS 2007 on couples married in the last year. Prior to 2007, I use publicly available tables on the joint distribution of the age spouses from US vital statistics reports on marriages for 1960, 1970, 1980, and 1988 <!-- TODO: cite -->. After 1988, these reports were no longer produced for marriage. From 1990 to 2006, I use linear interpolation of the estimates to produce joint distributions. Appendix XX <!-- TODO: replace --> of the supplementary materials provides more information on this weighting procedure.
+From 2007 onwards, I can estimate joint age distributions of recent marriage cohorts directly from the ACS data using couples married in the last year. Prior to 2007, I use publicly available tables on the joint distribution of the age of spouses from US vital statistics reports for 1960, 1970, 1980, and 1988 <!-- TODO: cite -->. After 1988, these reports were no longer produced for marriage. From 1990 to 2006, I use linear interpolation of the joint age distribution. Appendix XX <!-- TODO: replace --> of the supplementary materials provides more information on this weighting procedure.
 
+In addition to the age weighting, I also apply sample weights to adjust for sample design in the Census and ACS results.[^weights] Weights are applied by taking the sum of weights as frequency counts. Because of the use of weights as well as complex survey design, the analytical standard errors of model parameter estimates will be underestimated. As there is no clear analytical solution to this issue with this modeling approach, I instead calculate standard errors via a boostrap technique by resampling 1000 times from the individual level data within each year. 
 
+This approach cannot eliminate every bias from the use of the stock of marriages, including bias arise from differential rates of divorce. Appendix XX provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend. For some groups, the age-weighted results are slightly lower than the results for newlyweds, as would be expected due to differential union resolution. However, these differences are slight in comparison to the overall differences across groups and time. 
+
+For analysis that includes cohabiting couples, I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting to cohabiting couples as I do to married couples. This approach provides a kind of counterfactual case in which I can ask how different the interracial marriage patterns would be if cohabitors of a similar age as newlyweds had gotten married rather than remained in a cohabiting union. 
+
+[^weights]: Because the unit of observation is a couple, I use the mean of each partner's person weight to derive the couple weight. 
 
 # Results
 
