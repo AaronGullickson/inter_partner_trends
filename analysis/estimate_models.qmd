@@ -73,7 +73,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-Black"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -81,7 +81,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "White-Black"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -89,7 +89,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-AIAN"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -97,7 +97,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("AIAN", "White-AIAN"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -105,7 +105,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "White-API"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -113,7 +113,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("API", "White-API"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -121,7 +121,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "Black-AIAN"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -129,7 +129,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("AIAN", "Black-AIAN"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -137,7 +137,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("Black", "Black-API"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
@@ -145,7 +145,7 @@ tic()
 model_state_bs <- data_model_state_simple |>
   bootstrap_model(c("API", "Black-API"),
                   composition_var = "state", year_separate = TRUE,
-                  chunk_size = 250) |>
+                  chunk_size = 100) |>
   bind_rows(model_state_bs)
 toc()
 
