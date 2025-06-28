@@ -319,7 +319,7 @@ tic()
 model_state_byregion_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "AIAN"),
                   composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE, chunk_size = 25) |>
+                  year_separate = TRUE, chunk_size = 10) |>
   bind_rows(model_state_byregion_bs)
 toc()
 
@@ -327,7 +327,7 @@ tic()
 model_state_byregion_bs <- data_model_state_simple |>
   bootstrap_model(c("White", "API"),
                   composition_var = "state", conditional_var = "region",
-                  year_separate = TRUE, chunk_size = 25) |>
+                  year_separate = TRUE, chunk_size = 10) |>
   bind_rows(model_state_byregion_bs)
 toc()
 
@@ -365,9 +365,10 @@ toc()
 collapse_asian <- function(race) {
   new_race <- case_when(
     race == "White" ~ "White",
+    race == "PI" ~ "PI",
     race == "SouthAsian" ~ "SouthAsian",
     race %in% c("EastAsian", "SEAsian") ~ "EastAsian") 
-  factor(new_race, levels = c("White", "EastAsian", "SouthAsian"))
+  factor(new_race, levels = c("White", "EastAsian", "SouthAsian", "PI"))
 }
 
 tic()

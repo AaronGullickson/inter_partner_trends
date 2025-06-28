@@ -50,6 +50,9 @@ PAIRINGS <- c(
   "EastAsian/SEAsian",
   "EastAsian/SouthAsian",
   "SEAsian/SouthAsian",
+  "EastAsian/PI",
+  "SEAsian/PI",
+  "SouthAsian/PI",
   "AIAN/PI"
 )
 
