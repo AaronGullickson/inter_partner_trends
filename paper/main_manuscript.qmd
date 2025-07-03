@@ -10,6 +10,7 @@ csl: ../bibliography/chicago-parenthetical.csl
 format:
   pdf:
     keep-tex: false
+    fig-pos: "!t"
 #  submittable-pdf:
 #     keep-tex: false
 #     fig-pos: "!t"
@@ -234,6 +235,8 @@ For analysis that includes cohabiting couples, I have no information on the dura
 
 # Results
 
+@fig-outmarriage-overall shows the overall outmarriage ratio across the entire population of married couples over time, weighted to match the joint age distribution of newlywed partners.The figure shows a consistent and relatively linear increase in the proportion of married couples for each time period. In 1960, racially exogamous couples make up less than 1% of all couples <!-- TODO: check this -->. By the end of the time period in 2021-2023, about 1 in 6 couples are in an interracial marriage, with a roughly linear increase throughout. A large increase in the final time period suggests exponential growth in the outmarriage ratio. However, this change may also reflect some changes to racial measurement in the 2021-2023 period.
+
 ```{r}
 #| label: fig-outmarriage-overall
 #| fig-cap: The trend in the proportion of marriagest that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
@@ -248,6 +251,8 @@ ggplot(exogamy_trend, aes(x = year, y = exogamy, group = 1))+
   labs(y = "percent of marriages that are racially exogamous")+
   theme_bw()
 ```
+
+The simple trend shown in @fig-outmarriage-overall would suggest an outcome consistent with rapidly diminishing racial boundaries. However, when we look at the outmarriage ratio separately by racial group, the picture becomes more complicated. @fig-outmarriage-race shows outmarriage ratios for each single race group over time, and separately by the sex of the spouse. As before, all results are weighted to reflect the joint age distribution of newlyweds. 
 
 ```{r}
 #| label: fig-outmarriage-race
@@ -268,11 +273,19 @@ exogamy_trend_race |>
   scale_color_manual(values = c("red", "navy", "gold"))+
   theme_bw()
 ```
+The overall outmarriage ratios vary substantially by racial groups, but this is largely a reflection of group size. More importantly, we can see that for both the AIAN and API groups, outmarriage ratios largely stopped increasing (after 1990 for AIAN and after 2000 for API) and have remained flat, or have slightly declined since. In contrast, the outmarriage ratios for White, Black, and Hispanic respondents have consistently increased over the time period. 
 
+Consistent with prior work <!-- TODO: cite -->, we can also see that the likelihood of racial exogamy varies by gender for Black and API spouses. Black men are much more likely to be outmarried than Black women and that gap has increased over the time period, although the overall trend is similar for both Black men and women. In contrast, the likelihood of racial exogamy is higher for API women than for API men. This difference has remained largely constistent across time and both API women and men have experienced the same plateau in the likelihood of racial exogamy. 
+
+<!-- TODO: comparison to Pew report -->
+
+@fig-outmarriage-race provides some useful information, but the results here are still heavily reflective of group size differences. For example, as I will show below, once we adjust for group size, it is actually the Hispanic population which tends to have the highest likelihood of racial exogamy. This pattern is not apparent in @fig-outmarriage-race, because both the level of and change in the relative size of groups are not taken into account. 
+
+@fig-intermar-single-overall shows the odds of racial exogamy over time across all possible pairings of single race groups from log-linear models, with results weighted by the joint age distribution of newlyweds in each time period. These models Each panel shows the results of each possible interracial pairing for a particular ego race. Thus, each interracial pairing is shown twice across all of the panels. 
 
 ```{r}
 #| label: fig-intermar-single-overall
-#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses.
 #| fig-height: 4.2
 #| fig-pos: "p"
 #| layout-ncol: 2
@@ -355,9 +368,17 @@ model_single_state_bs |>
   theme_bw()
 ```
 
+Several important findings are notable in @fig-intermar-single-overall. First, across all possible combinations, racial exogamy involving an API partner had either plateaued by the late 20th century or has shown no evidence of a rise at all over the time period. The results for AIAN partners are somewhat similar, except for some evidence of a moderate rise in the odds of marriage of AIAN spouses to Hispanic and Black partners in the later time period. Overall, these results are consistent with the plateau of outmarriage rates observed in @fig-outmarriage-race for AIAN and API partners. 
+
+In contrast, in all cases involving White, Black, and Hispanic partners, we observe consistent exponential (linear on the scale shown) increases in the odds of intermarriage over time. Throughout the 20th century, the odds of intermarriage with a black spouse is the least likely of all possible non-endogamous pairings for each non-Black group. However, in many cases, these odds ratios grow the fastest throughout the time period. By the end of the time period, intermarriage with a Black spouse is only definitively the least likely from of intermarriage for White partners. Even in this case, the odds of White/Black intermarriage is increasing much more rapidly than other pairings involving other groups. If the trends observed here continue, White/Black intermarriage will soon become more likely than White/API intermarriage. 
+
+At the other end of the spectrum, intermarriages involving a Hispanic partner are generally some of the most likely for all groups. White/Hispanic intermarriage is the most likely form of intermarriage throughout the time period in which Hispanics can be identified in the data (although roughly tied with White/AIAN intermarriage in 1980 and 1990). Intermarriage with Hispanic partners is also the most likely form of intermarriage for Black spouses throughout the time period and the second most likely form of intermarraige for AIAN and API spouses after marriage with White partners for most of the time period. 
+
+To this point, I have only examined the intermarriage patterns between single race groups. The option to check more than one box on the race question in 2000 allows me to analyze trends in intermarriage for some large multiracial groups, as well. @fig-intermar-multi-overall shows those trends for the three largest multiracial groups of White-Black, White-AIAN, and White-API. I examine the tendency of these group to marry a member of each of the two consituent groups, in comparison to the odds of a "first generation" marriage between those constituent groups. For example, for the White-Black case, I examine the odds of a White-Black/White and White-Black/Black marriage to a White/Black marriage. 
+
 ```{r}
 #| label: fig-intermar-multi-overall
-#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups
+#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses.
 #| layout-ncol: 2
 #| fig-subcap: 
 #|    - White-Black
@@ -404,6 +425,12 @@ model_state_bs |>
   theme_bw()
 ```
 
+
+For both the White-Black and the White-API case, we see a simlar pattern. Marriages to each of the two constituent groups are considerably more likely than a "first generation" marriage between the two constituent groups. This finding suggests that White-Black and White-API individuals face lower boundaries to intermarriage with these groups because they are in some sense partially endogamous with either group. 
+
+For the White-Black group, we might expect that, due to the one-drop rule <!-- TODO: CITE -->, White-Black individuals would be more liklely to marry Black rather than White individuals. We do observe a slightly higher odds for intermarriage with Black partners, but the difference here is slight and may have gone away by the end of the time period. The results suggest a somewhat weak role of the one-drop rule in the marriage selection of White-Black individuals. For White-API individuals, we observe very similar odds of marriage with White and API individuals. At the very end of the period, we see some evidence that intermarriage might be growing faster with White individuals rather than API individuals, but this finding should be considered tenative.
+
+For White-AIAN individuals, we observe a very different pattern. Intermarriage with White partners is more common than "first generation" White/AIAN marriage and the odds of this form of intermarriage are growing over time, while intermarriage with AIAN partners is less likely than "first generation" White/AIAN marriage. These results are consistent with hyperdescent which tends to "whiten" AIAN ancestry. 
 
 ```{r}
 #| label: fig-multi-wb-counterf
