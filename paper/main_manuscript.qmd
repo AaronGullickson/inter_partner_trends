@@ -10,7 +10,10 @@ csl: ../bibliography/chicago-parenthetical.csl
 format:
   pdf:
     keep-tex: false
-    fig-pos: "!t"
+    fig-pos: "h"
+    include-in-header: 
+      text: |
+        \usepackage{dcolumn}
 #  submittable-pdf:
 #     keep-tex: false
 #     fig-pos: "!t"
@@ -80,12 +83,13 @@ palette <- c(
 
   # Asian subgroups with White
   "White/EastAsian"               = "#3366AA",  # steely blue
+  "White/E&SE Asian"              = "#3366AA",  # steely blue
   "White/SEAsian"                 = "#118877",  # sea green
-  "White/SouthAsian"              = "#9933AA",  # muted violet-magenta
+  "White/South Asian"              = "#9933AA",  # muted violet-magenta
 
   # Indigenous subgroups with White
   "White/AIAN"                    = "#CC4477",  # muted raspberry rose
-  "White/PI"                      = "#1177BB",  # steel sky blue
+  "White/Pac. Islander"           = "#3311EE",  # steel sky blue
   
   # Intra-Hispanic
   "WhiteHispanic/BlackHispanic"   = "#BB8866",  # muted tan
@@ -379,7 +383,7 @@ In contrast, in all cases involving combinations of White, Black, and Hispanic p
 
 Interracial marriages involving a Hispanic partner are generally some of the most likely for all groups. White/Hispanic partnering is the most likely form of interracial marriage throughout the time period in which Hispanics can be identified in the data (although roughly tied with White/AIAN partnering in 1980 and 1990). Interracial marriage with Hispanic partners is also the most likely form of partnering for Black spouses throughout the time period and the second most likely form of partnering for AIAN and API spouses after marriage with White partners for most of the time period.
 
-## Considering Multiracial Groups
+## Including Multiracial Groups
 
 To this point, I have only examined the interracial marriage patterns between single race groups. The option to check more than one box on the race question in 2000 allows me to analyze trends in interracial marriage for some large multiracial groups. @fig-intermar-multi-overall shows those trends for the three largest multiracial groups of White-Black, White-AIAN, and White-API. I examine the tendency of each of these groups to marry a member from each of their two constituent groups, in comparison to the odds of a "first generation" marriage between those constituent groups. For example, for the White-Black case, I examine the odds of a White-Black/White and White-Black/Black marriage to a White/Black marriage.
 
@@ -522,6 +526,10 @@ model_state_bs |>
 
 For both White/API and White/AIAN interracial marriage, the scenario which differs from the other cases is that where multiracial part-White respondents all identify with their single-race minority group (API and AIAN, respectively). In this scenario, the odds of interracial marriage are substantially higher than the other two scenarios and the actual observed trend. The other two scenarios produce results that are statistically indistinguishable from the actual trend. The results here suggest that many part-White multiracial individuals have White spouses and thus reclassifying these individuals into single race minority groups would increase the observed odds of interracial marriage with white spouses. However, this assumption is likely a strong and unrealistic assumption for individuals of partial API and AIAN ancestry. Overall, the results suggest that the shift to multiracial reporting likely had relatively little effect on the trends for interracial marriage among single race groups.
 
+## Trends Among Hispanic Subgroups
+
+I now turn to results that divide the Hispanic group into three separate subgroups, identified by racial identification as "White", "Black", and "Other." @fig-sub-hispanic shows trends in the odds ratio of marriage between these three subgroups and non-Hispanic White and Black respondents. For reference, the trend in White/Black interracial marriage is also shown.
+
 ```{r}
 #| label: fig-sub-hispanic
 #| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
@@ -534,7 +542,7 @@ lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low),
               max(model_hispanic_sub_state_bs$conf.high)))
 
 model_hispanic_sub_state_bs |>
-  filter(str_detect(term, "^White/") & !str_detect(term, "Black$")) |>
+  filter(!str_detect(term, "Hispanic/") & !str_detect(term, "^Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -547,7 +555,8 @@ model_hispanic_sub_state_bs |>
   theme_bw()
 
 model_hispanic_sub_state_bs |>
-  filter(str_detect(term, "^Black/")) |>
+  filter((str_detect(term, "^Black/") & !str_detect(term, "Hispanic/")) |
+           str_detect(term, "^White/Black$")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
@@ -559,5 +568,43 @@ model_hispanic_sub_state_bs |>
   scale_fill_manual(values = palette)+
   theme_bw()
 ```
+
+In terms of interracial marriage with White spouses shown in the left panel, the ordering of the three subgroups is as expected. Hispanic individuals who also identify as White are the most likely to marry non-Hispanic White spouses. The odds of marriage to White spouses is somewhat lower for Hispanic individuals who identify as "Other" by race. For comparison, both of these odds ratios are substantially higher than the odds of White/Black marriage. The odds of marriage to a White spouse are much lower for Hispanic individuals who identify as "Black" and are similar to the odds of White/Black marriage.
+
+Although the odds are lowest for Black Hispanics, the trend suggests much a faster increase in this odds ratio over time, on par, with the increase in the odds of White/Black marriage. Thus, while there is a clear stratification of the odds of marriage with Whites by Hispanic racial self-identification, these differences have been getting smaller over time.
+
+The right panel shows the odds of interracial marriage between non-Hispanic Black respondents and the three Hispanic subgroups. As one might expect, these odds are inverted relative to the odds of interracial marriage with non-Hispanic White respondents. Interracial marriage between non-Hispanic Black spouses and Hispanics who identify as either Other or White are both similar to the odds of White/Black interracial marriage over time. The odds of interracial marriage between non-Hispanic Black spouses and Hispanics who identify as Black, on the other hand, are much higher and are comparable to the odds of White/White Hispanic interracial marriage. All three odds ratios are growing exponentially over time.
+
+## Trends Among API Subgroups
+
+@fig-sub-asian-simple shows the odds of partnership with white spouses across three subgroups of the API category. I divide the API group into Pacific Islanders, South Asians, and East/Southeast Asians. The results show that the plateau trends seen for the API group overall is only the trend for the East/Southeast Asian group. This group saw rapid increase in the odds of partnership with White spouses until 1990, when those odds leveled off. Since 1990, the odds have declined slightly, but have largely remained stationary.
+
+```{r}
+#| label: fig-sub-asian-simple
+#| fig-cap: Exogamy of Asian subgroups with White partners
+
+model_asian_sub_simple_state_bs |>
+  filter(str_detect(term, "^White/")) |>
+  mutate(term = str_replace(term, "/EastAsian", "/E&SE Asian"),
+         term = str_replace(term, "/PI", "/Pac. Islander"),
+         term = str_replace(term, "/SouthAsian", "/South Asian")) |>
+  ggplot(aes(x = year, y = exp(estimate), color = term))+
+  geom_vline(xintercept = 2000, linetype = 2)+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  scale_y_log10()+
+  scale_color_manual(values = palette)+
+  scale_fill_manual(values = palette)+
+  theme_bw()
+```
+In contrast, the results for South Asians suggest increasing odds of marriage with White spouse throughout the time period, although sparsity of data from before 1980 limits the full range of the time period. Point estimates suggest a decline from 1980 to 1990, but the wide error margins on these estimates make such a decline questionable at best. Since 1990, there has been steady growth in the odds of South Asian/White partnering. However, those odds are begin and still remain substantially lower than the odds of East and South Asian/White partnering, even as they are converging across time.
+
+The results for Pacific Islanders show a decline in the odds of marriage with White partners throughout the time period. The decline is particularly concentrated in the period before 2000. Although this group is small, this trend before 2000 is not simply a result of wide error margins on estimates, and suggests a true decline in the likelihood of marriage between these groups. After 2000, the decline is slight and may simply be a result of measurement error. 
+
+The decline for Pacific Islander is notable as the only trend examined here to show a substantial decline across this time period, which is otherwise characterized by substantial increases in the odds of interracial marriage in the late 20th century. Notably, the starting odds of White/Pacific Islander marriage are relatively very high. Given that Pacific Islander identification has been unstable over the time period (CITE), it is possible that this trend might in some part reflect changing self-identification practices. 
+
+## Including Cohabitation
 
 # Conclusions
