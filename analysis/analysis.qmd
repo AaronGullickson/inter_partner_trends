@@ -78,7 +78,7 @@ palette <- c(
 
   # Indigenous subgroups with White
   "White/AIAN"                    = "#CC4477",  # muted raspberry rose
-  "White/PI"                      = "#1177BB",  # steel sky blue
+  "White/PI"                      = "#3311EE",  # steel sky blue
   
   # Intra-Hispanic
   "WhiteHispanic/BlackHispanic"   = "#BB8866",  # muted tan
