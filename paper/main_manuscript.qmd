@@ -8,18 +8,12 @@ reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 format:
-  pdf:
+  aog-article-pdf:
     keep-tex: false
     fig-pos: "!t"
-    include-in-header: 
-      text: |
-        \usepackage{dcolumn}
 #  submittable-pdf:
 #     keep-tex: false
 #     fig-pos: "!t"
-#     include-in-header: 
-#       text: |
-#         \usepackage{dcolumn}
 #  submittable-docx: 
 #    fig-format: pdf
 ---
