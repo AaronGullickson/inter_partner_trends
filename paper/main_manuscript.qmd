@@ -2,12 +2,13 @@
 title: "Heterogeneity in the Trends in Interracial Marriage in the US, 1960-2023"
 shorttitle: "Trends in Interracial Marriage, 1960-2023"
 shortauthors: "Gullickson"
-abstract: An Abstract
-keywords: [keyword1, keyword2]
+#keywords: [keyword1, keyword2]
 #thanks: Thanks to everyone for checking this out.
 reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
+filters:
+  - abstract-section
 format:
   aog-article-pdf:
     papersize: letter
@@ -110,6 +111,10 @@ palette <- c(
 )
 
 ```
+
+# Abstract
+
+This is an abstract
 
 # Introduction
 
