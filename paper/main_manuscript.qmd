@@ -10,7 +10,7 @@ csl: ../bibliography/chicago-parenthetical.csl
 format:
   pdf:
     keep-tex: false
-    fig-pos: "h"
+    fig-pos: "!t"
     include-in-header: 
       text: |
         \usepackage{dcolumn}
