@@ -1,16 +1,25 @@
 ---
 title: "Heterogeneity in the Trends in Interracial Marriage in the US, 1960-2023"
 shorttitle: "Trends in Interracial Marriage, 1960-2023"
+shortauthors: "Gullickson"
 abstract: An Abstract
 keywords: [keyword1, keyword2]
-thanks: Thanks to everyone for checking this out.
+#thanks: Thanks to everyone for checking this out.
 reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 format:
   aog-article-pdf:
-    keep-tex: false
+    papersize: letter
+    #mainfont: Baskerville 
+    #sansfont: Futura-Medium
+    #fontsize: 12pt   
+    #geometry: margin=1in
+    #fig-height: 4     # smaller fig heights make floating easier
+    fig-width: 7.5    # set to the (full width - margins) of letter   
     fig-pos: "!t"
+    colorlinks: true
+    urlcolor: red
 #  submittable-pdf:
 #     keep-tex: false
 #     fig-pos: "!t"
