@@ -8,13 +8,13 @@ project:
   render:
     # if analysis is split into multiple docs, add them here
     - analysis/organize_data.qmd
-    #- analysis/model_justification.qmd
+    - analysis/model_justification.qmd
     - analysis/build_model_data.qmd
     - analysis/estimate_models.qmd
     - analysis/estimate_outmarriage_props.qmd
     - analysis/analysis.qmd
-    #- paper/
-    #- presentation/
+    - paper/
+    - presentation/
     - "!bibliography/"
 
 author:
