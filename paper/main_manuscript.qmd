@@ -9,6 +9,15 @@ bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 filters:
   - abstract-section
+crossref:
+  # code for supplementary figures
+  custom:
+    - kind: float
+      key: suppfig
+      latex-env: suppfig
+      reference-prefix: Figure S
+      space-before-numbering: false
+#      latex-list-of-description: Supplementary Figure
 format:
   aog-article-pdf:
     papersize: letter
@@ -161,7 +170,7 @@ Data for this analysis are derived from the microdata Census samples for Census 
 
 The data include all extant heterosexual married couples in each sample. I also include a secondary sample of heterosexual cohabiting couples, based on data from 1990 at which point "unmarried partner" is provided as a choice for relationship to head of household. Data are limited to heterosexual couples because data on same-sex couples (in marriage or cohabitation) is unavailable for most of the time period.
 
-For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with racial preferences. This may be less true of individuals who arrived as children (i.e. the 1.5 generation). In supplementary analysis discussed later, I consider estimates of interracial marriage that are less restrictive on national origin. <!-- TODO: I do not currently do this -->
+For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with racial preferences. This may be less true of individuals who arrived as children (i.e. the 1.5 generation). @suppfig-intermar-single-gen in the supplementary appendix shows how the results would change for single-race groups involving the Hispanic or Asian/Pacific Islander groups when including some or all of the foreign-born population. The results show that the overall odds of interracial marriage would decline substantially, but the trends are generally similar. The results are similar regardless of whether only the 1.5 generation is included or the entire foreign-born population is included.
 
 ## Measuring Race
 
@@ -277,37 +286,13 @@ In addition to the age weighting, I also apply sample weights to adjust for samp
 
 [^4]: Because the unit of observation is a couple, I use the mean of each partner's person weight to derive the couple weight.
 
-This approach cannot eliminate every bias from the use of the stock of marriages, including bias arise from differential rates of union dissolution. @fig-intermar-cur-mar provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend. For some groups, the age-weighted results are slightly lower than the results for newlyweds, as would be expected due to differential union resolution. However, these differences are slight in comparison to the overall differences across groups and time.
-
-```{r}
-#| label: fig-intermar-cur-mar
-#| fig-cap: Odds of racial exogamy for single race groups, by age weighting and recent marriages
-
-# add in missing values to break line
-model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
-                                year = c(1990, 2000:2007),) |>
-  bind_rows(model_recent_mar) |>
-  mutate(identifier = "<= 1 year duration")
-
-model_state_bs |>
-  filter(!str_detect(term, "-")) |>
-  mutate(identifier = "age weighted") |>
-  bind_rows(model_recent_mar) |>
-  ggplot(aes(x = year, y = exp(estimate), group = identifier, color = identifier))+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = identifier),
-              alpha = 0.3, color = NA)+
-  geom_point(size = 1)+
-  geom_line()+
-  facet_wrap(~term)+
-  scale_color_manual(values = c("red", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  scale_y_log10()+
-  theme_bw()
-```
+This approach cannot eliminate every bias from the use of the stock of marriages, including bias arise from differential rates of union dissolution. @suppfig-intermar-cur-mar in the supplementary appendix provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend, although the odds ratios for newlyweds tend to a little higher, as expected.
 
 For analysis that includes cohabiting couples, I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting to cohabiting couples as I do to married couples.
 
 # Results
+
+All results are presented graphically as the trend in the outmarriage ratio/odds ratio over time. All figures involving odds ratios use logarithmic scaling of the y-axis to highlight differences over time and across groups, so an observed linear trend in these figures corresponds to exponential growth on the outcome scale. The colors used for each type of interracial marriage pairing are maintained across separate figures. All figures include 83% confidence bands unless otherwise stated. An 83% confidence band facilitates easier comparison between parameter estimates because an overlap in these bands will be approximately equal to a statistically significant difference at $p<0.05$. 
 
 ## Trends in Outmarriage Rates
 
@@ -315,7 +300,7 @@ For analysis that includes cohabiting couples, I have no information on the dura
 
 ```{r}
 #| label: fig-outmarriage-overall
-#| fig-cap: The trend in the proportion of marriagest that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
+#| fig-cap: The trend in the proportion of all marriages that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
   
 ggplot(exogamy_trend, aes(x = year, y = exogamy, group = 1))+
   geom_ribbon(aes(ymin = exogamy-1.96*exogamy_se,
@@ -344,7 +329,7 @@ exogamy_trend_race |>
   geom_line(alpha = 0.7)+
   geom_point(size = 1, alpha = 0.7)+
   facet_wrap(~race)+
-  labs(y = "percent of spouses of given race that are racially exogamous")+
+  labs(y = "percent of spouses that are racially exogamous")+
   scale_y_continuous(labels = scales::percent)+
   scale_color_manual(values = c("red", "navy", "gold"))+
   theme_bw()
@@ -364,7 +349,7 @@ Consistent with prior work <!-- TODO: cite -->, @fig-outmarriage-race also shows
 
 ```{r}
 #| label: fig-intermar-single-overall
-#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses.
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 #| fig-height: 4.2
 #| fig-pos: "p"
 #| layout-ncol: 2
@@ -389,7 +374,8 @@ model_single_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -402,7 +388,8 @@ model_single_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -415,7 +402,8 @@ model_single_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -428,7 +416,8 @@ model_single_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -441,7 +430,8 @@ model_single_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -459,7 +449,7 @@ To this point, I have only examined the interracial marriage patterns between si
 
 ```{r}
 #| label: fig-intermar-multi-overall
-#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses.
+#| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 #| layout-ncol: 2
 #| fig-subcap: 
 #|    - White-Black
@@ -474,7 +464,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -487,7 +478,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -500,7 +492,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -516,7 +509,7 @@ The change in 2000 to multiracial reporting may also affect trends in single rac
 
 ```{r}
 #| label: fig-multi-wb-counterf
-#| fig-cap: Comparison of part-White exogamy trends with different counterfactual assumptions about single race reporting among multiracial respondents
+#| fig-cap: Comparison of part-White odds of racial exogamy with different counterfactual assumptions about single race reporting among multiracial respondents. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 #| layout-ncol: 2
 #| fig-subcap: 
 #|    - White/Black
@@ -541,7 +534,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  scale_y_log10(labels = scales::comma)+
+  labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
@@ -564,7 +558,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  scale_y_log10(labels = scales::comma)+
+  labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
@@ -586,7 +581,8 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  scale_y_log10(labels = scales::comma)+
+  labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
   theme_bw()
@@ -602,7 +598,7 @@ I now turn to results that divide the Hispanic group into three separate subgrou
 
 ```{r}
 #| label: fig-sub-hispanic
-#| fig-cap: Exogamy of Hispanic subgroups with White and Black partners. White/Black exogamy shown for reference
+#| fig-cap: Odds of racial exogamy for Hispanic subgroups with non-Hispanic White and Black partners. White/Black exogamy odds are also shown for reference. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 #| layout-ncol: 2
 #| fig-subcap:
 #|   - White partner
@@ -619,7 +615,8 @@ model_hispanic_sub_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -633,7 +630,8 @@ model_hispanic_sub_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10(limits = lims)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
+  scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -651,7 +649,7 @@ The right panel shows the odds of interracial marriage between non-Hispanic Blac
 
 ```{r}
 #| label: fig-sub-asian-simple
-#| fig-cap: Exogamy of Asian subgroups with White partners
+#| fig-cap: Odds of racial exogamy for Asian subgroups with White partners. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 model_asian_sub_simple_state_bs |>
   filter(str_detect(term, "^White/")) |>
@@ -664,7 +662,8 @@ model_asian_sub_simple_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  scale_y_log10()+
+  scale_y_log10(labels = scales::comma)+
+  labs(y = NULL, color = "pairing", fill = "pairing")+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
   theme_bw()
@@ -682,7 +681,7 @@ The decline for Pacific Islander is notable as the only trend examined here to s
 
 ```{r}
 #| label: fig-intermar-cohab
-#| fig-cap: Odds of racial exogamy for single race groups by different union types
+#| fig-cap: Odds of racial exogamy across all single race pairings, separately by cohabitation and marriage. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 model_state_bs <- model_state_bs |>
   mutate(union_type = "marriage")
@@ -703,8 +702,9 @@ model_state_cohab_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
+  labs(y = NULL, color = "union type", fill = "union type")+
   facet_wrap(~term)+
-  scale_y_log10()+
+  scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   theme_bw()
@@ -713,3 +713,81 @@ model_state_cohab_bs |>
 For most of the cases, there is also some convergence over time in the odds of interracial cohabitation and marriage, although the odds of interracial marriage are still lower at the end of the time period in all cases except for White/AIAN. Thus, although the barriers of entry into interracial cohabitation are lower than the barriers of entry into interracial marriage, the difference in those barriers is weakening over time, possibly reflecting a greater deterioration in meaning betweeen cohabitation and marriage over time.
 
 # Conclusions
+
+# References
+
+::: {#refs}
+:::
+
+# Supplementary Appendix
+
+
+::: {#suppfig-intermar-single-gen}
+
+```{r}
+#| label: suppfig-intermar-single-gen
+
+model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
+  mutate(gen = "all")
+
+model_state_single_no_first_gen_bs <- model_state_single_no_first_gen_bs |>
+  mutate(gen = "1.5 and 2nd+")
+
+model_state_bs |>
+  filter(!str_detect(term, "-")) |>
+  mutate(gen = "2nd+ only") |>
+  bind_rows(model_state_single_all_gen_bs) |>
+  bind_rows(model_state_single_no_first_gen_bs) |>
+  filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
+  mutate(gen = factor(gen, 
+                      levels = c("2nd+ only", "1.5 and 2nd+", "all"),
+                      labels = c("Native-born only", "Native-born and 1.5 gen",
+                                 "All"))) |>
+  ggplot(aes(x = year, y = exp(estimate), group = gen, color = gen))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = gen),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term, scales = "free_y")+
+  labs(color = "restriction", fill = "restriction", y = NULL)+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()
+```
+
+Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+
+:::
+
+::: {#suppfig-intermar-cur-mar}
+
+```{r}
+#| label: suppfig-intermar-cur-mar
+
+# add in missing values to break line
+model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
+                                year = c(1990, 2000:2007),) |>
+  bind_rows(model_recent_mar) |>
+  mutate(identifier = "<= 1 year duration")
+
+model_state_bs |>
+  filter(!str_detect(term, "-")) |>
+  mutate(identifier = "age weighted") |>
+  bind_rows(model_recent_mar) |>
+  ggplot(aes(x = year, y = exp(estimate), group = identifier, color = identifier))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = identifier),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  labs(y = NULL, color = "restriction", fill = "restriction")+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()
+```
+
+Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results  are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+
+:::
