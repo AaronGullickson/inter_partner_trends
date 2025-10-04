@@ -3,7 +3,7 @@ title: "Heterogeneity in Interracial Marriage Trends in the United States, 1960-
 shorttitle: "Trends in Interracial Marriage, 1960-2023"
 shortauthors: "Gullickson"
 #keywords: [keyword1, keyword2]
-#thanks: Thanks to everyone for checking this out.
+thanks: Prepared for the Annual Meeting of the Population Association of America 2026
 reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
