@@ -372,7 +372,7 @@ lims <- exp(c(min(model_single_state_bs$conf.low),
 model_single_state_bs |>
   filter(str_detect(term, "White")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -386,7 +386,7 @@ model_single_state_bs |>
 model_single_state_bs |>
   filter(str_detect(term, "Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -400,7 +400,7 @@ model_single_state_bs |>
 model_single_state_bs |>
   filter(str_detect(term, "AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -414,7 +414,7 @@ model_single_state_bs |>
 model_single_state_bs |>
   filter(str_detect(term, "API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -428,7 +428,7 @@ model_single_state_bs |>
 model_single_state_bs |>
   filter(str_detect(term, "Hispanic")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -463,7 +463,7 @@ To this point, I have only examined the interracial marriage patterns between si
 model_state_bs |>
   filter(term == "White/Black" | str_detect(term, "White-Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -477,7 +477,7 @@ model_state_bs |>
 model_state_bs |>
   filter(term == "White/AIAN" | str_detect(term, "White-AIAN")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -491,7 +491,7 @@ model_state_bs |>
 model_state_bs |>
   filter(term == "White/API" | str_detect(term, "White-API")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -533,7 +533,7 @@ model_state_bs |>
                                  levels = c("Actual", "White", "Black", 
                                             "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
                   fill = counterfactual),
               alpha = 0.3, color = NA)+
@@ -558,7 +558,7 @@ model_state_bs |>
                                  levels = c("Actual", "White", "API", 
                                             "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
                   fill = counterfactual),
               alpha = 0.3, color = NA)+
@@ -583,7 +583,7 @@ model_state_bs |>
                                  levels = c("Actual", "White", "AIAN", 
                                             "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -617,7 +617,7 @@ lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low),
 model_hispanic_sub_state_bs |>
   filter(!str_detect(term, "Hispanic/") & !str_detect(term, "^Black")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -632,7 +632,7 @@ model_hispanic_sub_state_bs |>
   filter((str_detect(term, "^Black/") & !str_detect(term, "Hispanic/")) |
            str_detect(term, "^White/Black$")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -664,7 +664,7 @@ model_asian_sub_simple_state_bs |>
          term = str_replace(term, "/PI", "/Pac. Islander"),
          term = str_replace(term, "/SouthAsian", "/South Asian")) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
@@ -704,7 +704,7 @@ model_state_cohab_bs |>
   mutate(union_type = factor(union_type, 
                              levels = c("marriage", "cohabitation", "both"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = union_type))+
-  geom_vline(xintercept = 2000, linetype = 2)+
+  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
               alpha = 0.3, color = NA)+
   geom_line()+
