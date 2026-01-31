@@ -525,6 +525,7 @@ model_state_bs |>
   bind_rows(model_cf_white_state_bs) |>
   bind_rows(model_cf_minority_state_bs) |>
   bind_rows(model_cf_best_state_bs) |>
+  filter(counterfactual == "Actual" | year >= 1990) |>
   filter(term == "White/Black") |>
   mutate(counterfactual = if_else(counterfactual == "Minority", "Black",
                                   counterfactual),
@@ -540,8 +541,8 @@ model_state_bs |>
   geom_point(size = 0.5)+
   scale_y_log10(labels = scales::comma)+
   labs(y = NULL)+
-  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
   theme_bw(base_size = 16)
 
 model_state_bs |>
@@ -549,6 +550,7 @@ model_state_bs |>
   bind_rows(model_cf_white_state_bs) |>
   bind_rows(model_cf_minority_state_bs) |>
   bind_rows(model_cf_best_state_bs) |>
+  filter(counterfactual == "Actual" | year >= 1990) |>
   filter(term == "White/API") |>
   mutate(counterfactual = if_else(counterfactual == "Minority", "API",
                                   counterfactual),
@@ -564,8 +566,8 @@ model_state_bs |>
   geom_point(size = 0.5)+
   scale_y_log10(labels = scales::comma)+
   labs(y = NULL)+
-  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
   theme_bw(base_size = 16)
 
 model_state_bs |>
@@ -573,6 +575,7 @@ model_state_bs |>
   bind_rows(model_cf_white_state_bs) |>
   bind_rows(model_cf_minority_state_bs) |>
   bind_rows(model_cf_best_state_bs) |>
+  filter(counterfactual == "Actual" | year >= 1990) |>
   filter(term == "White/AIAN") |>
   mutate(counterfactual = if_else(counterfactual == "Minority", "AIAN",
                                   counterfactual),
@@ -587,8 +590,8 @@ model_state_bs |>
   geom_point(size = 0.5)+
   scale_y_log10(labels = scales::comma)+
   labs(y = NULL)+
-  scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
+  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
   theme_bw(base_size = 16)
 ```
 
