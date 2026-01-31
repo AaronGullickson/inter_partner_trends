@@ -35,6 +35,10 @@ format:
 #     fig-pos: "!t"
 #  submittable-docx: 
 #    fig-format: pdf
+# header-includes to resposition subcaptions
+header-includes:
+  - \usepackage{caption}
+  - \captionsetup[subfigure]{justification=centering}
 ---
 
 ```{r}
@@ -140,13 +144,11 @@ Many of my findings echo and reinforce previous work. I find, for example, that 
 
 # Background
 
-<!-- TODO: first part here could probably use some more citations -->
-
 The significance of interracial marriage to social systems is twofold.[^1] First, the likelihood of interracial marriage is seen as a key indicator of the social distance between groups and the strength and rigidity of the boundary separating those groups [@gordon_assimilation_1964]. Interracial marriage provides a window into the assimilation and integration of groups within the most intimate sphere of social life. For example, the almost complete social (and often legal) prohibition on marriage between Black and White partners for much of US history is a testament to the stark impermeability of the White/Black boundary.
 
-[^1]: I use the term "interracial" here because I will focus on marriage between groups that are identified by a racialized boundaries, but the logic I discuss here could apply equally well to "intergroup" marriage where groups could be defined by ethnicity, religion, etc.
+[^1]: I use the term "interracial" here because I will focus on marriage between groups that are identified by a racialized boundary, but the logic could apply equally well to "intergroup" marriage where groups are defined by ethnicity, religion, etc.
 
-Second, an increase in the likelihood of interracial marriage is seen as a harbinger of intergenerational change because the children from such unions can plausibly claim possession of both group identifications [@root_racially_1992]. Such children then potentially represent another source by which group boundaries can be weakened, by invalidating the distinctiveness of group identity itself. This argument comes with important caveats. Marriage is not the only means by which to produce "mixed" children. For example, for most of US history, White/Black mixing predominantly occurred outside of marriage [@gullickson_black_2006]. Furthermore, norms of classification such as the "one drop rule" can often effectively stunt any challenge to group boundaries arising from "mixed" children [@davis_who_1991]. Nonetheless, the "biracial baby boom" resulting from rising interracial marriage in the post-Civil Rights period has played an important role in restructuring our understanding, and even measurement, of racial boundaries [@lee_americas_2004].
+Second, an increase in the likelihood of interracial marriage is seen as a harbinger of intergenerational change because the children from such unions can plausibly claim possession of both group identifications [@root_racially_1992]. Such children then potentially represent another source by which group boundaries can be weakened, by invalidating the distinctiveness of group identity itself. This argument comes with important caveats. Marriage is not the only means by which to produce "mixed" children. For example, for most of US history, White/Black mixing predominantly occurred outside of marriage [@hodes_white_1997; @kennedy_interracial_2003]. Furthermore, norms of classification such as the "one drop rule" can often effectively stunt any challenge to group boundaries arising from "mixed" children [@johnston_race_1970; @davis_who_1991]. Nonetheless, the "biracial baby boom" resulting from rising interracial marriage in the post-Civil Rights period has played an important role in restructuring our understanding, and even measurement, of racial boundaries [@lee_americas_2004].
 
 Measuring the frequency of interracial marriage is complicated by differences in group size. These differences will play an important role in who marries whom, because they determine the racial distribution of potential partners. Whether or not group size is accounted for in a measure of interracial marriage can lead to dramatic differences in our assessment of its frequency. A popular measure of interracial marriage is the outmarriage rate, or ratio. Typically, this measures the percent of individuals from a given group that are married to someone belonging to a different group, although it can also be measured across the population at large or for a specific pairing (e.g. what percent of black spouses are married to white spouses?). The measure is intuitive and easy to understand. However, it is also largely determined by relative group size above and beyond other factors.
 
@@ -302,7 +304,7 @@ All results are presented graphically as the trend in the outmarriage ratio/odds
 
 ```{r}
 #| label: fig-outmarriage-overall
-#| fig-cap: The trend in the proportion of all marriages that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
+#| fig-cap: The trend in the share of all marriages that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 95% confidence band shown.
   
 ggplot(exogamy_trend, aes(x = year, y = exogamy, group = 1))+
   geom_ribbon(aes(ymin = exogamy-1.96*exogamy_se,
@@ -311,15 +313,15 @@ ggplot(exogamy_trend, aes(x = year, y = exogamy, group = 1))+
   geom_line()+
   geom_point()+
   scale_y_continuous(labels = scales::percent)+
-  labs(y = "percent of marriages that are racially exogamous")+
-  theme_bw()
+  labs(y = "percent racially exogamous")+
+  theme_bw(base_size = 14)
 ```
 
 The simple trend shown in @fig-outmarriage-overall suggests rapidly diminishing racial boundaries. However, when we look at the outmarriage ratio separately by racial group, the picture becomes more complicated. @fig-outmarriage-race shows outmarriage ratios for each single race group over time, and separately by the sex of the spouse. As before, all results are weighted to reflect the joint age distribution of newlyweds.
 
 ```{r}
 #| label: fig-outmarriage-race
-#| fig-cap: The trend in the proportion of spouses of a given race and gender that are racially exogamous. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 83% confidence bands shown.
+#| fig-cap: The trend in the share of spouses of a given race and gender that are in a racially exogamous marriage. Values in all years are weighted to reflect the joint age distribution of newlywed partners. 83% confidence bands shown.
 
 exogamy_trend_race |>
   filter(!str_detect(race, "-")) |>
@@ -331,10 +333,11 @@ exogamy_trend_race |>
   geom_line(alpha = 0.7)+
   geom_point(size = 1, alpha = 0.7)+
   facet_wrap(~race)+
-  labs(y = "percent of spouses that are racially exogamous")+
+  labs(y = "percent racially exogamous")+
   scale_y_continuous(labels = scales::percent)+
   scale_color_manual(values = c("red", "navy", "gold"))+
-  theme_bw()
+  theme_bw(base_size = 14)+
+  theme(panel.spacing.x = unit(0.75, "lines")) 
 ```
 
 For both the AIAN and API groups, outmarriage ratios largely stopped increasing (after 1990 for AIAN and after 2000 for API) and have remained flat, or have slightly declined since. In contrast, the outmarriage ratios for White, Black, and Hispanic partners have consistently increased over the time period.
@@ -350,7 +353,7 @@ Consistent with prior work, @fig-outmarriage-race also shows that the likelihood
 ```{r}
 #| label: fig-intermar-single-overall
 #| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-#| fig-height: 4.2
+#| fig-height: 4.75
 #| fig-pos: "p"
 #| layout-ncol: 2
 #| fig-subcap: 
@@ -359,8 +362,6 @@ Consistent with prior work, @fig-outmarriage-race also shows that the likelihood
 #|    - AIAN partner
 #|    - API partner
 #|    - Hispanic partner
-
-# TODO: placement of sub-captions is bad
 
 model_single_state_bs <- model_state_bs |>
   filter(!str_detect(term, "-"))
@@ -380,7 +381,7 @@ model_single_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_single_state_bs |>
   filter(str_detect(term, "Black")) |>
@@ -394,7 +395,7 @@ model_single_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_single_state_bs |>
   filter(str_detect(term, "AIAN")) |>
@@ -408,7 +409,7 @@ model_single_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_single_state_bs |>
   filter(str_detect(term, "API")) |>
@@ -422,7 +423,7 @@ model_single_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_single_state_bs |>
   filter(str_detect(term, "Hispanic")) |>
@@ -437,7 +438,7 @@ model_single_state_bs |>
   scale_x_continuous(limits = c(1960, 2023))+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 The trends in @fig-intermar-single-overall are consistent with the plateau of outmarriage rates observed in @fig-outmarriage-race for AIAN and API partners. Across all possible combinations, racial exogamy involving an API partner had either plateaued by the late 20th century or has shown no evidence of a rise at all over the time period. The results for AIAN partners are somewhat similar, except for some evidence of a moderate rise in the odds of marriage to Hispanic and Black partners in the later time period.
@@ -471,7 +472,7 @@ model_state_bs |>
   scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_state_bs |>
   filter(term == "White/AIAN" | str_detect(term, "White-AIAN")) |>
@@ -485,7 +486,7 @@ model_state_bs |>
   scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_state_bs |>
   filter(term == "White/API" | str_detect(term, "White-API")) |>
@@ -499,7 +500,7 @@ model_state_bs |>
   scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 For both the White-Black and the White-API case, I observe a similar pattern. Marriages to each of the two constituent groups are considerably more likely than a "first generation" marriage between the two constituent groups. This finding suggests that White-Black and White-API individuals face lower boundaries to interracial marriage with these groups because they are in some sense partially endogamous with both groups [@gullickson_blurring_2025].
@@ -541,7 +542,7 @@ model_state_bs |>
   labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_state_bs |>
   mutate(counterfactual = "Actual") |>
@@ -565,7 +566,7 @@ model_state_bs |>
   labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_state_bs |>
   mutate(counterfactual = "Actual") |>
@@ -588,7 +589,7 @@ model_state_bs |>
   labs(y = NULL)+
   scale_color_manual(values = c("red", "gold", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "gold", "navy", "darkgreen"))+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 @fig-multi-wb-counterf presents the trends resulting from these different scenarios. For White/Black respondents, the overall trend is quite similar across all scenarios, although all three scenarios would have slightly increased the odds of White/Black marriage over that actually observed after 2000.
@@ -622,7 +623,7 @@ model_hispanic_sub_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 
 model_hispanic_sub_state_bs |>
   filter((str_detect(term, "^Black/") & !str_detect(term, "Hispanic/")) |
@@ -637,7 +638,7 @@ model_hispanic_sub_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 In terms of interracial marriage with White spouses shown in the left panel, the ordering of the three subgroups is as expected. Hispanic individuals who identify as White by race are the most likely to marry non-Hispanic White spouses. The odds of marriage to White spouses are somewhat lower for Hispanic individuals who identify as Other by race. For comparison, both of these odds ratios are substantially higher than the odds of White/Black marriage. The odds of marriage to a White spouse are much lower for Hispanic individuals who identify as Black by race and are slightly lower than the odds of White/Black marriage.
@@ -669,7 +670,7 @@ model_asian_sub_simple_state_bs |>
   labs(y = NULL, color = "pairing", fill = "pairing")+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw()
+  theme_bw(base_size = 14)
 ```
 
 In contrast, the results for South Asians suggest increasing odds of marriage with White spouses throughout the time period, although sparsity of data from before 1980 limits the full range of the time period. Point estimates suggest a decline from 1980 to 1990, but the wide error margins on these estimates make such a decline questionable at best. Since 1990, there has been steady growth in the odds of South Asian/White partnering. However, those odds begin and remain substantially lower than those same odds for South/Southeast Asian partners, even as they are converging across time.
@@ -710,7 +711,8 @@ model_state_cohab_bs |>
   scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  theme_bw()
+  theme_bw(base_size = 12)+
+  theme(panel.spacing.x = unit(0.75, "lines")) 
 ```
 
 For most of the cases, there is also some convergence over time in the odds of interracial cohabitation and marriage, although the odds of interracial marriage are still lower at the end of the time period in all cases except for White/AIAN. Thus, although the barriers of entry into interracial cohabitation are lower than the barriers of entry into interracial marriage, the difference in those barriers is weakening over time, possibly reflecting a deterioration in meaning between cohabitation and marriage.
@@ -776,7 +778,7 @@ model_state_bs |>
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   scale_y_log10(labels = scales::comma)+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
@@ -806,7 +808,7 @@ model_state_bs |>
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   scale_y_log10(labels = scales::comma)+
-  theme_bw()
+  theme_bw(base_size = 16)
 ```
 
 Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
