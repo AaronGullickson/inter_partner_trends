@@ -174,7 +174,7 @@ Data for this analysis are derived from the microdata Census samples for Census 
 
 The data include all extant heterosexual married couples in each sample. I also include a secondary sample of heterosexual cohabiting couples beginning in 1990 at which point "unmarried partner" is provided as a choice for relationship to head of household. Data are limited to heterosexual couples because data on same-sex couples (in marriage or cohabitation) is unavailable for most of the time period.
 
-For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with racial preferences, although this may be less true of individuals who arrived as children (i.e. the 1.5 generation). @suppfig-intermar-single-gen in the supplementary appendix shows how the results would change for single-race groups involving the Hispanic or Asian/Pacific Islander groups when including some or all of the foreign-born population. The results show that the overall odds of interracial marriage would decline substantially, but the trends are generally similar. The results are similar regardless of whether the entire foreign-born population or only the 1.5 generation is included.
+For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with racial preferences, although this may be less true of individuals who arrived as children (i.e. the 1.5 generation). Figure S1 in the supplementary appendix shows how the results would change for single-race groups involving the Hispanic or Asian/Pacific Islander groups when including some or all of the foreign-born population. The results show that the overall odds of interracial marriage would decline substantially, but the trends are generally similar. The results are similar regardless of whether the entire foreign-born population or only the 1.5 generation is included.
 
 ## Measuring Race
 
@@ -280,7 +280,7 @@ In addition to the age weighting, I also apply sample weights to adjust for samp
 
 [^4]: Because the unit of observation is a couple, I use the mean of both partner's person weight to derive the couple weight.
 
-This approach cannot eliminate every bias from the use of the stock of marriages, including bias arising from differential rates of union dissolution. @suppfig-intermar-cur-mar in the supplementary appendix provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend, although the odds ratios for newlyweds tend to be a little higher, as expected.
+This approach cannot eliminate every bias from the use of the stock of marriages, including bias arising from differential rates of union dissolution. Figure S2 in the supplementary appendix provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend, although the odds ratios for newlyweds tend to be a little higher, as expected.
 
 For analysis that includes cohabiting couples, I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting to cohabiting couples as I do to married couples.
 
@@ -742,72 +742,4 @@ The causal forces driving these trends is not the focus of this paper. However, 
 # References
 
 ::: {#refs}
-:::
-
-# Supplementary Appendix
-
-::: {#suppfig-intermar-single-gen}
-```{r}
-#| label: suppfig-intermar-single-gen
-
-model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
-  mutate(gen = "all")
-
-model_state_single_no_first_gen_bs <- model_state_single_no_first_gen_bs |>
-  mutate(gen = "1.5 and 2nd+")
-
-model_state_bs |>
-  filter(!str_detect(term, "-")) |>
-  mutate(gen = "2nd+ only") |>
-  bind_rows(model_state_single_all_gen_bs) |>
-  bind_rows(model_state_single_no_first_gen_bs) |>
-  filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
-  mutate(gen = factor(gen, 
-                      levels = c("2nd+ only", "1.5 and 2nd+", "all"),
-                      labels = c("Native-born only", "Native-born and 1.5 gen",
-                                 "All"))) |>
-  ggplot(aes(x = year, y = exp(estimate), group = gen, color = gen))+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = gen),
-              alpha = 0.3, color = NA)+
-  geom_point(size = 1)+
-  geom_line()+
-  facet_wrap(~term, scales = "free_y")+
-  labs(color = "restriction", fill = "restriction", y = NULL)+
-  scale_color_manual(values = c("red", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  scale_y_log10(labels = scales::comma)+
-  theme_bw()
-```
-
-Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-:::
-
-::: {#suppfig-intermar-cur-mar}
-```{r}
-#| label: suppfig-intermar-cur-mar
-
-# add in missing values to break line
-model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
-                                year = c(1990, 2000:2007),) |>
-  bind_rows(model_recent_mar) |>
-  mutate(identifier = "<= 1 year duration")
-
-model_state_bs |>
-  filter(!str_detect(term, "-")) |>
-  mutate(identifier = "age weighted") |>
-  bind_rows(model_recent_mar) |>
-  ggplot(aes(x = year, y = exp(estimate), group = identifier, color = identifier))+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = identifier),
-              alpha = 0.3, color = NA)+
-  geom_point(size = 1)+
-  geom_line()+
-  facet_wrap(~term)+
-  labs(y = NULL, color = "restriction", fill = "restriction")+
-  scale_color_manual(values = c("red", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  scale_y_log10(labels = scales::comma)+
-  theme_bw()
-```
-
-Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 :::

@@ -1,12 +1,25 @@
 ---
 title: "Supplementary Materials"
 format:
-  pdf:
-    keep-tex: false
-    fig-pos: "!t"
-    include-in-header: 
-      text: |
-        \usepackage{dcolumn}
+  aog-article-pdf:
+    papersize: letter
+    #mainfont: Baskerville 
+    #sansfont: Futura-Medium
+    #fontsize: 12pt   
+    #geometry: margin=1in
+    #fig-height: 4     # smaller fig heights make floating easier
+    fig-width: 7.5    # set to the (full width - margins) of letter   
+    fig-pos: "h"
+    colorlinks: true
+    urlcolor: red
+crossref:
+  # code for supplementary figures
+  custom:
+    - kind: float
+      key: suppfig
+      latex-env: suppfig
+      reference-prefix: Figure S
+      space-before-numbering: false
 ---
 
 ```{r}
@@ -27,6 +40,91 @@ load(here("data", "data_constructed", "models_subgroups.RData"))
 load(here("data", "data_constructed", "models_counterfactual.RData"))
 load(here("data", "data_constructed", "model_region.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
+load(here("data", "data_constructed", "model_recent_mar.RData"))
+load(here("data", "data_constructed", "models_cohab.RData"))
+load(here("data", "data_constructed", "model_recent_mar.RData"))
 ```
 
-This document is for supplementary materials
+
+# Inclusion of Foreign-Born Population
+
+The main results for the analysis excludes unions involving foreign-born individuals. For data without marriage duration information, it is impossible to determine whether such unions were formed in the US or elsewhere. Furthermore, foreign-born individuals will likely have a stronger attachment to marrying someone of the same ethnonational group even when marrying in the US. For these reasons, including foreign-born individuals will likely lower the overall likelihood of racial exogamy.
+
+@suppfig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population the overall trends are similar. 
+
+::: {#suppfig-intermar-single-gen}
+```{r}
+#| label: suppfig-intermar-single-gen
+
+model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
+  mutate(gen = "all")
+
+model_state_single_no_first_gen_bs <- model_state_single_no_first_gen_bs |>
+  mutate(gen = "1.5 and 2nd+")
+
+model_state_bs |>
+  filter(!str_detect(term, "-")) |>
+  mutate(gen = "2nd+ only") |>
+  bind_rows(model_state_single_all_gen_bs) |>
+  bind_rows(model_state_single_no_first_gen_bs) |>
+  #filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
+  mutate(gen = factor(gen, 
+                      levels = c("2nd+ only", "1.5 and 2nd+", "all"),
+                      labels = c("Native-born only", "Native-born and 1.5 gen",
+                                 "All"))) |>
+  ggplot(aes(x = year, y = exp(estimate), group = gen, color = gen))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = gen),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  labs(color = "restriction", fill = "restriction", y = NULL)+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()
+```
+
+Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+:::
+
+# Comparison of Age-Weighted and Duration-Specific Results
+
+From 1960 to 1980 and after 2007, I have information on the duration of marriage that I can use to restrict the sample to individuals married in the last year. For the 1960 to 1980 period, this information is only provided for first marriages. @suppfig-intermar-cur-mar compares results based on duration data to the full results that use age weighting to make the sample representative of the newlywed population. 
+
+::: {#suppfig-intermar-cur-mar}
+```{r}
+#| label: suppfig-intermar-cur-mar
+
+# add in missing values to break line
+model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
+                                year = c(1990, 2000:2007),) |>
+  bind_rows(model_recent_mar) |>
+  mutate(identifier = "<= 1 year")
+
+model_state_bs |>
+  filter(!str_detect(term, "-")) |>
+  mutate(identifier = "age weighted") |>
+  bind_rows(model_recent_mar) |>
+  ggplot(aes(x = year, y = exp(estimate), group = identifier, color = identifier))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = identifier),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  labs(y = NULL, color = "restriction", fill = "restriction")+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()
+```
+
+Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+:::
+
+Because the results for the duration restriction rely on much smaller sample sizes, the results can be noisy for some groups. This is particularly true of some dual-minority interracial marriage pairings such as Black/AIAN and Black/API. 
+
+As expected, the duration-specific results produce somewhat higher odds of interracial marriage for most groups. However, the discrepancy between the two approaches is minor and the trends across the two approaches are similar.
+
+
+# Age Weighting Procedure
