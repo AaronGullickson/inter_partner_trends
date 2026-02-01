@@ -1,5 +1,8 @@
 ---
 title: "Supplementary Materials"
+reference-section-title: References
+bibliography: ../bibliography/project.bib
+csl: ../bibliography/chicago-parenthetical.csl
 format:
   aog-article-pdf:
     papersize: letter
@@ -9,7 +12,7 @@ format:
     #geometry: margin=1in
     #fig-height: 4     # smaller fig heights make floating easier
     fig-width: 7.5    # set to the (full width - margins) of letter   
-    fig-pos: "h"
+    fig-pos: "tb"
     colorlinks: true
     urlcolor: red
 crossref:
@@ -33,62 +36,124 @@ source(here("utils","functions.R"))
 ```{r}
 #| label: load-data
 
-load(here("data", "data_constructed", "exogamy_trends.RData"))
+load(here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
-load(here("data", "data_constructed", "model_basic_bs.RData"))
-load(here("data", "data_constructed", "models_subgroups.RData"))
-load(here("data", "data_constructed", "models_counterfactual.RData"))
-load(here("data", "data_constructed", "model_region.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
-load(here("data", "data_constructed", "models_cohab.RData"))
-load(here("data", "data_constructed", "model_recent_mar.RData"))
 ```
 
 
-# Inclusion of Foreign-Born Population
 
-The main results for the analysis excludes unions involving foreign-born individuals. For data without marriage duration information, it is impossible to determine whether such unions were formed in the US or elsewhere. Furthermore, foreign-born individuals will likely have a stronger attachment to marrying someone of the same ethnonational group even when marrying in the US. For these reasons, including foreign-born individuals will likely lower the overall likelihood of racial exogamy.
+# Age Weighting Procedure
 
-@suppfig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population the overall trends are similar. 
+Weights are applied to each couple such that the joint age distribution of extant couples in a given year will match the joint age distribution of newlyweds in that same year. The weight $w$ for a couple with the husband in age group $i$ and the wife in age group $j$ is given by:
 
-::: {#suppfig-intermar-single-gen}
+$$w_{ij} = \frac{p^{(N)}_{ij}}{p^{(E)}_{ij}}$$
+
+where $w_{ij}$ is the weight for couples where the husband belongs to age group $i$ and the wife belongs to age group $j$, $p^{(N)}_{ij}$ is the proportion of newlywed couples belonging to the joint age group, and $p^{(E)}_{ij}$ is the proportion of extant couples in the Census/ACS data source belonging to the joint age group.
+
+To determine $p^{(N)}_{ij}$ for the entire time period, I rely upon two sources. From 2008 onward, ACS data includes information on marital timing for all current marriages and therefore I can estimate this value directly from the data by taking all couples married a year or less. Prior to 2008, I rely upon US vital statistics reports on marriage for 1960, 1970, 1980, and 1988 [@nationalcenterforhealthstatistics_vital_1960; @nationalcenterforhealthstatistics_vital_1970; @nationalcenterforhealthstatistics_vital_1980; @nationalcenterforhealthstatistics_vital_1988]. Each of these sources provides tables of the joint age distribution of newlyweds, originating from marriage records. However, each source also has some idiosyncracy that require some modifications.
+
+First, the sources use different age groupings. I therefore use an age grouping that can be made consistent across sources by summing smaller groups in more detailed sources. The age grouping I use for both husbands and wives is under 20, 20-24, 25-29, 30-34, 35-44, 45-54 and 55 or over. Second, some data sources use tables that are disaggregated further, requiring me to sum results across multiple tables. The 1960 data are split by the previous marital status of brides (single, divorced, widowed). The 1988 data are split by the race of newlyweds into White, Black, and Other and exclude multiracial couples. 
+
+These data sources provide me with the joint age distribution up to 1988. After 1988, these reports were no longer produced. To calculate the joint age distribution for Census 1990, Census 2000, and the ACS from 2001-2007, I linearly interpolate the joint age distribution from 1988 to 2008. Specifically,
+
+
+$$p^{(t)}_{ij} = (1 - \alpha) * p^{(1988)}_{ij} + \alpha * p^{(2008)}_{ij}$$
+
+Where $p^{(t)}_{ij}$ denotes the proportion of couples in which the husband belongs to age group $i$ and the wife belongs to age group $j$ in year $t$. The interpolation weight, $\alpha$, is given by:
+
+$$\alpha = \frac{t_i-1988}{2008-1988} = \frac{t-1988}{20}$$
+
 ```{r}
-#| label: suppfig-intermar-single-gen
+#| label: fig-summary-age-dist
+#| fig-cap: Summary measures of age distribution of spouses, interpolated and non-interpolated data
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - Mean age of husbands
+#|   - Mean age of wives
+#|   - Spousal age gap
 
-model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
-  mutate(gen = "all")
+years_interp <- c(1990, 2000:2007)
 
-model_state_single_no_first_gen_bs <- model_state_single_no_first_gen_bs |>
-  mutate(gen = "1.5 and 2nd+")
+temp <- prop_age_year_recent |>
+  group_by(YEAR) |>
+  summarize(mean_age_husband = sum(age_group_husband * prop),
+            mean_age_wife = sum(age_group_wife * prop),
+            age_diff = mean_age_husband - mean_age_wife) |>
+  ungroup() |>
+  mutate(interpolated = YEAR %in% years_interp)
 
-model_state_bs |>
-  filter(!str_detect(term, "-")) |>
-  mutate(gen = "2nd+ only") |>
-  bind_rows(model_state_single_all_gen_bs) |>
-  bind_rows(model_state_single_no_first_gen_bs) |>
-  #filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
-  mutate(gen = factor(gen, 
-                      levels = c("2nd+ only", "1.5 and 2nd+", "all"),
-                      labels = c("Native-born only", "Native-born and 1.5 gen",
-                                 "All"))) |>
-  ggplot(aes(x = year, y = exp(estimate), group = gen, color = gen))+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = gen),
-              alpha = 0.3, color = NA)+
-  geom_point(size = 1)+
-  geom_line()+
-  facet_wrap(~term)+
-  labs(color = "restriction", fill = "restriction", y = NULL)+
-  scale_color_manual(values = c("red", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  scale_y_log10(labels = scales::comma)+
-  theme_bw()
+ggplot(temp, aes(x = YEAR, y = mean_age_husband))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean grooms's age")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
+
+ggplot(temp, aes(x = YEAR, y = mean_age_wife))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean brides's age")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
+
+ggplot(temp, aes(x = YEAR, y = age_diff))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "Spousal age gap")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
 ```
 
-Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-:::
+@fig-summary-age-dist examines the mean age of grooms and brides, and the age difference between them across the time period with years of interpolation highlighted in red. The interpolated results are smoother than the later time period which relies on single years of ACS data, but otherwise produces a reasonable interpolation across the years of missing data.
 
-# Comparison of Age-Weighted and Duration-Specific Results
+```{r}
+#| label: fig-age-dist-tile
+#| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
+
+prop_age_year_recent |>
+  filter(YEAR %in% c(1988, 1990, 2000:2008)) |>
+  mutate(age_group_husband = case_when(
+           age_group_husband < 20 ~ "Under 20",
+           age_group_husband < 25 ~ "20-24",
+           age_group_husband < 30 ~ "25-29",
+           age_group_husband < 35 ~ "30-34",
+           age_group_husband < 45 ~ "35-44",
+           age_group_husband < 55 ~ "45-54",
+           age_group_husband >= 55 ~ "55+",
+         ),
+         age_group_husband = factor(
+           age_group_husband,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         ),
+         age_group_wife = case_when(
+           age_group_wife < 20 ~ "Under 20",
+           age_group_wife < 25 ~ "20-24",
+           age_group_wife < 30 ~ "25-29",
+           age_group_wife < 35 ~ "30-34",
+           age_group_wife < 45 ~ "35-44",
+           age_group_wife < 55 ~ "45-54",
+           age_group_wife >= 55 ~ "55+",
+         ),
+         age_group_wife = factor(
+           age_group_wife,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         )) |>
+  ggplot(aes(x = age_group_husband, y = age_group_wife, fill = prop)) +
+  geom_tile() +
+  scale_fill_viridis_c(direction = -1) +
+  facet_wrap(~YEAR)+
+  labs(x = "husband's age", y = "wife's age", fill = "joint\nproportion")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intevening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
+
+## Comparison of Age-Weighted and Duration-Specific Results
 
 From 1960 to 1980 and after 2007, I have information on the duration of marriage that I can use to restrict the sample to individuals married in the last year. For the 1960 to 1980 period, this information is only provided for first marriages. @suppfig-intermar-cur-mar compares results based on duration data to the full results that use age weighting to make the sample representative of the newlywed population. 
 
@@ -126,5 +191,45 @@ Because the results for the duration restriction rely on much smaller sample siz
 
 As expected, the duration-specific results produce somewhat higher odds of interracial marriage for most groups. However, the discrepancy between the two approaches is minor and the trends across the two approaches are similar.
 
+# Inclusion of Foreign-Born Population
 
-# Age Weighting Procedure
+The main results for the analysis excludes unions involving foreign-born individuals. For data without marriage duration information, it is impossible to determine whether such unions were formed in the US or elsewhere. Furthermore, foreign-born individuals will likely have a stronger attachment to marrying someone of the same ethnonational group even when marrying in the US. For these reasons, including foreign-born individuals will likely lower the overall likelihood of racial exogamy.
+
+::: {#suppfig-intermar-single-gen}
+```{r}
+#| label: suppfig-intermar-single-gen
+
+model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
+  mutate(gen = "all")
+
+model_state_single_no_first_gen_bs <- model_state_single_no_first_gen_bs |>
+  mutate(gen = "1.5 and 2nd+")
+
+model_state_bs |>
+  filter(!str_detect(term, "-")) |>
+  mutate(gen = "2nd+ only") |>
+  bind_rows(model_state_single_all_gen_bs) |>
+  bind_rows(model_state_single_no_first_gen_bs) |>
+  #filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
+  mutate(gen = factor(gen, 
+                      levels = c("2nd+ only", "1.5 and 2nd+", "all"),
+                      labels = c("Native-born only", "Native-born and 1.5 gen",
+                                 "All"))) |>
+  ggplot(aes(x = year, y = exp(estimate), group = gen, color = gen))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = gen),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  labs(color = "restriction", fill = "restriction", y = NULL)+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()
+```
+
+Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+:::
+
+@suppfig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population the overall trends are similar. 
+
