@@ -147,7 +147,7 @@ prop_age_year_recent |>
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intevening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
+As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intervening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
 
 # Comparison of Age-Weighted and Duration-Specific Results
 
