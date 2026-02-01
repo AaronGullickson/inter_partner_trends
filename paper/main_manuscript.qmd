@@ -87,7 +87,7 @@ palette <- c(
 
   # Hispanic subgroups with White and Black
   "White/White Hispanic"           = "#552288",  # soft purple
-  "White/Black Hispanic"           = "#AA0055",  # rose plum
+  "White/Black Hispanic"           = "#E1A400",  # rose plum
   "White/Other Hispanic"           = "#4FAA37",  # leafy green
   "Black/White Hispanic"           = "#9E9E00",  # olive yellow
   "Black/Black Hispanic"           = "#AA3344",  # reddish brick
@@ -335,15 +335,8 @@ Consistent with prior work, @fig-outmarriage-race also shows that the likelihood
 ```{r}
 #| label: fig-intermar-single-overall
 #| fig-cap: Odds of racial exogamy across all single race pairings, separately by the focal race of spouse. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-#| fig-height: 4.75
+#| fig-height: 8
 #| fig-pos: "p"
-#| layout-ncol: 2
-#| fig-subcap: 
-#|    - White partner
-#|    - Black partner
-#|    - AIAN partner
-#|    - API partner
-#|    - Hispanic partner
 
 model_single_state_bs <- model_state_bs |>
   filter(!str_detect(term, "-"))
@@ -351,76 +344,31 @@ model_single_state_bs <- model_state_bs |>
 lims <- exp(c(min(model_single_state_bs$conf.low), 
               max(model_single_state_bs$conf.high)))
 
+# we need to facet instead of subcap because word doesn't like it. Also it will
+# be a pain for journal editorial teams (sigh)
 model_single_state_bs |>
-  filter(str_detect(term, "White")) |>
+  mutate(focal1 = str_extract(term, "^[^/]+"),
+         focal2 = str_extract(term, "(?<=/).*")) |>
+  pivot_longer(cols = starts_with("focal"), values_to = "focal") |>
+  mutate(focal = factor(
+    focal, 
+    levels = c("White", "Black", "AIAN", "API", "Hispanic"),
+    labels = paste0("Involving ", 
+                    c("White", "Black", "AIAN", "API", "Hispanic"),
+                    " spouse")
+    )) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
+  facet_wrap(~focal, ncol = 2)+
   labs(y = NULL, color = "pairing", fill = "pairing")+
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_single_state_bs |>
-  filter(str_detect(term, "Black")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(limits = lims, labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_single_state_bs |>
-  filter(str_detect(term, "AIAN")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(limits = lims, labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_single_state_bs |>
-  filter(str_detect(term, "API")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(limits = lims, labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_single_state_bs |>
-  filter(str_detect(term, "Hispanic")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(limits = lims, labels = scales::comma)+
-  scale_x_continuous(limits = c(1960, 2023))+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
+  theme_bw(base_size = 14)
 ```
 
 The trends in @fig-intermar-single-overall are consistent with the plateau of outmarriage rates observed in @fig-outmarriage-race for AIAN and API partners. Across all possible combinations, racial exogamy involving an API partner had either plateaued by the late 20th century or has shown no evidence of a rise at all over the time period. The results for AIAN partners are somewhat similar, except for some evidence of a moderate rise in the odds of marriage to Hispanic and Black partners in the later time period.
@@ -436,53 +384,30 @@ To this point, I have only examined the interracial marriage patterns between si
 ```{r}
 #| label: fig-intermar-multi-overall
 #| fig-cap: Odds of racial exogamy for biracial groups with component single race groups and in comparison to the odds of racial exogamy for the component single race groups. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-#| layout-ncol: 2
-#| fig-subcap: 
-#|    - White-Black
-#|    - White-AIAN
-#|    - White-API
+
 
 model_state_bs |>
-  filter(term == "White/Black" | str_detect(term, "White-Black")) |>
+  mutate(group = case_when(
+    term == "White/Black" | str_detect(term, "White-Black") ~ "White-Black",
+    term == "White/AIAN" | str_detect(term, "White-AIAN") ~ "White-AIAN",
+    term == "White/API" | str_detect(term, "White-API") ~ "White-API",
+    TRUE ~ NA_character_
+  )) |>
+  filter(!is.na(group)) |>
+  mutate(group = factor(group, 
+                        levels = c("White-Black", "White-AIAN", "White-API"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
+  facet_wrap(~group, ncol = 2)+
   labs(y = NULL, color = "pairing", fill = "pairing")+
   scale_y_log10(labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_state_bs |>
-  filter(term == "White/AIAN" | str_detect(term, "White-AIAN")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
-
-model_state_bs |>
-  filter(term == "White/API" | str_detect(term, "White-API")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
+  theme_bw(base_size = 14)
 ```
 
 For both the White-Black and the White-API case, I observe a similar pattern. Multiracial individuals are considerably more likely to marry a partner from either constituent group than members of the constituent groups are to marry one another. This finding suggests that White-Black and White-API individuals face lower boundaries to interracial marriage with these groups because they are in some sense partially endogamous with both groups [@gullickson_blurring_2025].
@@ -496,11 +421,6 @@ The change in 2000 to multiracial reporting may also affect the trends for singl
 ```{r}
 #| label: fig-multi-wb-counterf
 #| fig-cap: Comparison of odds of racial exogamy with different counterfactual assumptions about single race reporting among multiracial respondents. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-#| layout-ncol: 2
-#| fig-subcap: 
-#|    - White/Black
-#|    - White/API
-#|    - White/AIAN
 
 model_state_bs |>
   mutate(counterfactual = "Actual") |>
@@ -508,7 +428,7 @@ model_state_bs |>
   bind_rows(model_cf_minority_state_bs) |>
   bind_rows(model_cf_best_state_bs) |>
   filter(counterfactual == "Actual" | year >= 1990) |>
-  filter(term == "White/Black") |>
+  filter(term == "White/Black" | term == "White/API" | term == "White/AIAN") |>
   mutate(counterfactual = if_else(counterfactual == "Minority", "Black",
                                   counterfactual),
          counterfactual = factor(counterfactual, 
@@ -521,60 +441,12 @@ model_state_bs |>
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
+  facet_wrap(~term, ncol = 2)+
   scale_y_log10(labels = scales::comma)+
   labs(y = NULL)+
   scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
   scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  theme_bw(base_size = 16)
-
-model_state_bs |>
-  mutate(counterfactual = "Actual") |>
-  bind_rows(model_cf_white_state_bs) |>
-  bind_rows(model_cf_minority_state_bs) |>
-  bind_rows(model_cf_best_state_bs) |>
-  filter(counterfactual == "Actual" | year >= 1990) |>
-  filter(term == "White/API") |>
-  mutate(counterfactual = if_else(counterfactual == "Minority", "API",
-                                  counterfactual),
-         counterfactual = factor(counterfactual, 
-                                 levels = c("Actual", "White", "API", 
-                                            "Best"))) |>
-  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), 
-                  fill = counterfactual),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10(labels = scales::comma)+
-  labs(y = NULL)+
-  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  theme_bw(base_size = 16)
-
-model_state_bs |>
-  mutate(counterfactual = "Actual") |>
-  bind_rows(model_cf_white_state_bs) |>
-  bind_rows(model_cf_minority_state_bs) |>
-  bind_rows(model_cf_best_state_bs) |>
-  filter(counterfactual == "Actual" | year >= 1990) |>
-  filter(term == "White/AIAN") |>
-  mutate(counterfactual = if_else(counterfactual == "Minority", "AIAN",
-                                  counterfactual),
-         counterfactual = factor(counterfactual, 
-                                 levels = c("Actual", "White", "AIAN", 
-                                            "Best"))) |>
-  ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = counterfactual),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  scale_y_log10(labels = scales::comma)+
-  labs(y = NULL)+
-  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  theme_bw(base_size = 16)
+  theme_bw(base_size = 14)
 ```
 
 @fig-multi-wb-counterf presents the trends resulting from these different scenarios. For White/Black respondents, the overall trend is quite similar across all scenarios, although all three scenarios would have slightly increased the odds of White/Black marriage over that actually observed after 2000.
@@ -588,44 +460,40 @@ I now turn to results that divide the Hispanic group into three separate subgrou
 ```{r}
 #| label: fig-sub-hispanic
 #| fig-cap: Odds of racial exogamy for Hispanic subgroups with non-Hispanic White and Black partners. White/Black exogamy odds are also shown for reference. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-#| layout-ncol: 2
-#| fig-subcap:
-#|   - White partner
-#|   - Black partner
 
 lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low), 
               max(model_hispanic_sub_state_bs$conf.high)))
 
-model_hispanic_sub_state_bs |>
-  filter(!str_detect(term, "Hispanic/") & !str_detect(term, "^Black")) |>
-  mutate(term = str_replace(term, "Hispanic", " Hispanic")) |>
-  ggplot(aes(x = year, y = exp(estimate), color = term))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
-  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
-              alpha = 0.3, color = NA)+
-  geom_line()+
-  geom_point(size = 0.5)+
-  labs(y = NULL, color = "pairing", fill = "pairing")+
-  scale_y_log10(limits = lims, labels = scales::comma)+
-  scale_color_manual(values = palette)+
-  scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
+temp <- model_hispanic_sub_state_bs |>
+  filter(term == "White/Black") |>
+  mutate(group = "Black")
 
 model_hispanic_sub_state_bs |>
-  filter((str_detect(term, "^Black/") & !str_detect(term, "Hispanic/")) |
-           str_detect(term, "^White/Black$")) |>
-  mutate(term = str_replace(term, "Hispanic", " Hispanic")) |>
+  filter(!str_detect(term, "Hispanic/")) |>
+  mutate(group = if_else(str_detect(term, "^Black"), "Black", "White"),
+         term = str_replace(term, "Hispanic", " Hispanic")) |>
+  bind_rows(temp) |>
+  mutate(group = factor(group, levels = c("White", "Black")),
+         term = factor(term, 
+                       levels = c("White/White Hispanic",
+                                  "White/Other Hispanic",
+                                  "White/Black Hispanic",
+                                  "Black/Black Hispanic",
+                                  "Black/Other Hispanic",
+                                  "Black/White Hispanic",
+                                  "White/Black"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = term))+
   #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = term),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
+  facet_wrap(~group)+
   labs(y = NULL, color = "pairing", fill = "pairing")+
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw(base_size = 16)
+  theme_bw(base_size = 14)
 ```
 
 In terms of interracial marriage with White spouses, the ordering of the three subgroups is as expected. Hispanic individuals who identify as White by race are the most likely to marry non-Hispanic White spouses. The odds of marriage to White spouses are somewhat lower for Hispanic individuals who identify as Other by race. For comparison, both of these odds ratios are substantially higher than the odds of White/Black marriage. The odds of marriage to a White spouse are much lower for Hispanic individuals who identify as Black by race and are slightly lower than the odds of White/Black marriage.
