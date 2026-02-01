@@ -547,7 +547,7 @@ prop_age_year_recent |>
 
 The resulting joint distribution proportions are correctly summing to one in each year.
 
-For the years 1960, 1970, 1980, and 1988, I use published tables from vital statistics reports that give the joint distribution in each year. I transcribed these tables to a google sheet avaiable [here](https://docs.google.com/spreadsheets/d/1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4/edit?usp=sharing).
+For the years 1960, 1970, 1980, and 1988, I use published tables from vital statistics reports that give the joint distribution in each year. I transcribed these tables to a google sheet available [here](https://docs.google.com/spreadsheets/d/1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4/edit?usp=sharing).
 
 To prepare for reading this in, I deauthorize the `googlesheets4` package so I can read it in without having to enter authorization and I create a function that will help me convert the tables to the format I want.
 
