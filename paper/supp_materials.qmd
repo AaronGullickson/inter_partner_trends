@@ -15,14 +15,10 @@ format:
     fig-pos: "tb"
     colorlinks: true
     urlcolor: red
-crossref:
-  # code for supplementary figures
-  custom:
-    - kind: float
-      key: suppfig
-      latex-env: suppfig
-      reference-prefix: Figure S
-      space-before-numbering: false
+header-includes:
+  - \usepackage{caption}
+  - \captionsetup[subfigure]{justification=centering}
+  - \renewcommand{\thefigure}{S\arabic{figure}}
 ---
 
 ```{r}
@@ -153,13 +149,17 @@ prop_age_year_recent |>
 
 As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intevening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
 
-## Comparison of Age-Weighted and Duration-Specific Results
+# Comparison of Age-Weighted and Duration-Specific Results
 
-From 1960 to 1980 and after 2007, I have information on the duration of marriage that I can use to restrict the sample to individuals married in the last year. For the 1960 to 1980 period, this information is only provided for first marriages. @suppfig-intermar-cur-mar compares results based on duration data to the full results that use age weighting to make the sample representative of the newlywed population. 
+Age-weighting the frequency counts of extant marriages for log-linear models to match the joint age distribution is superior to restricting the models to certain age ranges of husbands and/or wives. However, it is unlikely to exactly match the actual duration-specific data. First, the extant marriage data is affected by marriage dissolution and that information cannot be recovered. Second, although changes in the likelihood of interracial marriage by birth cohort are accounted for within the age weighted approach, period changes that identify marriage cohorts are not. For example, lets compare two marriages between fifty year old partners, one of which was formed this year and the other which was formed 25 years ago. Birth cohort related effects on the likelihood for interracial marriage (e.g. internalized preferences for partners of a given race) are the same across both sets of couples. However, period specific changes in that likelihood (e.g. a more liberal atmosphere, greater opportunities to meet cross-race partners) will differ for the two cases.
 
-::: {#suppfig-intermar-cur-mar}
+In both cases, the direction of the bias arising from using age-weighted extant data is predictable. Marriage dissolution is more likely for interracial couples [@bratter_will_2008] and the general period effects over this time period indicating a more liberalizing environment with regard to interracial marriage. Therefore, I expect that models with actual duration-specific data will find a somewhat higher likelihood of interracial marriage than age-weighted extant data. 
+
+For some years of the time period, I have data to examine the direction and strength of the bias directly. From 1960 to 1980 and after 2007, I have information on the duration of marriage that I can use to restrict the sample to individuals married in the last year. For the 1960 to 1980 period, this information is only provided for first marriages. @fig-intermar-cur-mar compares results based on duration data to the full results that use age weighting to make the sample representative of the newlywed population. 
+
 ```{r}
-#| label: suppfig-intermar-cur-mar
+#| label: fig-intermar-cur-mar
+#| fig-cap: Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 # add in missing values to break line
 model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
@@ -181,23 +181,20 @@ model_state_bs |>
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   scale_y_log10(labels = scales::comma)+
-  theme_bw()
+  theme_bw()+
+  theme(legend.position = "bottom")
 ```
 
-Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-:::
 
-Because the results for the duration restriction rely on much smaller sample sizes, the results can be noisy for some groups. This is particularly true of some dual-minority interracial marriage pairings such as Black/AIAN and Black/API. 
-
-As expected, the duration-specific results produce somewhat higher odds of interracial marriage for most groups. However, the discrepancy between the two approaches is minor and the trends across the two approaches are similar.
+As expected, the duration-specific results produce slightly higher odds of interracial marriage for most groups. The degree of difference is higher in the early period between 1960 and 1980. However, the duration data here is limited to first marriages which may also lead to some discrepancy with the age weighted data which are for all marriages. Overall, the discrepancy between the two approaches is minor and the trends across the two approaches are similar. 
 
 # Inclusion of Foreign-Born Population
 
 The main results for the analysis excludes unions involving foreign-born individuals. For data without marriage duration information, it is impossible to determine whether such unions were formed in the US or elsewhere. Furthermore, foreign-born individuals will likely have a stronger attachment to marrying someone of the same ethnonational group even when marrying in the US. For these reasons, including foreign-born individuals will likely lower the overall likelihood of racial exogamy.
 
-::: {#suppfig-intermar-single-gen}
 ```{r}
-#| label: suppfig-intermar-single-gen
+#| label: fig-intermar-single-gen
+#| fig-cap: Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
   mutate(gen = "all")
@@ -225,11 +222,10 @@ model_state_bs |>
   scale_color_manual(values = c("red", "navy", "darkgreen"))+
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   scale_y_log10(labels = scales::comma)+
-  theme_bw()
+  theme_bw()+
+  theme(legend.position = "bottom")
 ```
 
-Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
-:::
 
-@suppfig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population the overall trends are similar. 
+@fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population the overall trends are similar. 
 
