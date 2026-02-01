@@ -24,7 +24,7 @@ format:
   submittable-docx: 
     fig-format: pdf
     out-width: "100%"
-    fig-width: 6
+    fig-width: 6.25 # theoretically it should be 6.5 with 1 inch margins
   submittable-pdf:
     keep-tex: false
     fig-pos: "!t"
@@ -368,7 +368,7 @@ model_single_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw(base_size = 14)
+  theme_bw(base_size = 13)
 ```
 
 The trends in @fig-intermar-single-overall are consistent with the plateau of outmarriage rates observed in @fig-outmarriage-race for AIAN and API partners. Across all possible combinations, racial exogamy involving an API partner had either plateaued by the late 20th century or has shown no evidence of a rise at all over the time period. The results for AIAN partners are somewhat similar, except for some evidence of a moderate rise in the odds of marriage to Hispanic and Black partners in the later time period.
@@ -460,6 +460,7 @@ I now turn to results that divide the Hispanic group into three separate subgrou
 ```{r}
 #| label: fig-sub-hispanic
 #| fig-cap: Odds of racial exogamy for Hispanic subgroups with non-Hispanic White and Black partners. White/Black exogamy odds are also shown for reference. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| fig-height: 3
 
 lims <- exp(c(min(model_hispanic_sub_state_bs$conf.low), 
               max(model_hispanic_sub_state_bs$conf.high)))
@@ -493,7 +494,7 @@ model_hispanic_sub_state_bs |>
   scale_y_log10(limits = lims, labels = scales::comma)+
   scale_color_manual(values = palette)+
   scale_fill_manual(values = palette)+
-  theme_bw(base_size = 14)
+  theme_bw(base_size = 12)
 ```
 
 In terms of interracial marriage with White spouses, the ordering of the three subgroups is as expected. Hispanic individuals who identify as White by race are the most likely to marry non-Hispanic White spouses. The odds of marriage to White spouses are somewhat lower for Hispanic individuals who identify as Other by race. For comparison, both of these odds ratios are substantially higher than the odds of White/Black marriage. The odds of marriage to a White spouse are much lower for Hispanic individuals who identify as Black by race and are slightly lower than the odds of White/Black marriage.
