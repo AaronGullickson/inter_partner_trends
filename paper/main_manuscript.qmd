@@ -21,11 +21,13 @@ format:
     fig-pos: "!t"
     colorlinks: true
     urlcolor: red
-#  submittable-pdf:
-#     keep-tex: false
-#     fig-pos: "!t"
-#  submittable-docx: 
-#    fig-format: pdf
+  submittable-docx: 
+    fig-format: pdf
+    out-width: "100%"
+    fig-width: 6
+  submittable-pdf:
+    keep-tex: false
+    fig-pos: "!t"
 # header-includes to resposition subcaptions
 header-includes:
   - \usepackage{caption}
