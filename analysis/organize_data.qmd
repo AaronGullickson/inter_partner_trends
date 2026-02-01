@@ -517,7 +517,7 @@ I also need this joint age distribution to be grouped into larger age groups tha
 * 45-54
 * 55 and over
 
-Thes age groups are already coded in as numeric values in the `age_group_` variables for each spouse. I use a numeric value so that I can easily calculate means across years as a diagnostic check.
+These age groups are already coded in as numeric values in the `age_group_` variables for each spouse. I use a numeric value so that I can easily calculate means across years as a diagnostic check.
 
 ```{r}
 #| label: calculate-joint-age-distribution
@@ -947,7 +947,16 @@ prop_age_year_recent |>
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-The full joint distribution looks like it is transitioning very naturally across the imputed years of 1990, 2000, and 2004. 
+The full joint distribution looks like it is transitioning very naturally across the imputed years of 1990, 2000, and 2004.
+
+Lets save this dataset so it can be used in the supplementary materials.
+
+```{r}
+#| label: save-joint-age-newlyweds
+
+save(prop_age_year_recent,
+     file = here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
+```
 
 # Sample restrictions
 
