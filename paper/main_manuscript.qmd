@@ -64,12 +64,12 @@ palette <- c(
   # Single race combinations
   "White/Black"                   = "#FF3B00",  # rich orange
   "White/AIAN"                    = "#00785E",  # teal green
-  "White/API"                     = "#A84F86",  # muted magenta
+  "White/API"                     = "#00A6D6",  # muted magenta
   "White/Hispanic"                = "#661100",  # deep rust
   "Black/AIAN"                    = "#E6D945",  # warm brown
   "Black/API"                     = "#74AA99",  # muted cyan
   "Black/Hispanic"                = "#0B3D91",  # deep burgundy
-  "AIAN/API"                      = "#56B4E9",  # desaturated turquoise
+  "AIAN/API"                      = "#F05A1A",  # desaturated turquoise
   "AIAN/Hispanic"                 = "#C0408C",  # dusty rose
   "API/Hispanic"                  = "#FFC107",  # yellow-gold
   
@@ -77,8 +77,8 @@ palette <- c(
   "White/White-Black"             = "#3E8F0D",  # vivid spring green
   "Black/White-Black"             = "#471624",  # deep maroon-brown
   "White/White-AIAN"              = "#361892",  # royal indigo
-  "AIAN/White-AIAN"               = "#23A4BB",  # bright teal-blue
-  "White/White-API"               = "#667AA3",  # slate blue
+  "AIAN/White-AIAN"               = "#C9A227",  # bright teal-blue
+  "White/White-API"               = "#CC6666",  # slate blue
   "API/White-API"                 = "#6D7003",  # olive drab
   "Black/Black-API"               = "#1117AA",  # bold cobalt blue
   "API/Black-API"                 = "#6D4113",  # dark umber
