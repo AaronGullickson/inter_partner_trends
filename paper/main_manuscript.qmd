@@ -63,18 +63,18 @@ load(here("data", "data_constructed", "model_recent_mar.RData"))
 palette <- c(
   # Single race combinations
   "White/Black"                   = "#FF3B00",  # rich orange
-  "White/AIAN"                    = "#009E73",  # teal green
-  "White/API"                     = "#CC79A7",  # muted magenta
+  "White/AIAN"                    = "#00785E",  # teal green
+  "White/API"                     = "#A84F86",  # muted magenta
   "White/Hispanic"                = "#661100",  # deep rust
-  "Black/AIAN"                    = "#A65628",  # warm brown
+  "Black/AIAN"                    = "#E6D945",  # warm brown
   "Black/API"                     = "#74AA99",  # muted cyan
   "Black/Hispanic"                = "#0B3D91",  # deep burgundy
   "AIAN/API"                      = "#56B4E9",  # desaturated turquoise
-  "AIAN/Hispanic"                 = "#AA4499",  # dusty rose
+  "AIAN/Hispanic"                 = "#C0408C",  # dusty rose
   "API/Hispanic"                  = "#FFC107",  # yellow-gold
   
   # Single race to multiracial combinations
-  "White/White-Black"             = "#47AC11",  # vivid spring green
+  "White/White-Black"             = "#3E8F0D",  # vivid spring green
   "Black/White-Black"             = "#471624",  # deep maroon-brown
   "White/White-AIAN"              = "#361892",  # royal indigo
   "AIAN/White-AIAN"               = "#23A4BB",  # bright teal-blue
@@ -88,16 +88,16 @@ palette <- c(
   # Hispanic subgroups with White and Black
   "White/White Hispanic"           = "#552288",  # soft purple
   "White/Black Hispanic"           = "#E1A400",  # rose plum
-  "White/Other Hispanic"           = "#4FAA37",  # leafy green
-  "Black/White Hispanic"           = "#9E9E00",  # olive yellow
-  "Black/Black Hispanic"           = "#AA3344",  # reddish brick
+  "White/Other Hispanic"           = "#287B33",  # leafy green
+  "Black/White Hispanic"           = "#33A02C",  # olive yellow
+  "Black/Black Hispanic"           = "#9C2C5C",  # reddish brick
   "Black/Other Hispanic"           = "#2C37DA",  # vivid sapphire
 
   # Asian subgroups with White
   "White/EastAsian"               = "#3366AA",  # steely blue
   "White/E&SE Asian"              = "#3311EE",  # steel sky blue
   "White/SEAsian"                 = "#118877",  # sea green
-  "White/South Asian"             = "#9933AA",  # muted violet-magenta
+  "White/South Asian"             = "#009E73",  # muted violet-magenta
 
   # Indigenous subgroups with White
   "White/AIAN"                    = "#CC4477",  # muted raspberry rose
@@ -444,8 +444,8 @@ model_state_bs |>
   facet_wrap(~term, ncol = 2)+
   scale_y_log10(labels = scales::comma)+
   labs(y = NULL)+
-  scale_color_manual(values = c("navy", "gold", "red", "darkgreen"))+
-  scale_fill_manual(values = c("navy", "gold", "red", "darkgreen"))+
+  scale_color_manual(values = c("navy", "gold", "red", "#004C2E"))+
+  scale_fill_manual(values = c("navy", "gold", "red", "#004C2E"))+
   theme_bw(base_size = 14)
 ```
 
