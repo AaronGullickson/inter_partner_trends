@@ -21,13 +21,13 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
-
+<!-- TODO: this whole thing needs to be updated to new data -->
 
 ```{r}
 #| label: load-data
 #| include: false
 
-load(here("data", "data_constructed", "individ_data.RData"))
+load(here("data", "data_constructed", "data_couples.RData"))
 ```
 
 ```{r}
@@ -43,12 +43,14 @@ load(here("data", "data_constructed", "individ_data.RData"))
 
 ## Modeling exogamy
 
-For illustrative purposes, I will limit analysis to couples where the husband is 25 to 34 years old.
+For illustrative purposes, I will limit analysis to couples where the husband is 25 to 34 years old. Lets also collapse race categories for simplicity.
 
 ```{r}
 #| label: restrict-age
 census_age <- census |>
-  filter(age_husband >= 25 & age_husband <= 34)
+  filter(age_husband >= 25 & age_husband <= 34) |>
+  mutate(race_husband = collapse_race(race_husband),
+         race_wife = collapse_race(race_wife))
 ```
 
 I can then use this to create three-way contingency tables across all racial groups and years.
@@ -63,12 +65,12 @@ tab_mar <- table(census_age$race_husband, census_age$race_wife, census_age$year)
 
 #### Two group case
 
-Lets take the simple case of two racial groups at one point in time (2017) as an example.
+Lets take the simple case of two racial groups at one time period (2021-2023) as an example.
 
 ```{r}
 #| label: subset-table
 
-tab_bw <- tab_mar[c("White", "Black"), c("White", "Black"), "2017"]
+tab_bw <- tab_mar[c("White", "Black"), c("White", "Black"), "2022"]
 tab_bw
 ```
 
@@ -90,7 +92,7 @@ log(tab_bw["White", "White"])+log(tab_bw["Black", "Black"])-
   log(tab_bw["White", "Black"]) - log(tab_bw["Black", "White"])
 ```
 
-This parameter measures the degree of endogamy between the two groups. Numbers larger than one indicate greater endogamy. However, we want to measure exogamy directly, so it would be useful to invert this number. To do so we can simply invert the ratio for the original cross-product:
+This parameter measures the degree of endogamy between the two groups. However, we want to measure exogamy directly, so it would be useful to invert this number. To do so we can simply invert the ratio for the original cross-product:
 
 $$\frac{F_{21}F_{12}}{F_{11}F_{22}}$$
 On the log-scale this becomes:
@@ -132,15 +134,15 @@ calculate_or <- function(group1, group2) {
 all_combos <- tribble(
   ~race1, ~race2,
   "White", "Black",
-  "White", "Asian",
-  "White", "Indigenous",
+  "White", "API",
+  "White", "AIAN",
   "White", "Hispanic",
-  "Black", "Asian",
-  "Black", "Indigenous",
+  "Black", "API",
+  "Black", "AIAN",
   "Black", "Hispanic",
-  "Asian", "Indigenous",
-  "Asian", "Hispanic",
-  "Indigenous", "Hispanic",
+  "API", "AIAN",
+  "API", "Hispanic",
+  "AIAN", "Hispanic",
 )
 
 lor_data <- pmap(all_combos, function(race1, race2) {
@@ -150,13 +152,13 @@ lor_data <- pmap(all_combos, function(race1, race2) {
   filter(lor > -Inf)
 ```
 
-Lets look at the results for 2017:
+Lets look at the results for 2021-2023:
 
 ```{r}
-#| label: tbl-lor-2017
+#| label: tbl-lor-2022
 #| tbl-cap: Log odds ratios of interracial marriage all single race pairings in 2017
 lor_data |>
-  filter(year == 2017) |>
+  filter(year == 2022) |>
   gt() |>
   tab_options(table.width = "100%")
 ```
@@ -168,10 +170,10 @@ lor_data |>
 We would like to be able to calculate these odds ratios/cross-products in a log-linear model so that we may consider other covariates. The two-group case is straightforward. First, we will convert the contingency table to a more familiar data structure.
 
 ```{r}
-#| label: construct-mar-data-bw-2017
+#| label: construct-mar-data-bw-2022
 
 mar_data <- census_age |>
-  filter(year == 2017,
+  filter(year == 2017.5,
          race_husband %in% c("White", "Black"),
          race_wife %in% c("White", "Black")) |>
   group_by(race_husband, race_wife) |>
@@ -238,7 +240,7 @@ $$
 
 Note that I have saturated the entire model (there are no more degrees of freedom). The gender difference in intermarriage between black and white spouses is absorbed into the marginal distributions here. This can be demonstrated by calculating the log ratio of black woman/white man pairings to black man/white woman pairings:
 
-$$\log(F_{12}/F_{21}) = \log(F_{12})-\log(F_{21}) = log(508)-log(1293) = -0.9342389$$
+$$\log(F_{12}/F_{21}) = \log(F_{12})-\log(F_{21}) = log(1898)-log(2026) = -0.9342389$$
 Black woman/white man pairings are substantially less common. Now lets use the original model formulation to calculate this same log ratio from the model:
 
 $$\log(F_{12})-\log(F_{21}) = \lambda_2^{WR}-\lambda_2^{HR}-\beta$$
