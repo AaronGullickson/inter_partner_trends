@@ -1026,15 +1026,22 @@ As a test case, lets see how the weights adjust the distribution in 2008.
 #| fig-cap: The distribution of husband's age in 2008. The dotted line gives the distribution of husband's age for recent marriages. The red histogram gives the distribution of husband's age across all observations, while the blue histogram applies age weights to the full distribution to bring them in line with recent marriages.
 
 census |>
-  filter(union_type == "marriage" & year == "2000") |>
+  filter(union_type == "marriage" & year == "2008") |>
   ggplot(aes(x = age_husband, y = after_stat(density)))+
   geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
   geom_histogram(alpha = 0.7, fill = "navy", binwidth = 1, 
                  aes(weight = weight_age))+
-  geom_histogram(data = filter(census, year == "2000" & dur_mar <= 1),
+  geom_histogram(data = filter(census, year == "2008" & dur_mar <= 1),
                fill = NA, color = "black", linetype = 2, 
                binwidth = 1)+
   theme_bw()
+
+# save this for later use
+age_weight2008 <- census |> 
+  filter(union_type == "marriage" & year == "2008") |>
+  select(age_husband, weight_age, dur_mar)
+save(age_weight2008, 
+     file = here("data", "data_constructed", "age_weight_example.RData"))
 ```
 
 # Save union data
