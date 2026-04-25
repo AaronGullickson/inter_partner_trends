@@ -3,7 +3,7 @@ title: "Trends and Heterogeneity in Interracial Marriage in the United States, 1
 shorttitle: "Trends in Interracial Marriage, 1960-2023"
 shortauthors: "Gullickson"
 keywords: [interracial marriage, trends, racial exogamy]
-#thanks: Prepared for the Annual Meeting of the Population Association of America 2026
+thanks: Prepared for the 2026 Annual Meeting of the Population Association of America, St. Louis, Missouri
 reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
@@ -12,12 +12,13 @@ filters:
 format:
   aog-article-pdf:
     papersize: letter
+    keep-tex: true
     #mainfont: Baskerville 
     #sansfont: Futura-Medium
     #fontsize: 12pt   
     #geometry: margin=1in
     #fig-height: 4     # smaller fig heights make floating easier
-    fig-width: 7.5    # set to the (full width - margins) of letter   
+    fig-width: 7.5    # set to the (full width - margins) of letter 
     fig-pos: "!t"
     colorlinks: true
     urlcolor: red
@@ -429,10 +430,8 @@ model_state_bs |>
   bind_rows(model_cf_best_state_bs) |>
   filter(counterfactual == "Actual" | year >= 1990) |>
   filter(term == "White/Black" | term == "White/API" | term == "White/AIAN") |>
-  mutate(counterfactual = if_else(counterfactual == "Minority", "Black",
-                                  counterfactual),
-         counterfactual = factor(counterfactual, 
-                                 levels = c("Actual", "White", "Black", 
+  mutate(counterfactual = factor(counterfactual, 
+                                 levels = c("Actual", "White", "Minority", 
                                             "Best"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = counterfactual))+
   #geom_vline(xintercept = 2000, linetype = 2)+
