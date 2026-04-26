@@ -1,0 +1,4 @@
+- source: main_manuscript.qmd
+  netlify:
+    - id: 79bcf897-b396-46e1-a6ee-4cc4210b08e6
+      url: https://courageous-paprenjak-a54198.netlify.app
