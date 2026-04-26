@@ -18,7 +18,8 @@ packages = c(
   "tidycensus", # for statefip names
   "tictoc", "progress", # for tracking processing time
   "parallel", "future", "furrr", # for parallel processing
-  "fs" # for file system interaction
+  "fs", # for file system interaction
+  "qrcode" # for qr codes
 )
 
 package.check <- lapply(packages, FUN = function(x) {
