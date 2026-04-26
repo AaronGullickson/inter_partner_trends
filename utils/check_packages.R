@@ -10,7 +10,7 @@ packages = c(
   "knitr", # for processing quarto
   "readr","haven", "googlesheets4", # I/O
   "tidyverse","lubridate","broom", #tidyverse and friends
-  "ggrepel", # plotting extras
+  "ggrepel", "gganimate", # plotting extras
   "srvyr", # for adjusting by sample design
   "marginaleffects", # for computing log-odds from models
   "mice", # for imputing values

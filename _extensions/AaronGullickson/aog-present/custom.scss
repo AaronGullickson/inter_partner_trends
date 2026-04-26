@@ -1,0 +1,210 @@
+/*-- scss:defaults --*/
+
+$background:  #F4F4F2; // cooler #F2F5F7; warmer #F7F5EF;
+
+$primary: #131516;
+$secondary: #3A3F42; //#555555
+$caption: #555B60;
+$accent1: #1F4E79;
+$accent2:  #2C5D63;
+$accent3: #6B2C3E;
+
+$right-arrow: "\2192"; // Unicode character for right arrow
+
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,400i&display=swap);
+@import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400&display=swap);
+@import url(https://fonts.googleapis.com/css?family=Fira+Mono&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Poppins&display=swap);
+
+// fonts
+$font-family-sans-serif: 'Open Sans', sans-serif !default;
+$presentation-heading-font: 'Poppins';
+$font-family-monospace: 'Fira Mono' !default;
+
+// colors
+$body-bg: $background !default; //#EAEBEE
+$body-color: $primary !default;
+$link-color: $accent3 !default;
+$link-color-hover: lighten($link-color, 25%);
+
+$presentation-heading-color: $primary;
+
+$code-bg: $body-bg !default;
+//$code-color: #23395b !default;
+
+$code-block-bg: darken($body-bg, 10%) !default;
+$code-block-border-color: $body-color !default;
+$border-radius: 10px;
+
+//$dark-bg-text-color: #EAEBEE;
+
+/*-- scss:rules --*/
+
+#title-slide {
+  text-align: left;
+
+  .title {
+    color: $primary;
+    font-size: 1.4em;
+    font-weight: 350;
+  }
+
+  .subtitle {
+    color: $accent1;
+    //font-style: italic;
+    margin-top: 0em;
+  }
+
+  .institute,
+  .quarto-title-affiliation,
+  .quarto-title-author-email {
+    //font-style: italic;
+    color: $secondary;
+  }
+
+  .author,
+  .quarto-title-author-name {
+    color: $primary;
+  }
+
+  .quarto-title-authors {
+    display: flex;
+    justify-content: left;
+
+    .quarto-title-author {
+      padding-left: 0em;
+      padding-right: 0em;
+      width: 100%;
+    }
+  }
+  // Add a line to the title page
+  p.author::before, div.quarto-title-author::before {
+    content: "";
+    display: block;
+    border: none;
+    background-color: $body-color;
+    color: $body-color;
+    height: 3px;
+    margin-bottom: 1em;
+  }
+  
+}
+
+.reveal p {
+  margin-top: 0.25em;
+}
+
+
+// headings
+
+.reveal h2 {
+  font-weight: 350;
+  font-size: 1.2em;
+}
+
+.reveal h3 {
+  color: $accent1;
+  font-weight: 350;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+}
+
+.reveal h4 {
+  color: $accent2;
+  font-weight: 350;
+  margin-top: 0.5em;
+}
+
+.reveal .slides section.smaller h2 {
+  font-size: calc(1.2em / 0.7) !important;
+}
+
+.reveal .slides section.smaller h3 {
+  font-size: calc(0.9em / 0.7) !important;
+}
+
+
+// lists
+
+// Unordered lists
+
+.reveal ul {
+  font-weight: 300;
+  padding-left: 16px;
+
+  li::marker {
+    color: mix($accent1, white, 70%);
+  }
+}
+
+.reveal ul ul {
+  list-style: none;
+
+  li:before {
+    content: $right-arrow;
+    color: mix($accent1, white, 60%);
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+    margin-right: 0.5em;
+  }
+}
+
+.reveal ul ul ul {
+  list-style: none;
+
+  li:before {
+    content: "\22B3";
+    color: mix($accent1, white, 60%);
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+    margin-right: 0.5em;
+  }
+}
+
+// Ordered lists
+
+.reveal ol {
+  font-weight: 300;
+  padding-left: 16px;
+
+  li::marker {
+    color: $accent1;
+  }
+}
+
+// definition lists
+
+.reveal dt {
+  font-family: $presentation-heading-font;
+  color: $accent2;
+}
+
+.reveal dd {
+  font-family: $font-family-sans-serif;
+  font-weight: 100;
+}
+
+// caption
+.reveal p.caption {
+  color: $secondary;
+  text-align: center !important;
+  margin-top: 0.5em;
+}
+
+.reveal .slides section p.caption,
+.reveal .slides section p.caption * {
+  font-size: 0.7em !important;
+}
+
+// slow fade
+.reveal .slides section .fragment.slowfade {
+  transition: opacity 2.5s ease-in-out !important;
+}
+
+figcaption {
+  //margin-top: 0.5em; /* some space above caption */
+  text-align: center;
+  color: $secondary;
+}

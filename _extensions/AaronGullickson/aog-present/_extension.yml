@@ -1,0 +1,17 @@
+title: Aog-present
+author: Aaron Gullickson
+version: 0.0.1
+quarto-required: ">=1.3.0"
+contributes:
+  formats:
+    revealjs:
+      theme: [simple, custom.scss]
+      chalkboard: true
+      preview-links: true
+      incremental: true
+      smaller: false
+      background-transition: concave
+      fig-align: center
+      highlight-style: arrow
+      code-line-numbers: false
+      self-contained: false
