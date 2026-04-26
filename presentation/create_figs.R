@@ -481,3 +481,7 @@ ggsave(
   units = "in",
   device = cairo_pdf
 )
+
+qr_code("https://courageous-paprenjak-a54198.netlify.app/") |>
+  generate_svg(filename = here("_products", "presentation", "qrcode.svg"),
+               background = "transparent")
