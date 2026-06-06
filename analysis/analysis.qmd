@@ -470,7 +470,7 @@ model_state_bs <- model_state_bs |>
 model_state_same_sex_bs |>
   mutate(union_type = "same-sex") |>
   bind_rows(model_state_bs) |>
-  filter(!str_detect(term, "-") & str_detect(term, "White") &
+  filter(!str_detect(term, "-") &
            year >= 2010) |>
   mutate(union_type = factor(union_type)) |>
   ggplot(aes(x = year, y = exp(estimate), color = union_type))+
@@ -482,6 +482,40 @@ model_state_same_sex_bs |>
   scale_y_log10()+
   scale_color_manual(values = c("red", "navy"))+
   scale_fill_manual(values = c("red", "navy"))+
+  theme_bw()
+```
+
+```{r}
+#| label: fig-intermar-same-sex2
+#| fig-cap: Odds of racial exogamy for single race groups by same and different sex
+
+load(here("data", "data_constructed", "models_cohab.RData"))
+
+model_state_bs <- model_state_bs |>
+  mutate(union_type = "opposite-sex marriage")
+
+model_state_cohab_bs <- model_state_cohab_bs |>
+  mutate(union_type = "opposite-sex cohabitation")
+
+model_state_same_sex_bs |>
+  mutate(union_type = "same-sex marriage") |>
+  bind_rows(model_state_bs) |>
+  bind_rows(model_state_cohab_bs) |>
+  filter(!str_detect(term, "-") & str_detect(term, "White") &
+           year >= 1990) |>
+  mutate(union_type = factor(union_type,
+                             levels = c("opposite-sex marriage",
+                                        "opposite-sex cohabitation",
+                                        "same-sex marriage"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = union_type))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term)+
+  scale_y_log10()+
+  scale_color_manual(values = c("navy", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "red", "darkgreen"))+
   theme_bw()
 ```
 
