@@ -339,7 +339,7 @@ toc()
 #| label: save-same-sex-models
 
 save(model_state_same_sex_bs,
-     file = here("data", "data_constructed", "models_same_sex.RData"))
+     file = here("data", "data_constructed", "model_same_sex.RData"))
 
 # memory cleanup
 rm(data_model_state_combine_simple)
