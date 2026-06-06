@@ -33,6 +33,7 @@ load(here("data", "data_constructed", "models_counterfactual.RData"))
 load(here("data", "data_constructed", "model_region.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
+load(here("data", "data_constructed", "model_same_sex.RData"))
 ```
 
 ```{r}
@@ -456,6 +457,34 @@ model_state_cohab_bs |>
   scale_fill_manual(values = c("red", "navy", "darkgreen"))+
   theme_bw()
 ```
+
+# Same Sex Analysis
+
+```{r}
+#| label: fig-intermar-same-sex
+#| fig-cap: Odds of racial exogamy for single race groups by same and different sex
+
+model_state_bs <- model_state_bs |>
+  mutate(union_type = "opposite-sex")
+
+model_state_same_sex_bs |>
+  mutate(union_type = "same-sex") |>
+  bind_rows(model_state_bs) |>
+  filter(!str_detect(term, "-") & str_detect(term, "White") &
+           year >= 2010) |>
+  mutate(union_type = factor(union_type)) |>
+  ggplot(aes(x = year, y = exp(estimate), color = union_type))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term)+
+  scale_y_log10()+
+  scale_color_manual(values = c("red", "navy"))+
+  scale_fill_manual(values = c("red", "navy"))+
+  theme_bw()
+```
+
 
 # Counterfactual Race Assignment
 
