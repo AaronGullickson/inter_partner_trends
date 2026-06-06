@@ -20,7 +20,7 @@ source(here("utils","functions.R"))
 
 # Read in spousal data
 
-This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
+This script will read in Census and ACS data from 1960 to 2023 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
 
 ```{r}
 #| label: read-spousal-data
@@ -159,40 +159,40 @@ gc()
 I have a subsample of same-sex couples from 2013, that is in a separate extract and needs to get added in for coding but then separated out for analysis.
 
 ```{r}
-census_ss <- read_fwf(here("data", "data_raw", "acs_census", "usa_00155.dat.gz"),
+census_ss <- read_fwf(here("data", "data_raw", "acs_census", "usa_00156.dat.gz"),
                       col_positions = fwf_cols(YEAR = c(1,4),
                                                SAMPLE = c(5, 10),
                                                HHWT = c(32, 41),
                                                PERWT = c(77, 86),
-                                               PERWT_SP = c(125, 134),
+                                               PERWT_SP = c(131, 140),
                                                STRATA = c(59, 70),
                                                CLUSTER = c(42, 54),
                                                REGION = c(55, 56),
                                                STATEFIP = c(57, 58),
                                                SSMC = 72,
-                                               SEX = 87,
-                                               AGE = c(88, 90),
-                                               MARRNO = 92,
-                                               YRMARR = c(93, 96),
-                                               RACED = c(98, 100),
-                                               RACHSING = 119,
-                                               HISPAN = 101,
-                                               BPL = c(105, 107),
-                                               YRIMMIG = c(113, 116),
-                                               EDUCD = c(120, 122),
-                                               SEX_SP = 135,
-                                               AGE_SP = c(136, 138),
-                                               MARRNO_SP = 139,
-                                               RACED_SP = c(144, 146),
-                                               RACHSING_SP = 155,
-                                               HISPAN_SP = 147,
-                                               BPL_SP = c(148, 150),
-                                               YRIMMIG_SP = c(151, 154),
-                                               EDUCD_SP = c(158, 160),
-                                               QRACE = 124,
-                                               QHISPAN = 123,
-                                               QRACE_SP = 162,
-                                               QHISPAN_SP = 161),
+                                               SEX = 93,
+                                               AGE = c(94, 96),
+                                               MARRNO = 98,
+                                               YRMARR = c(99, 102),
+                                               RACED = c(104, 106),
+                                               RACHSING = 123,
+                                               HISPAN = 107,
+                                               BPL = c(111, 113),
+                                               YRIMMIG = c(119, 122),
+                                               EDUCD = c(126, 128),
+                                               SEX_SP = 141,
+                                               AGE_SP = c(142, 144),
+                                               MARRNO_SP = 145,
+                                               RACED_SP = c(150, 152),
+                                               RACHSING_SP = 161,
+                                               HISPAN_SP = 153,
+                                               BPL_SP = c(154, 156),
+                                               YRIMMIG_SP = c(157, 160),
+                                               EDUCD_SP = c(164, 166),
+                                               QRACE = 130,
+                                               QHISPAN = 129,
+                                               QRACE_SP = 168,
+                                               QHISPAN_SP = 167),
                       col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
                                        HHWT = "d", PERWT = "d", PERWT = "d"))
 ```
