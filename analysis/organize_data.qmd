@@ -597,23 +597,17 @@ These age groups are already coded in as numeric values in the `age_group_` vari
 
 # long format table of joint distribution of spouse's age by year
 prop_age_year_recent <- census |>
-  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
-  group_by(age_group_husband, age_group_wife, YEAR) |>
-  summarize(n_dur = n()) |>
-  ungroup()
-
-prop_age_year_recent <- census |>
-  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
-  group_by(YEAR) |>
-  summarize(n_total = n()) |>
+  filter(dur_mar <= 1 & YEAR >= 2008) |>
+  group_by(age_group_husband, age_group_wife, YEAR, union_type) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(YEAR, union_type) |>
+  mutate(prop = n / sum(n)) |>
   ungroup() |>
-  right_join(prop_age_year_recent) |>
-  mutate(prop = n_dur / n_total) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
   
 # check sums to 1 in each year
 prop_age_year_recent |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(sum(prop)) |>
   gt()
 ```
@@ -717,8 +711,8 @@ vsus1960 <- vsus1960_single |>
   group_by(age_group_husband, age_group_wife) |>
   summarize(freq = sum(freq)) |>
   ungroup() |>
-  mutate(prop = freq / sum(freq), YEAR = 1960) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(prop = freq / sum(freq), YEAR = 1960, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -744,8 +738,8 @@ vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   group_by(age_group_husband, age_group_wife) |>
   summarize(prop = sum(prop)) |>
   ungroup() |>
-  mutate(YEAR = 1970) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(YEAR = 1970, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -771,8 +765,8 @@ vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   group_by(age_group_husband, age_group_wife) |>
   summarize(prop = sum(prop)) |>
   ungroup() |>
-  mutate(YEAR = 1980) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(YEAR = 1980, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # remove existing 1980 data and replace with this one
 prop_age_year_recent <- prop_age_year_recent |>
@@ -826,9 +820,8 @@ vsus1988 <- vsus1988 |>
   group_by(age_group_husband, age_group_wife) |>
   summarize(freq = sum(freq)) |>
   ungroup() |>
-  mutate(prop = freq / sum(freq), 
-         YEAR = 1988) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(prop = freq / sum(freq), YEAR = 1988, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add 1988 data to full age prop data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -847,7 +840,7 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
 
   # starting and end distributions
   dist_start <- prop_age_year_recent |> 
-    filter(YEAR == year_start) |>
+    filter(YEAR == year_start & union_type == "marriage") |>
     pull(prop)
   
   dist_end <- prop_age_year_recent |> 
@@ -862,9 +855,9 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
   
   # put into same format as prop_age_year_recent
   prop_age_year_recent |>
-    filter(YEAR == year_end) |>
+    filter(YEAR == year_end, union_type == "marriage") |>
     select(age_group_husband, age_group_wife) |>
-    mutate(YEAR = year_interp,
+    mutate(YEAR = year_interp, union_type = "marriage",
            prop = dist_interp)
 }
 ```
@@ -893,6 +886,7 @@ I check these to make sure they look reasonable with some figures.
 #|   - Spousal Age gap
 
 temp <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
   group_by(YEAR) |>
   summarize(mean_age_husband = sum(age_group_husband * prop),
             mean_age_wife = sum(age_group_wife * prop),
@@ -931,6 +925,7 @@ The fit looks very nice both for the marginal distribution of partner's age and 
 
 prop_age_year_recent |>
   filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  filter(union_type == "marriage") |>
   group_by(age_group_husband, YEAR) |>
   summarise(prop = sum(prop)) |>
   mutate(YEAR = factor(YEAR),
@@ -983,6 +978,7 @@ prop_age_year_recent |>
 #| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
 prop_age_year_recent |>
   filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  filter(union_type == "marriage") |>
   mutate(age_group_husband = case_when(
            age_group_husband < 20 ~ "Under 20",
            age_group_husband < 25 ~ "20-24",
@@ -1071,7 +1067,13 @@ prop_age_year |>
   pivot_wider(names_from = union_type, values_from = sum) |>
   gt()
 
-weighting <- full_join(prop_age_year, prop_age_year_recent) |>
+# treat cohabitation as marriage for newlyweds
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
+  mutate(union_type = "cohabitation") |>
+  bind_rows(prop_age_year_recent)
+
+weighting <- left_join(prop_age_year, prop_age_year_recent) |>
   mutate(weight_age = prop / prop_total,
          weight_age = ifelse(is.na(weight_age), 0, weight_age))
 
