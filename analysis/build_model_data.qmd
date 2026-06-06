@@ -184,6 +184,34 @@ save(data_model_best_race_state,
      file = here("data", "data_constructed", "data_model_best_race_state.RData"))
 ```
 
+# Same-sex marriages
+
+```{r}
+#| label: generate-same-sex-mar-data
+
+tic()
+data_model_state_same_sex <- census |>
+  # only native born
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  # only marriages
+  filter(union_type == "same-sex marriage") |>
+  generate_bootstrap_data(params$bootstrap_rep, composition_var = "state")
+toc()
+
+data_model_state_same_sex <- data_model_state_same_sex |>
+  map(~ {
+    .x |>
+      left_join(region_crosswalk, by = "state") |>
+      relocate(region, .before = freq)
+  })
+  
+save(data_model_state_same_sex, 
+     file = here("data", "data_constructed", "data_model_state_same_sex.RData"))
+rm(data_model_state_same_sex)
+gc()
+```
+
+
 ```{r}
 #| label: timestamp-end
 #| echo: false
