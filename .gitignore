@@ -23,3 +23,4 @@ data/data_constructed/*
 
 
 **/*.quarto_ipynb
+.positai
