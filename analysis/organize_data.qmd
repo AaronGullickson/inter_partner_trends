@@ -154,6 +154,79 @@ rm(cohab, hh_cohab, partner_cohab)
 gc()
 ```
 
+# Add same-sex subsample
+
+I have a subsample of same-sex couples from 2013, that is in a separate extract and needs to get added in for coding but then separated out for analysis.
+
+```{r}
+census_ss <- read_fwf(here("data", "data_raw", "acs_census", "usa_00155.dat.gz"),
+                      col_positions = fwf_cols(YEAR = c(1,4),
+                                               SAMPLE = c(5, 10),
+                                               HHWT = c(32, 41),
+                                               PERWT = c(77, 86),
+                                               PERWT_SP = c(125, 134),
+                                               STRATA = c(59, 70),
+                                               CLUSTER = c(42, 54),
+                                               REGION = c(55, 56),
+                                               STATEFIP = c(57, 58),
+                                               SSMC = 72,
+                                               SEX = 87,
+                                               AGE = c(88, 90),
+                                               MARRNO = 92,
+                                               YRMARR = c(93, 96),
+                                               RACED = c(98, 100),
+                                               RACHSING = 119,
+                                               HISPAN = 101,
+                                               BPL = c(105, 107),
+                                               YRIMMIG = c(113, 116),
+                                               EDUCD = c(120, 122),
+                                               SEX_SP = 135,
+                                               AGE_SP = c(136, 138),
+                                               MARRNO_SP = 139,
+                                               RACED_SP = c(144, 146),
+                                               RACHSING_SP = 155,
+                                               HISPAN_SP = 147,
+                                               BPL_SP = c(148, 150),
+                                               YRIMMIG_SP = c(151, 154),
+                                               EDUCD_SP = c(158, 160),
+                                               QRACE = 124,
+                                               QHISPAN = 123,
+                                               QRACE_SP = 162,
+                                               QHISPAN_SP = 161),
+                      col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
+                                       HHWT = "d", PERWT = "d", PERWT = "d"))
+```
+
+The data includes same and opposite sex couples. I also want to make use of the SSMC variable in the IPUMS data where 2 is the code for an unambiguous same-sex couple with the head of household as one member of the couple. 
+
+```{r}
+#| label: subset-same-sex
+
+# check by year
+table(census_ss$SEX, census_ss$SEX_SP, census_ss$YEAR)
+
+# check by SSMC
+table(census_ss$SEX, census_ss$SEX_SP, census_ss$SSMC)
+
+# restrict by sex and SSMC
+census_ss <- census_ss |>
+  filter(SEX == SEX_SP & SSMC == 2) |>
+  mutate(union_type = "same-sex marriage")
+
+# check
+table(census_ss$SEX, census_ss$SEX_SP)
+
+# now add to full data
+census <- census |>
+  bind_rows(census_ss)
+
+table(census$YEAR, census$union_type)
+
+# free up memory
+rm(census_ss)
+gc()
+```
+
 
 # Remove race allocated cases
 
@@ -404,18 +477,18 @@ census <- census |>
 # check on the correlation matrix
 cor(census[,c("weight_sample", "PERWT", "PERWT_SP", "HHWT")])
 
-# now normalize the weights to mean to one in each year
+# now normalize the weights to mean to one in each year and union type
 weight_means <- census |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(mean_sweight = mean(weight_sample), .groups = "drop")
 
 census <- census |>
-  left_join(weight_means, by = "YEAR") |>
+  left_join(weight_means, by = c("YEAR", "union_type")) |>
   mutate(weight_sample = weight_sample / mean_sweight)
 
 # check to make sure it means to one in each year
 census |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(mean(weight_sample), .groups = "drop")
 ```
 
