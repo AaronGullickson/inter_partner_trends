@@ -8,7 +8,7 @@
 packages = c(
   "here", # absolute requirement always
   "knitr", # for processing quarto
-  "readr","haven", "googlesheets4", # I/O
+  "readr","haven", "googlesheets4", "yaml", "googledrive", # I/O
   "tidyverse","lubridate","broom", #tidyverse and friends
   "ggrepel", # plotting extras
   "srvyr", # for adjusting by sample design

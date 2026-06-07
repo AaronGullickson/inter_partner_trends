@@ -18,6 +18,50 @@ source(here("utils","check_packages.R"))
 source(here("utils","functions.R"))
 ```
 
+# Download data
+
+The data are too large for GitHub so they will be downloaded from a google drive link. Once downloaded they will not be downloaded again unless the data version is updated.
+
+```{r}
+#| label: download-data
+
+# get latest data version from repo
+repo_version <- read_yaml(here("data", "data_raw", "data_version.yml"))$version
+
+# get local data version
+local_version_path <- here("data", "data_raw", "data_version_local.yml")
+if (file_exists(local_version_path)) {
+  local_version <- read_yaml(local_version_path)$version
+} else {
+  local_version <- "none"
+}
+
+if(local_version != repo_version) {
+  
+  # deauthorize google drive to avoid interactive authentication
+  drive_deauth()
+  
+  # where the downloaded data will live (temporarily)
+  main_mar_file_path <- here("data","data_raw", "acs_census", "usa_00151.dat.gz")
+  cohab_file_path <- here("data","data_raw", "acs_census", "usa_00152.dat.gz")
+  samesex_mar_file_path <- here("data","data_raw", "acs_census", "usa_00156.dat.gz")
+  
+  # download main file
+  drive_download(as_id("1dIn6hVODdmTpBR0TUK514UzuWZuG5r5E"), 
+                 path=main_mar_file_path, overwrite = TRUE)
+  # download cohab file
+  drive_download(as_id("1UM4gm_gLM8m9GSW20Ugyc0bNmIUK-tJi"), 
+                 path=cohab_file_path, overwrite = TRUE)
+  # download same sex file
+  drive_download(as_id("1URoG21XMnPGoeEwIrw7JESMOunjAoeAG"), 
+                 path=samesex_mar_file_path, overwrite = TRUE)
+  
+  # update local to repo version
+  write_yaml(list(version = repo_version), 
+             here("data", "data_raw", "data_version_local.yml"))
+}
+```
+
 # Read in spousal data
 
 This script will read in Census and ACS data from 1960 to 2023 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
@@ -159,6 +203,8 @@ gc()
 I have a subsample of same-sex couples from 2013, that is in a separate extract and needs to get added in for coding but then separated out for analysis.
 
 ```{r}
+#| label: read-same-sex-data
+
 census_ss <- read_fwf(here("data", "data_raw", "acs_census", "usa_00156.dat.gz"),
                       col_positions = fwf_cols(YEAR = c(1,4),
                                                SAMPLE = c(5, 10),
