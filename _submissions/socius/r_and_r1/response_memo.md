@@ -5,10 +5,14 @@ editor: visual
 ## Editor Comments
 
 > We are fortunate to have received reviews from two scholars with expertise in the field. They provided some constructive cristicisms, and I encourage you to carefully address them. I have a couple of further comments, which I detail below.
->
+
+### Issue 1: Adjustments to Framing
+
 > First, I'd like to see a bit more effort on the framing of the research in your literature review (i.e., "Background") section. Specifically, Richard Alba's (2020) Princeton University Press book The Greatest Demographic Illusion, which is about the rise of mixed families in America, can and should be considered in the framing.
 
 TODO: Respond
+
+### Issue 2: Explanation of loglinear modeling
 
 > Second, As someone who was trained in the loglinear modeling tradition, I was pleased to see your use of it. R1 is right: This method is often considered the "gold standard" for analyzing intermarriages. Because most today's graduate students are no longer trained in that tradition, R2 is right about finding a way to help their graduate students interpret the results. I think a brief section (no longer than a couple of paragraphs, perhaps) explaining the basic nitty-gritty of loglinear modeling would go a long way.
 
