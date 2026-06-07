@@ -645,22 +645,30 @@ This one is a bit of a mess. Its split up by single, widowed, and divorced wives
 ```{r}
 #| label: read-1960-vsus
 
-vsus1960_single <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                              sheet = "Table 2-18 Single Bride 1960 VSUS") |>
+
+
+vsus1960_single <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 2-18 Single Bride 1960 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq")
 
-vsus1960_widowed <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                              sheet = "Table 2-18 Widowed Bride 1960 VSUS") |>
+vsus1960_widowed <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 2-18 Widowed Bride 1960 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq")
 
-vsus1960_divorced <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                              sheet = "Table 2-18 Divorced Bride 1960 VSUS") |>
+vsus1960_divorced <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 2-18 Divorced Bride 1960 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
@@ -726,10 +734,12 @@ The 1970 data is a straightforward single table.
 ```{r}
 #| label: read-1970-vsus
 
-vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                       sheet = "Table 1-28 1970 VSUS") |>
-  filter(wife_age != "wife_total") |>
+vsus1970 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-28 1970 VSUS.csv")
+  ) |>
   select(!husband_total) |>
+  filter(wife_age != "wife_total")|>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq") |>
   mutate(age_group_husband = convert_age_string(husband_age),
@@ -753,10 +763,13 @@ The 1980 data is a straightforward single table.
 ```{r}
 #| label: read-1980-vsus
 
-vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                       sheet = "Table 1-28 1980 VSUS") |>
+vsus1980 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-28 1980 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
+  filter(wife_age != "wife_total")|>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq") |>
   mutate(age_group_husband = convert_age_string(husband_age),
@@ -783,31 +796,39 @@ The 1988 data were split by race (White, Black, and Other). Interestingly, inter
 ```{r}
 #| label: read-1988-vsus
 
-vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                             sheet = "Table 1-20, White Spouses, 1988 VSUS") |>
+vsus1988 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-20, White Spouses, 1988 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq")
 
-vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                             sheet = "Table 1-20, Black Spouses, 1988 VSUS") |>
+vsus1988 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-20, Black Spouses, 1988 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq") |>
   bind_rows(vsus1988)
 
-vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                             sheet = "Table 1-20, Other Spouses, 1988 VSUS") |>
+vsus1988 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-20, Other Spouses, 1988 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
                names_to = "husband_age", values_to = "freq") |>
   bind_rows(vsus1988)
 
-vsus1988 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
-                             sheet = "Table 1-20, Spouses not stated, 1988 VSUS") |>
+vsus1988 <- read_csv(
+  here("data", "data_raw", "vital_stats", 
+       "Vital Stats Data - Table 1-20, Spouses not stated, 1988 VSUS.csv")
+  ) |>
   filter(wife_age != "wife_total") |>
   select(!husband_total) |>
   pivot_longer(cols = starts_with("husband_"),
