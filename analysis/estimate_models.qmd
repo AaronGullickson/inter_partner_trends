@@ -300,6 +300,53 @@ rm(data_model_state_combine_simple)
 gc()
 ```
 
+# Same-Sex models
+
+```{r}
+#| label: load-same-sex-model-data
+#| include: false
+
+load(here("data", "data_constructed", "data_model_state_same_sex.RData"))
+```
+
+```{r}
+#| label: estimate-same-sex-model
+
+# collapse race
+tic()
+data_model_state_same_sex_simple <- data_model_state_same_sex |> 
+  future_map(function(model_data) {
+    model_data |>
+      mutate(race_husband = collapse_race(race_husband),
+             race_wife = collapse_race(race_wife)) |>
+      group_by(race_husband, race_wife, year, state) |>
+      summarize(freq = sum(freq), .groups = "drop")
+  })
+toc()
+
+# we don't need the original same sex data any more
+rm(data_model_state_same_sex)
+gc()
+
+tic()
+model_state_same_sex_bs <- data_model_state_same_sex_simple |>
+  bootstrap_model(c("White", "Black", "AIAN", "API", "Hispanic"), 
+                  composition_var = "state", year_separate = TRUE)
+toc()
+```
+
+```{r}
+#| label: save-same-sex-models
+
+save(model_state_same_sex_bs,
+     file = here("data", "data_constructed", "model_same_sex.RData"))
+
+# memory cleanup
+rm(data_model_state_combine_simple)
+gc()
+```
+
+
 # Regional models
 
 These models are like the overall models for single race groups, but I allow each log odds ratio to vary by region as well.

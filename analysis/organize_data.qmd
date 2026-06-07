@@ -20,7 +20,7 @@ source(here("utils","functions.R"))
 
 # Read in spousal data
 
-This script will read in Census and ACS data from 1960 to 2019 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
+This script will read in Census and ACS data from 1960 to 2023 to construct broad interracial marriage patterns over that entire time period. The extract downloaded from IPUMS includes only individuals with the marital status of "married, spouse present." I also restrict the sample to men and then attach information about various partner characteristics via IPUMS extraction system. 
 
 ```{r}
 #| label: read-spousal-data
@@ -151,6 +151,79 @@ table(census$YEAR, census$union_type)
 
 # free up memory
 rm(cohab, hh_cohab, partner_cohab)
+gc()
+```
+
+# Add same-sex subsample
+
+I have a subsample of same-sex couples from 2013, that is in a separate extract and needs to get added in for coding but then separated out for analysis.
+
+```{r}
+census_ss <- read_fwf(here("data", "data_raw", "acs_census", "usa_00156.dat.gz"),
+                      col_positions = fwf_cols(YEAR = c(1,4),
+                                               SAMPLE = c(5, 10),
+                                               HHWT = c(32, 41),
+                                               PERWT = c(77, 86),
+                                               PERWT_SP = c(131, 140),
+                                               STRATA = c(59, 70),
+                                               CLUSTER = c(42, 54),
+                                               REGION = c(55, 56),
+                                               STATEFIP = c(57, 58),
+                                               SSMC = 72,
+                                               SEX = 93,
+                                               AGE = c(94, 96),
+                                               MARRNO = 98,
+                                               YRMARR = c(99, 102),
+                                               RACED = c(104, 106),
+                                               RACHSING = 123,
+                                               HISPAN = 107,
+                                               BPL = c(111, 113),
+                                               YRIMMIG = c(119, 122),
+                                               EDUCD = c(126, 128),
+                                               SEX_SP = 141,
+                                               AGE_SP = c(142, 144),
+                                               MARRNO_SP = 145,
+                                               RACED_SP = c(150, 152),
+                                               RACHSING_SP = 161,
+                                               HISPAN_SP = 153,
+                                               BPL_SP = c(154, 156),
+                                               YRIMMIG_SP = c(157, 160),
+                                               EDUCD_SP = c(164, 166),
+                                               QRACE = 130,
+                                               QHISPAN = 129,
+                                               QRACE_SP = 168,
+                                               QHISPAN_SP = 167),
+                      col_types = cols(.default = "i", STRATA = "c", CLUSTER = "c",
+                                       HHWT = "d", PERWT = "d", PERWT = "d"))
+```
+
+The data includes same and opposite sex couples. I also want to make use of the SSMC variable in the IPUMS data where 2 is the code for an unambiguous same-sex couple with the head of household as one member of the couple. 
+
+```{r}
+#| label: subset-same-sex
+
+# check by year
+table(census_ss$SEX, census_ss$SEX_SP, census_ss$YEAR)
+
+# check by SSMC
+table(census_ss$SEX, census_ss$SEX_SP, census_ss$SSMC)
+
+# restrict by sex and SSMC
+census_ss <- census_ss |>
+  filter(SEX == SEX_SP & SSMC == 2) |>
+  mutate(union_type = "same-sex marriage")
+
+# check
+table(census_ss$SEX, census_ss$SEX_SP)
+
+# now add to full data
+census <- census |>
+  bind_rows(census_ss)
+
+table(census$YEAR, census$union_type)
+
+# free up memory
+rm(census_ss)
 gc()
 ```
 
@@ -404,18 +477,18 @@ census <- census |>
 # check on the correlation matrix
 cor(census[,c("weight_sample", "PERWT", "PERWT_SP", "HHWT")])
 
-# now normalize the weights to mean to one in each year
+# now normalize the weights to mean to one in each year and union type
 weight_means <- census |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(mean_sweight = mean(weight_sample), .groups = "drop")
 
 census <- census |>
-  left_join(weight_means, by = "YEAR") |>
+  left_join(weight_means, by = c("YEAR", "union_type")) |>
   mutate(weight_sample = weight_sample / mean_sweight)
 
 # check to make sure it means to one in each year
 census |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(mean(weight_sample), .groups = "drop")
 ```
 
@@ -524,23 +597,17 @@ These age groups are already coded in as numeric values in the `age_group_` vari
 
 # long format table of joint distribution of spouse's age by year
 prop_age_year_recent <- census |>
-  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
-  group_by(age_group_husband, age_group_wife, YEAR) |>
-  summarize(n_dur = n()) |>
-  ungroup()
-
-prop_age_year_recent <- census |>
-  filter(dur_mar <= 1 & YEAR >= 2008 & union_type == "marriage") |>
-  group_by(YEAR) |>
-  summarize(n_total = n()) |>
+  filter(dur_mar <= 1 & YEAR >= 2008) |>
+  group_by(age_group_husband, age_group_wife, YEAR, union_type) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(YEAR, union_type) |>
+  mutate(prop = n / sum(n)) |>
   ungroup() |>
-  right_join(prop_age_year_recent) |>
-  mutate(prop = n_dur / n_total) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
   
 # check sums to 1 in each year
 prop_age_year_recent |>
-  group_by(YEAR) |>
+  group_by(YEAR, union_type) |>
   summarize(sum(prop)) |>
   gt()
 ```
@@ -644,8 +711,8 @@ vsus1960 <- vsus1960_single |>
   group_by(age_group_husband, age_group_wife) |>
   summarize(freq = sum(freq)) |>
   ungroup() |>
-  mutate(prop = freq / sum(freq), YEAR = 1960) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(prop = freq / sum(freq), YEAR = 1960, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -671,8 +738,8 @@ vsus1970 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   group_by(age_group_husband, age_group_wife) |>
   summarize(prop = sum(prop)) |>
   ungroup() |>
-  mutate(YEAR = 1970) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(YEAR = 1970, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add to full joint distribution data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -698,8 +765,8 @@ vsus1980 <- read_sheet("1YVMMhwrIsyux6FQCPqyCqN45BLOruxLfsk60XBra1z4",
   group_by(age_group_husband, age_group_wife) |>
   summarize(prop = sum(prop)) |>
   ungroup() |>
-  mutate(YEAR = 1980) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(YEAR = 1980, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # remove existing 1980 data and replace with this one
 prop_age_year_recent <- prop_age_year_recent |>
@@ -753,9 +820,8 @@ vsus1988 <- vsus1988 |>
   group_by(age_group_husband, age_group_wife) |>
   summarize(freq = sum(freq)) |>
   ungroup() |>
-  mutate(prop = freq / sum(freq), 
-         YEAR = 1988) |>
-  select(age_group_husband, age_group_wife, YEAR, prop)
+  mutate(prop = freq / sum(freq), YEAR = 1988, union_type = "marriage") |>
+  select(age_group_husband, age_group_wife, union_type, YEAR, prop)
 
 # add 1988 data to full age prop data
 prop_age_year_recent <- prop_age_year_recent |>
@@ -774,7 +840,7 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
 
   # starting and end distributions
   dist_start <- prop_age_year_recent |> 
-    filter(YEAR == year_start) |>
+    filter(YEAR == year_start & union_type == "marriage") |>
     pull(prop)
   
   dist_end <- prop_age_year_recent |> 
@@ -789,9 +855,9 @@ interpolate_age_dist <- function(year_interp, year_start, year_end) {
   
   # put into same format as prop_age_year_recent
   prop_age_year_recent |>
-    filter(YEAR == year_end) |>
+    filter(YEAR == year_end, union_type == "marriage") |>
     select(age_group_husband, age_group_wife) |>
-    mutate(YEAR = year_interp,
+    mutate(YEAR = year_interp, union_type = "marriage",
            prop = dist_interp)
 }
 ```
@@ -820,6 +886,7 @@ I check these to make sure they look reasonable with some figures.
 #|   - Spousal Age gap
 
 temp <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
   group_by(YEAR) |>
   summarize(mean_age_husband = sum(age_group_husband * prop),
             mean_age_wife = sum(age_group_wife * prop),
@@ -858,6 +925,7 @@ The fit looks very nice both for the marginal distribution of partner's age and 
 
 prop_age_year_recent |>
   filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  filter(union_type == "marriage") |>
   group_by(age_group_husband, YEAR) |>
   summarise(prop = sum(prop)) |>
   mutate(YEAR = factor(YEAR),
@@ -910,6 +978,7 @@ prop_age_year_recent |>
 #| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
 prop_age_year_recent |>
   filter(YEAR %in% c(1988, 1990, 2000, 2004, 2008)) |>
+  filter(union_type == "marriage") |>
   mutate(age_group_husband = case_when(
            age_group_husband < 20 ~ "Under 20",
            age_group_husband < 25 ~ "20-24",
@@ -998,7 +1067,13 @@ prop_age_year |>
   pivot_wider(names_from = union_type, values_from = sum) |>
   gt()
 
-weighting <- full_join(prop_age_year, prop_age_year_recent) |>
+# treat cohabitation as marriage for newlyweds
+prop_age_year_recent <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
+  mutate(union_type = "cohabitation") |>
+  bind_rows(prop_age_year_recent)
+
+weighting <- left_join(prop_age_year, prop_age_year_recent) |>
   mutate(weight_age = prop / prop_total,
          weight_age = ifelse(is.na(weight_age), 0, weight_age))
 
