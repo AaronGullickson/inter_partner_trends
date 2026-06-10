@@ -92,13 +92,13 @@ TODO: respond
 
 TODO: respond
 
-### Issue 5 TODO: Additional discussion of interracial marriage and union dissolution
+### Issue 5: Additional discussion of interracial marriage and union dissolution
 
 > The author cited one paper to support the argument that interracial marriages are more prone to dissolve. There is at least one paper – and I think more in recent five years – challenges this argument. This does not necessarily challenge the data analysis per se, but it is important to revisit the argument, I think.
 >
 > - Zhang, Y. and Van Hook, J. (2009), Marital Dissolution Among Interracial Couples. Journal of Marriage and Family, 71: 95-107.
 
-TODO: respond
+Thank you for raising this point. I have changed the wording in that section (pg. XX) to indicate the somewhat mixed and inconclusive empirical results on this question. I have added the requested citation as well as another citation from Fu and Wolfinger (2011) which is consistent with the "mixed" nature of the results.
 
 ### Issue 6 TODO: Show sample size and discuss power
 
