@@ -32,13 +32,70 @@ source(here("utils","functions.R"))
 ```{r}
 #| label: load-data
 
+load(here("data", "data_constructed", "data_couples.RData"))
 load(here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
+load(here("data", "data_constructed", "models_cohab.RData"))
 load(here("data", "data_constructed", "model_same_sex.RData"))
 ```
 
+
+# Comparison of Spouse Race Distribution Before and After 2020
+
+@tbl-race-dist shows the distribution of race from for husbands and wives 2020 onward in comparison to the two immediately preceding time periods based on the coding of race described in the data and methods section of the main article. For single-race groups, the shift in racial distribution from 2020 onward is small and may reflect undergoing shifts that were already underway prior to 2020. The most notable changes are for the two multiracial groups of White-Black and White-AIAN which more than doubled in size.
+
+```{r}
+#| label: tbl-race-dist
+#| tbl-cap: Comparison of the distribution of race for husbands and wives for 2020-2023 and the two immediately preceding time periods.
+
+temp <- census |>
+  filter(year == 2013 | year == 2017.5 | year == 2022) |>
+  mutate(race_husband = collapse_race(race_husband)) |>
+  filter(!(race_husband %in% c("Black-AIAN", "Black-API"))) |>
+  group_by(race_husband, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  select(-n) |>
+  pivot_wider(names_from = year, values_from = prop) |>
+  rename(race = race_husband,
+         husband2010 = `2013`,
+         husband2015 = `2017.5`,
+         husband2020 = `2022`)
+
+temp <- census |>
+  filter(year == 2013 | year == 2017.5 | year == 2022) |>
+  mutate(race_wife = collapse_race(race_wife)) |>
+  filter(!(race_wife %in% c("Black-AIAN", "Black-API"))) |>
+  group_by(race_wife, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  select(-n) |>
+  pivot_wider(names_from = year, values_from = prop) |>
+  rename(race = race_wife,
+         wife2010 = `2013`,
+         wife2015 = `2017.5`,
+         wife2020 = `2022`) |>
+  left_join(temp)
+
+temp |>
+  gt() |>
+  fmt_percent(c(starts_with("wife"), starts_with("husband"))) |>
+  cols_label(
+    wife2010 ~ "2010-2014",
+    wife2015 ~ "2015-2019",
+    wife2020 ~ "2020-2023",
+    husband2010 ~ "2010-2014",
+    husband2015 ~ "2015-2019",
+    husband2020 ~ "2020-2023"
+  ) |>
+  tab_spanner(starts_with("wife"), label = "Wife") |>
+  tab_spanner(starts_with("husband"), label = "Husband")
+
+```
 
 
 # Age Weighting Procedure
