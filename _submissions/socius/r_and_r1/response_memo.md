@@ -86,11 +86,13 @@ See my response to the editor's comment above, which should address this issue a
 
 I apologize but I have not been able to find this quote in either the main manuscript or the supplementary appendix. However, I do take R2's point that I should try to make the age weighting more intuitive to readers and less technical. In the original draft, I attempted to do this by treating the age weighting as a generalization of the approach of restricting spouses by age group, but this clearly was insufficient. I have modified the language on pg. XX of the Data and Methods to make this generalization more explicit and I have included an example from the 2023 data to help readers understand the technique more concretely.
 
-### Issue 4 TODO: Differences in common support between age distributions
+### Issue 4: Differences in common support between age distributions
 
 > If extant couples’ age distributions are very different from the newlyweds, how does matching affect the outcome when two underlying age distributions are so different in common support?
 
-TODO: respond
+To provide a visual example, I have now included Figure SX in the supplementary appendix which shows the overlap (common support) between newlywed husband's age distribution and the age distribution of all husbands in 2008. As the figure shows there is quite a bit of overlap in common support.
+
+However, I don't think this is a relevant issue for what I am trying to accomplish with the weights. The issue of common support is typically applied to propensity score matching and related methods where one needs to identify treatment and control cases. That is not my goal. My goal rather is more akin to post-stratification weighting in which I want to make one population look more like another population. I hope that my response to Issue 3 above (which tried to better address these goals) will also help address R2's concern here.
 
 ### Issue 5: Additional discussion of interracial marriage and union dissolution
 

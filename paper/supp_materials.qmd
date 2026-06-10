@@ -34,6 +34,7 @@ source(here("utils","functions.R"))
 
 load(here("data", "data_constructed", "data_couples.RData"))
 load(here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
+load(here("data", "data_constructed", "age_weight_example.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
@@ -206,6 +207,23 @@ prop_age_year_recent |>
 ```
 
 As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intervening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
+
+@fig-age-weight-example shows an example of how the age weighting operates for the 2008 data on husband's age. The red histogram shows the age distribution of husband's age across all marriages, while the blue histogram shows the age distribution of newlywed husbands (those married in the last year). The histogram shown by dotted lines is the distribution of husband's age in extant marriage, weighted by the age weight. The dotted line shows a very close fit with the actual distribution of newlyweds. It is not exact because of the use of coarser age groups necessitated by the input data, as described above.
+
+```{r}
+#| label: fig-age-weight-example
+#| fig-cap: Comparison of the age distribution of husbands in 2008 for extant marriages (red) vs. newlyweds (blue), with the age-weighted distribution of extant marriages shown by a dotted line.
+
+age_weight2008 |>
+  ggplot(aes(x = age_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
+  geom_histogram(data = filter(age_weight2008, dur_mar <= 1),
+                 color = NA, fill = "navy",  binwidth = 1, alpha = 0.7)+
+  geom_histogram(alpha = 0.7, fill = NA, binwidth = 1, linetype = 2, 
+                 color = "black", aes(weight = weight_age))+
+  labs(x = "husband's age")+
+  theme_bw(base_size = 12)
+```
 
 # Comparison of Age-Weighted and Duration-Specific Results
 
