@@ -92,7 +92,7 @@ I apologize but I have not been able to find this quote in either the main manus
 
 To provide a visual example, I have now included Figure SX in the supplementary appendix which shows the overlap (common support) between newlywed husband's age distribution and the age distribution of all husbands in 2008. As the figure shows there is quite a bit of overlap in common support.
 
-However, I don't think this is a relevant issue for what I am trying to accomplish with the weights. The issue of common support is typically applied to propensity score matching and related methods where one needs to identify treatment and control cases. That is not my goal. My goal rather is more akin to post-stratification weighting in which I want to make one population look more like another population. I hope that my response to Issue 3 above (which tried to better address these goals) will also help address R2's concern here.
+However, I don't think this is a relevant issue for what I am trying to accomplish with the weights. The issue of common support is typically applied to propensity score matching and related methods where one needs to identify treatment and control cases that must overlap on propensity scores. That is not my goal. My goal rather is more akin to post-stratification weighting in which I want to make one population look more like another population. I hope that my response to Issue 3 above (which tried to better address these goals) will also help address R2's concern here.
 
 ### Issue 5: Additional discussion of interracial marriage and union dissolution
 
