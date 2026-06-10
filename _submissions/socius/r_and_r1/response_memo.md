@@ -6,13 +6,13 @@ editor: visual
 
 > We are fortunate to have received reviews from two scholars with expertise in the field. They provided some constructive cristicisms, and I encourage you to carefully address them. I have a couple of further comments, which I detail below.
 
-### Issue 1: Adjustments to Framing
+### Issue 1 TODO: Adjustments to Framing
 
 > First, I'd like to see a bit more effort on the framing of the research in your literature review (i.e., "Background") section. Specifically, Richard Alba's (2020) Princeton University Press book The Greatest Demographic Illusion, which is about the rise of mixed families in America, can and should be considered in the framing.
 
 TODO: Respond
 
-### Issue 2: Explanation of loglinear modeling
+### Issue 2 TODO: Explanation of loglinear modeling
 
 > Second, As someone who was trained in the loglinear modeling tradition, I was pleased to see your use of it. R1 is right: This method is often considered the "gold standard" for analyzing intermarriages. Because most today's graduate students are no longer trained in that tradition, R2 is right about finding a way to help their graduate students interpret the results. I think a brief section (no longer than a couple of paragraphs, perhaps) explaining the basic nitty-gritty of loglinear modeling would go a long way.
 
@@ -32,21 +32,29 @@ Thank you for these comments!
 
 > The authors state that same-sex couples are excluded due to limited information on these relationships (p. 8). Other work has explored same-sex couples using ACS / Census information drawing on unmarried partner data, which has been available since 1990. While the number of couples that are same-sex are generally small, I do not believe its accurate to state that the information is not available. There are a range of reasons to exclude this type of coupling (i.e,. small sample sizes, same-sex relationships are beyond the scope of the paper, this type of coupling generates analytical issues for applying log linear models.) I would encourage the authors to include other rationale and perhaps direct readers elsewhere for more information.
 
-Thank you for pushing on this point. There are indeed several limitations in dealing with the same-sex couples that initially led me to restrict the analysis to opposite-sex couples. The reviewer points out two such limitations, specifically the the log-liner framework which expects distinct husbands and wives and small sample sizes. Another issue is that changes to census re-coding practices and misclassification can make it difficult to identify same-sex cohabitors consistently over time (CITE).
+Thank you for pushing on this point. There are indeed several limitations in dealing with the same-sex couples that initially led me to restrict the analysis to opposite-sex couples. R1 points out two such limitations, specifically the the log-liner framework which expects distinct husbands and wives and small sample sizes. Another issue is that changes to census re-coding practices and misclassification can make it difficult to identify same-sex cohabitors consistently over time (CITE).
 
 However, since 2013, it is possible to identify same-sex marriages in the ACS data with relatively little concern about issues of measurement. Although the sample sizes are still quite small, they are much larger than for same-sex cohabitors. Therefore, I have decided to include in the revision an analysis of trends in interracial marriage for same-sex couples over this time period. To do this I have altered the discussion of cohabitation at the end of the results section (pg. XX) to broaden the scope to "alternate union types" where I compare the results for opposite-sex marriage to opposite-sex cohabitation and same-sex marriage (Figure 8). For the main paper, I focus on the results for marriages involving one White partner, because of serious sample size limitations for dual minority pairings, but I do show the full results for both cohabitation and marriage in the supplementary appendix (Figure XX). As expected from prior work, I generally find that interracial pairing is more common in same-sex marriages than opposite-sex marriages, but the trends and differences between pairings are largely consistent.
 
 I have also updated the background section to provide more discussion of prior work on this topic (pg. XX). I also provide more detail in the data and methods section discussion the inclusion of the same-sex data (pg. XX) but also justifying why I primarily focus on opposite-sex marriage due to its consistency across the time period of the study.
 
-As the reviewer suggests one of the complications with same-sex marriages is that they don't have the same logic of men's characteristics along one dimension and women's characteristics along another dimension that applies to log-linear models. I have handled this for the analysis by distinguishing between the household head and non-household head because all same-sex marriages are only identified when one member is the household head. Since all of my models are symmetric with regard to "gender," this distinction is merely a convenience. I discuss this in footnote XX of the revised manuscript.
+As R1 suggests one of the complications with same-sex marriages is that they don't have the same logic of men's characteristics along one dimension and women's characteristics along another dimension that applies to log-linear models. I have handled this for the analysis by distinguishing between the household head and non-household head because all same-sex marriages are only identified when one member is the household head. Since all of my models are symmetric with regard to "gender," this distinction is merely a convenience. I discuss this in footnote XX of the revised manuscript.
 
-As the reviewer also suggests, it is possible to identify same-sex unmarried partners back to 1990 so I could theoretically also include trends for same-sex cohabitations. However, as noted above, the data quality issues here get quite a bit more complicated and murky due to changes in how the census reclassified couples. Additionally, the sample sizes here are quite small. Handling this case appropriately would add a great deal of technical detail to an already full analysis, and so I have chosen to restrict the focus only on comparing same-sex to opposite-sex marriages in periods where they are both identifiable.
+As R1 also suggests, it is possible to identify same-sex unmarried partners back to 1990 so I could theoretically also include trends for same-sex cohabitations. However, as noted above, the data quality issues here get quite a bit more complicated and murky due to changes in how the census reclassified couples. Additionally, the sample sizes here are quite small. Handling this case appropriately would add a great deal of technical detail to an already full analysis, and so I have chosen to restrict the focus only on comparing same-sex to opposite-sex marriages in periods where they are both identifiable.
 
 ### Issue 2: 2020 Census race coding changes
 
 > Is there a way for the authors to assess or speak to the role of the coding changes in race in 2020? I understand that its difficult (if not impossible) to know how the coding shifts affected the distribution of race/ethnicity in the post-2020 era, but the authors give this issue very limited attention. Can they anticipate or speculate what they think would have changed has the same approach for race been applied throughout?
 
 TODO: Respond
+
+I did include a brief comment on the 2020 changes in the original draft but R1 is correct that I did give the issue limited attention. Unlike the 2000 change, I have no ability to perform a counterfactual check here so I want to avoid too much speculation about how this change might affect the results as I don't think we have enough information to know. What I can say more clearly is that for most cases it **shouldn't** have much of an effect and an examination of the trends indicates that it **doesn't**.
+
+In terms of the "shouldn't" aspect, as I noted in the first draft, the biggest shift in the 2020 data is that a large number of individuals who identified as Hispanic were placed in a "Hispanic/Other" category. However, because I am ignoring the racial identification of such individuals, this shift should not affect my data. Some other shifts are also eye popping (for example the increasing in White-Black people with a South African origin), but these shifts often capture a very small share of the overall population. To assess this issue more formally, I now provide a table (Table S1) in the supplementary appendix that compares the distribution of race for each spouse in the two periods immediately prior to th 2020 shift (2010-2014 and 2015-2019) to the distribution for the 2020-2023 period. The results show that the changes in the distribution are minimal for single race group and may just reflect shifts that were already apparent in the 2010-2014. However, the changes are substantial for the White-Black and White-AIAN groups, so the last data point for trends involving those groups should be viewed with caution.
+
+In terms of the "doesn't" aspect, the trends lines for most groups don't show any significant discontinuity across either the 2000 or 2020 cutpoints, suggesting that these changes are artificially driving up or down the estimate of interracial marriage.
+
+In addition to Table S1, I have included more detailed language describing the issue and the results from the Table in the Data and Methods section (pg. XX). I have also included discussion of the issue in the results section for the main trends across single race groups (pg. XX) and for the multiracial groups (pg. XX).
 
 ## Reviewer 2 Comments
 
@@ -60,31 +68,31 @@ Thank your for these comments!
 >
 > The strength of the paper is its scope and new-ish method, but sometimes the technical focus can compromise interpretation and theory. If I imagine myself as a general sociologist but not one in the subfield, I will find myself asking the following questions: The author already touched upon some of them, but I would like to see some expansions:
 
-### Issue 1: **Outmarriage rate v. log linear models**
+### Issue 1 TODO: **Outmarriage rate v. log linear models**
 
 > the author was careful in proposing the log-linear models with state constraints while acknowledging the benefit of a simple rate approach. Somewhere in the manuscript, the author mentioned that the out-marriage rate is more intuitive and captures living experience of couples, while loglinear models are better at assessing true group boundaries after accounting for differences in group sizes. This is true, and I think the author could expand on these points to more extendedly spell out the benefit of each method/approach.
 
 TODO: respond
 
-### Issue 2: Interpretation of log-linear models
+### Issue 2 TODO: Interpretation of log-linear models
 
 > Loglinear models can be hard to interpret when including many terms, and there is also recent advancement in counterfactual approaches and causal approaches. How do I persuade my graduate students that it is important to control for marginal distributions in a plain language? What does it mean by accounting for group size to begin with?
 
 See my response to the editor's comment above, which should address this issue as well.
 
-### Issue 3: Better explanation of age weighting
+### Issue 3 TODO: Better explanation of age weighting
 
 > “The age weighting is to make sure the joint distribution of extant couples in a given year will match the joint age distribution of newlyweds in a given year”. This still reads technical. Provide a more intuitive explanation, supplemented with concrete, detailed example may help explain the procedure more clearly.
 
 TODO: respond
 
-### Issue 4: Differences in common support between age distributions
+### Issue 4 TOD: Differences in common support between age distributions
 
 > If extant couples’ age distributions are very different from the newlyweds, how does matching affect the outcome when two underlying age distributions are so different in common support?
 
 TODO: respond
 
-### Issue 5: Additional discussion of interracial marriage and union dissolution
+### Issue 5 TODO: Additional discussion of interracial marriage and union dissolution
 
 > The author cited one paper to support the argument that interracial marriages are more prone to dissolve. There is at least one paper – and I think more in recent five years – challenges this argument. This does not necessarily challenge the data analysis per se, but it is important to revisit the argument, I think.
 >
@@ -92,13 +100,13 @@ TODO: respond
 
 TODO: respond
 
-### Issue 6: Show sample size and discuss power
+### Issue 6 TODO: Show sample size and discuss power
 
 > In many parts of the analysis, the author acknowledges N limits, why not showing the data sample sizes in detail in an appendix table? Let the readers decide when is it appropriate to not continue more sub-group level analyses? a. Is there a threshold the author adopts in loglinear models that it is probably underpowered?
 
 TODO: respond
 
-### Issue 7: Incorporate existing explanations for API intermarriage decline
+### Issue 7 TODO: Incorporate existing explanations for API intermarriage decline
 
 > The foreign-born population might be critical in explaining the decline in API intermarriage since 2000. There is recent work highlighting this, and the author can expand on this argument since this is one of the central arguments:
 >
@@ -106,7 +114,7 @@ TODO: respond
 
 TODO: respond
 
-### Minor Issues
+### Minor Issues TODO
 
 > I would like to have a table showing all data sources and measures and race/ethnicity questions adopted. And at least the total N for each analysis. I found the analysis comprehensive, but I did not see any tables on such details.
 
