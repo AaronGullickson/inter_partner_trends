@@ -56,6 +56,7 @@ load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
 load(here("data", "data_constructed", "models_cohab.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
+load(here("data", "data_constructed", "model_same_sex.RData"))
 ```
 
 ```{r}
@@ -166,7 +167,9 @@ In what follows, I attempt to resolve many of these shortcomings to produce an a
 
 Data for this analysis are derived from the microdata Census samples for Census 1960, 1970, 1980, 1990, and 2000, and American Community Survey (ACS) data from 2001 to 2023, with the exception of 2020. All data were extracted via the Integrated Public Use Microdata Sample system [@ruggles_ipums_2025]. ACS data from 2020 is removed due to issues with data collection during the COVID pandemic. To improve statistical power for the smaller ACS samples, single year samples are combined into intervals from 2001-2005, 2006-2010, 2011-2015, 2016-2019, and 2021-2023. The midpoint of the interval is used for analyzing trends.
 
-The data include all extant heterosexual married couples in each sample. I also include a secondary sample of heterosexual cohabiting couples beginning in 1990 at which point "unmarried partner" is provided as a choice for relationship to head of household. Data are limited to heterosexual couples because data on same-sex couples (in marriage or cohabitation) is unavailable for most of the time period.
+The primary data used for analysis include all extant heterosexual married couples in each sample. I focus primarily on heterosexual marriages because this is the only union type that is consistently identifiable throughout the entire time period. Cohabiting partners can also be identified since 1990 at which point "unmarried partner" was provided as an option for relationship to head of household. Same-sex marriages can be identified since 2013 when the Census Bureau stopped recoding same-sex married partners to unmarried partners. To compare the trends for these union types with heterosexual married couples, I also analyze trends in overall interracial coupling for opposite-sex cohabitations from 1990 to 2023 and same-sex marriages from 2013-2023.[^same-sex-cohab]
+
+[^same-sex-cohab]: It is possible to identify same-sex cohabitations from 1990 onward, as well. However, this group is very small and errors in reporting could easily swamp actual same-sex cohabitations. Therefore, I restrict my analysis to same-sex marriages since 2013.
 
 For most of the analysis, I also restrict the sample to couples in which both partners are native born. Foreign-born individuals may have been married prior to arrival in the US. Even in cases where foreign-born individuals arrived in the US unmarried, they will have substantial preferences for ethnonational endogamy that could easily be conflated with racial preferences, although this may be less true of individuals who arrived as children (i.e. the 1.5 generation). Figure S4 in the supplementary appendix shows how the results would change for single-race groups involving the Hispanic or Asian/Pacific Islander groups when including some or all of the foreign-born population. The results show that the overall odds of interracial marriage would decline substantially, but the trends are generally similar. The results are similar regardless of whether the entire foreign-born population or only the 1.5 generation is included.
 
@@ -254,7 +257,9 @@ $$
 \log(F_{ijkt}) = \lambda+\lambda_i+\lambda_j+\lambda_k+\lambda_t+\lambda_{ik}+\lambda_{jk}+\lambda_{it}+\lambda_{jt}+\lambda_{ikt}+\lambda_{jkt}+\beta_{ijt}+\alpha_{ijt}
 $$ {#eq-model-full}
 
-where $k$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.
+where $k$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.[^same-sex-cross-tab]
+
+[^same-sex-cross-tab]: The same-sex marriage sample cannot be cross-tabulated by gender. Because this sample only includes heads of households and their partners, I cross-tabulate same-sex marriages by head of household status instead of gender. Because all the models used here are symmetric with respect to gender, this approach is applied for convenience, but I would get the same result by randomly assigning each partner to the row or column dimension.
 
 ## Measuring Stocks vs. Flows
 
@@ -274,7 +279,7 @@ In addition to the age weighting, I also apply sample weights to adjust for samp
 
 This approach cannot eliminate every bias from the use of the stock of marriages, including bias arising from differential rates of union dissolution. Figure S3 in the supplementary appendix provides a comparison of the age weighted results to results based on newlyweds (married within the last year) in years where such comparison is possible. The results indicate that the age weighted results are quite close to the results for newlyweds both in magnitude and trend, although the odds ratios for newlyweds tend to be a little higher, as expected.
 
-For analysis that includes cohabiting couples, I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting to cohabiting couples as I do to married couples.
+I apply age weights separately to opposite-sex and same-sex marriages. I have no information on the duration of cohabitation. For comparative perspective with married couples, I apply the same age weighting of married couples to cohabiting couples.
 
 # Results
 
@@ -534,43 +539,47 @@ The results for Pacific Islanders show a decline in the odds of marriage with Wh
 
 The decline for Pacific Islanders is notable as the only trend examined here to show a substantial decline across the time period, which is otherwise characterized by substantial increases in the odds of interracial marriage for at least the early part of the time period. Notably, the starting odds of White/Pacific Islander marriage are relatively very high. Given that Pacific Islander identification has been unstable over the time period [@liebler_americas_2017b], it is possible that this trend might reflect changing self-identification practices.
 
-## Including Cohabitation
+## Trends for Alternate Union Types
 
-@fig-intermar-cohab compares the odds of an interracial union across the ten single race combinations, separately for marriage and cohabitation. The results for cohabitation are only available since 1990. As expected, the odds of interracial cohabitation are generally higher than the odds of interracial marriage. The White/AIAN case, where the odds are extremely similar across the time period, is the only case to deviate from this pattern. Furthermore, the overall trend in cohabitation matches the trend for interracial marriage for each combination. Therefore, it is unlikely that trends in interracial marriage are driven by changes in the frequency of cohabitation over the time period.
+To this point, I have presented results only for heterosexual marriages because these marriages are identifiable throughout the time period. I can also identify opposite-sex cohabitations since 1990 and same-sex marriages since 2013. @fig-intermar-alt-unions shows trends in the likelihood of interracial marriage across the three different union types since 1990. Because the sample size is considerably smaller for opposite-sex cohabitations and same-sex marriages, I focus only on unions involving a White partner. Full results for all partnering combinations are available in the supplementary appendix.
 
 ```{r}
-#| label: fig-intermar-cohab
-#| fig-cap: Odds of racial exogamy across all single race pairings, separately by cohabitation and marriage. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| label: fig-intermar-alt-unions
+#| fig-cap: Odds of racial exogamy across single race pairings involving a White partner, separately by opposite-sex marriage, opposite-sex cohabitation, and same-sex marriage. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 model_state_bs <- model_state_bs |>
-  mutate(union_type = "marriage")
+  mutate(union_type = "opposite-sex marriage")
 
-#model_state_combine_bs <- model_state_combine_bs |>
-#  mutate(union_type = "both")
+model_state_cohab_bs <- model_state_cohab_bs |>
+  mutate(union_type = "opposite-sex cohabitation")
 
-model_state_cohab_bs |>
-  mutate(union_type = "cohabitation") |>
-  #bind_rows(model_state_combine_bs) |>
+model_state_same_sex_bs |>
+  mutate(union_type = "same-sex marriage") |>
   bind_rows(model_state_bs) |>
-  filter(!str_detect(term, "-")) |>
-  mutate(union_type = factor(union_type, 
-                             levels = c("marriage", "cohabitation", "both"))) |>
+  bind_rows(model_state_cohab_bs) |>
+  filter(!str_detect(term, "-") & str_detect(term, "White") &
+           year >= 1990) |>
+  mutate(union_type = factor(union_type,
+                             levels = c("opposite-sex marriage",
+                                        "opposite-sex cohabitation",
+                                        "same-sex marriage"))) |>
   ggplot(aes(x = year, y = exp(estimate), color = union_type))+
-  #geom_vline(xintercept = 2000, linetype = 2)+
   geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
               alpha = 0.3, color = NA)+
   geom_line()+
   geom_point(size = 0.5)+
-  labs(y = NULL, color = "union type", fill = "union type")+
   facet_wrap(~term)+
   scale_y_log10(labels = scales::comma)+
-  scale_color_manual(values = c("red", "navy", "darkgreen"))+
-  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
-  theme_bw(base_size = 12)+
-  theme(panel.spacing.x = unit(0.75, "lines")) 
+  scale_color_manual(values = c("navy", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "red", "darkgreen"))+
+  labs(y = NULL, color = "union type", fill = "union type")+
+  theme_bw(base_size = 14)+
+  theme(legend.position = "bottom")
 ```
 
-For most of the cases, there is also some convergence over time in the odds of interracial cohabitation and marriage, although the odds of interracial marriage are still lower at the end of the time period in all cases except for White/AIAN marriage. Thus, although the barriers of entry into interracial cohabitation are lower than the barriers of entry into interracial marriage, the difference in those barriers is weakening over time, possibly reflecting a deterioration in meaning between cohabitation and marriage.
+@fig-intermar-alt-unions shows that the odds of interracial marriage are generally higher in opposite-sex cohabitations and same-sex marriages than in opposite-sex marriages. This finding is consistent with prior work on cohabitation and same-sex union formation (CITATIONS). The one exception to this pattern is for the White/AIAN case, where all three union types have similar odds of interracial partnering. 
+
+While the odds of interracial partnering are higher in alternate union types, the rank-ordering of pairings is similar across all union types. The trends over time are also broadly similar across union types, although the trend line for same-sex marriages is relatively short. Overall, the results here are consistent with the expectation that less formal unions (cohabitation) and unions that already cross implicit boundaries and norms in other ways (same-sex marriages) will also be more racially heterogamous than opposite-sex marriages (CITATIONS). However, while racial boundaries may be somewhat weaker for these alternate union types, they still play a strong role in predicting who partners with whom. 
 
 # Conclusions
 
