@@ -80,13 +80,13 @@ TODO: respond
 
 See my response to the editor's comment above, which should address this issue as well.
 
-### Issue 3 TODO: Better explanation of age weighting
+### Issue 3: Better explanation of age weighting
 
 > “The age weighting is to make sure the joint distribution of extant couples in a given year will match the joint age distribution of newlyweds in a given year”. This still reads technical. Provide a more intuitive explanation, supplemented with concrete, detailed example may help explain the procedure more clearly.
 
-TODO: respond
+I apologize but I have not been able to find this quote in either the main manuscript or the supplementary appendix. However, I do take R2's point that I should try to make the age weighting more intuitive to readers and less technical. In the original draft, I attempted to do this by treating the age weighting as a generalization of the approach of restricting spouses by age group, but this clearly was insufficient. I have modified the language on pg. XX of the Data and Methods to make this generalization more explicit and I have included an example from the 2023 data to help readers understand the technique more concretely.
 
-### Issue 4 TOD: Differences in common support between age distributions
+### Issue 4 TODO: Differences in common support between age distributions
 
 > If extant couples’ age distributions are very different from the newlyweds, how does matching affect the outcome when two underlying age distributions are so different in common support?
 
