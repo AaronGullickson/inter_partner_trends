@@ -36,6 +36,7 @@ load(here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
+load(here("data", "data_constructed", "model_same_sex.RData"))
 ```
 
 
@@ -228,4 +229,45 @@ model_state_bs |>
 
 
 @fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population, the overall trends are similar. 
+
+# Full Results for Alternate Union Types
+
+@fig-intermar-alt-unions shows a comparison of the odds of interracial marriage across all three union types and all pairings. Because of some zero cells for the case of Black/AIAN and AIAN/API same-sex marriage those trends cannot be shown. The results here are consistent with those shown in the main article, and showing higher odds of interracial marriage in general for opposite-sex cohabitation and same-sex marriage relative to opposite-sex marriage. Estimation of the trend for same-sex marriages, however, is more difficult for dual-minority pairings due to small sample size.  
+
+
+```{r}
+#| label: fig-intermar-alt-unions
+#| fig-cap: Odds of racial exogamy across single race pairings, separately by opposite-sex marriage, opposite-sex cohabitation, and same-sex marriage. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown. Zero cells for same-sex marriages between Black/AIAN and AIAN/API in some year groupings prevent estimation of trends for same-sex marriages for those cases.
+
+model_state_bs <- model_state_bs |>
+  mutate(union_type = "opposite-sex marriage")
+
+model_state_cohab_bs <- model_state_cohab_bs |>
+  mutate(union_type = "opposite-sex cohabitation")
+
+model_state_same_sex_bs |>
+  mutate(union_type = "same-sex marriage") |>
+  bind_rows(model_state_bs) |>
+  bind_rows(model_state_cohab_bs) |>
+  filter(!str_detect(term, "-") & 
+           !(str_detect(term, "Black/API|AIAN/API") & 
+              union_type == "same-sex marriage")  &
+           year >= 1990) |>
+  mutate(union_type = factor(union_type,
+                             levels = c("opposite-sex marriage",
+                                        "opposite-sex cohabitation",
+                                        "same-sex marriage"))) |>
+  ggplot(aes(x = year, y = exp(estimate), color = union_type))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = union_type),
+              alpha = 0.3, color = NA)+
+  geom_line()+
+  geom_point(size = 0.5)+
+  facet_wrap(~term)+
+  scale_y_log10(labels = scales::comma)+
+  scale_color_manual(values = c("navy", "red", "darkgreen"))+
+  scale_fill_manual(values = c("navy", "red", "darkgreen"))+
+  labs(y = NULL, color = "union type", fill = "union type")+
+  theme_bw(base_size = 14)+
+  theme(legend.position = "bottom")
+```
 
