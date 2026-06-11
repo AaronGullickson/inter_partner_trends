@@ -144,4 +144,4 @@ Presumably, R2 was expecting that I put discussion of age restrictions and weigh
 
 > If the author has time and energy they can invest in gender differences within cohabitation findings. That can be the main story in the cohabitation analysis I believe.
 
-TODO: respond
+I appreciate this comment, but the entire analysis as it stands avoids delving into gender differences in interracial marriage, aside from the simple outmarriage ratios, because I want to focus on overall trends.
