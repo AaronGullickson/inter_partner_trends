@@ -132,6 +132,7 @@ $$\alpha = \frac{t_i-1988}{2008-1988} = \frac{t-1988}{20}$$
 years_interp <- c(1990, 2000:2007)
 
 temp <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
   group_by(YEAR) |>
   summarize(mean_age_husband = sum(age_group_husband * prop),
             mean_age_wife = sum(age_group_wife * prop),
