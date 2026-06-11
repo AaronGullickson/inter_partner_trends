@@ -40,13 +40,11 @@ I have also updated the background section to provide more discussion of prior w
 
 As R1 suggests one of the complications with same-sex marriages is that they don't have the same logic of men's characteristics along one dimension and women's characteristics along another dimension that applies to log-linear models. I have handled this for the analysis by distinguishing between the household head and non-household head because all same-sex marriages are only identified when one member is the household head. Since all of my models are symmetric with regard to "gender," this distinction is merely a convenience. I discuss this in footnote XX of the revised manuscript.
 
-As R1 also suggests, it is possible to identify same-sex unmarried partners back to 1990 so I could theoretically also include trends for same-sex cohabitations. However, as noted above, the data quality issues here get quite a bit more complicated and murky due to changes in how the census reclassified couples. Additionally, the sample sizes here are quite small. Handling this case appropriately would add a great deal of technical detail to an already full analysis, and so I have chosen to restrict the focus only on comparing same-sex to opposite-sex marriages in periods where they are both identifiable.
+As R1 also suggests, it is possible to identify same-sex unmarried partners back to 1990 so I could theoretically also include trends for same-sex cohabitations. However, as noted above, the data quality issues here get quite a bit more complicated and murky due to changes in how the census reclassified same-sex couples. Additionally, the sample sizes here are quite small. Handling this case appropriately would add a great deal of technical detail to an already full analysis, and so I have chosen to restrict the focus only on comparing same-sex to opposite-sex marriages in periods where they are both identifiable.
 
 ### Issue 2: 2020 Census race coding changes
 
 > Is there a way for the authors to assess or speak to the role of the coding changes in race in 2020? I understand that its difficult (if not impossible) to know how the coding shifts affected the distribution of race/ethnicity in the post-2020 era, but the authors give this issue very limited attention. Can they anticipate or speculate what they think would have changed has the same approach for race been applied throughout?
-
-TODO: Respond
 
 I did include a brief comment on the 2020 changes in the original draft but R1 is correct that I did give the issue limited attention. Unlike the 2000 change, I have no ability to perform a counterfactual check here so I want to avoid too much speculation about how this change might affect the results as I don't think we have enough information to know. What I can say more clearly is that for most cases it **shouldn't** have much of an effect and an examination of the trends indicates that it **doesn't**.
 
@@ -74,11 +72,11 @@ Thank your for these comments!
 
 TODO: respond
 
-### Issue 2 TODO: Interpretation of log-linear models
+### Issue 2: Interpretation of log-linear models
 
 > Loglinear models can be hard to interpret when including many terms, and there is also recent advancement in counterfactual approaches and causal approaches. How do I persuade my graduate students that it is important to control for marginal distributions in a plain language? What does it mean by accounting for group size to begin with?
 
-See my response to the editor's comment above, which should address this issue as well.
+I appreciate R2's concern as log-linear models are a somewhat specialized methodological approach, which students are often not trained in by default. The editor raised the same point and asked me to provide more background to help readers better understand the models. Please see my response to those comment above, which should address this issue as well.
 
 ### Issue 3: Better explanation of age weighting
 
