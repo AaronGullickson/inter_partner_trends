@@ -46,6 +46,7 @@ source(here("utils","functions.R"))
 ```{r}
 #| label: load-data
 
+load(here("data", "data_constructed", "data_couples.RData"))
 load(here("data", "data_constructed", "exogamy_trends.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
 load(here("data", "data_constructed", "model_basic_bs.RData"))
@@ -171,7 +172,48 @@ In what follows, I attempt to resolve many of these shortcomings to produce an a
 
 Data for this analysis are derived from the microdata Census samples for Census 1960, 1970, 1980, 1990, and 2000, and American Community Survey (ACS) data from 2001 to 2023, with the exception of 2020. All data were extracted via the Integrated Public Use Microdata Sample system [@ruggles_ipums_2025]. ACS data from 2020 is removed due to issues with data collection during the COVID pandemic. To improve statistical power for the smaller ACS samples, single year samples are combined into intervals from 2001-2005, 2006-2010, 2011-2015, 2016-2019, and 2021-2023. The midpoint of the interval is used for analyzing trends.
 
-The primary data used for analysis include all extant heterosexual married couples in each sample. I focus primarily on heterosexual marriages because this is the only union type that is consistently identifiable throughout the entire time period. Cohabiting partners can also be identified since 1990 at which point "unmarried partner" was provided as an option for relationship to head of household. Same-sex marriages can be identified since 2013 when the Census Bureau stopped recoding same-sex married partners to unmarried partners. To compare the trends for these union types with heterosexual married couples, I also analyze trends in overall interracial coupling for opposite-sex cohabitations from 1990 to 2023 and same-sex marriages from 2013-2023.[^same-sex-cohab]
+The primary data used for analysis include all extant heterosexual married couples in each sample. I focus primarily on heterosexual marriages because this is the only union type that is consistently identifiable throughout the entire time period. Cohabiting partners can also be identified since 1990 at which point "unmarried partner" was provided as an option for relationship to head of household. Same-sex marriages can be identified since 2013 when the Census Bureau stopped recoding same-sex married partners to unmarried partners. To compare the trends for these union types with heterosexual married couples, I also analyze trends in overall interracial coupling for opposite-sex cohabitations from 1990 to 2023 and same-sex marriages from 2013-2023.[^same-sex-cohab] @tbl-sample-size shows the sample size of each union type by time period for the full analysis.
+
+```{r}
+#| label: tbl-sample-size
+#| tbl-cap: Data source and sample size of unions among native-born partners by time period and union type.
+
+census |>
+  filter(gen_husband == "2nd+" & gen_wife == "2nd+") |>
+  group_by(year, union_type) |>
+  summarize(n = n(), .groups = "drop") |>
+  pivot_wider(names_from = union_type, values_from = n) |>
+  rename(ssmarriage = `same-sex marriage`) |>
+  mutate(
+    year = as.character(year),
+    year = case_when(
+      year == "2003" ~ "2001-2005",
+      year == "2008" ~ "2006-2010",
+      year == "2013" ~ "2011-2015",
+      year == "2017.5" ~ "2016-2019",
+      year == "2022" ~ "2021-2023",
+      TRUE ~ year
+    ),
+    data_source = c(rep("Census", 5), rep("ACS", 5))
+  ) |>
+  select(year, data_source, marriage, cohabitation, ssmarriage) |>
+  gt() |>
+  sub_missing(columns = everything(), missing_text = "-") |>
+  fmt_integer(c(marriage, cohabitation, ssmarriage)) |>
+  cols_label(
+    year ~ "Time period",
+    marriage ~ "marriage",
+    cohabitation ~ "cohabitation",
+    ssmarriage ~ "marriage",
+    data_source ~ "Data source"
+  ) |>
+  tab_spanner(c(marriage, cohabitation), label = "Opposite-sex") |>
+  tab_spanner(c(ssmarriage), label = "Same-sex") |>
+  tab_footnote(
+    footnote = "Same-sex marriages only identifiable beginning in 2013",
+    locations = cells_body(columns = ssmarriage, rows = 8)
+  )
+```
 
 [^same-sex-cohab]: While it is possible to identify same-sex cohabitations from 1990 onward, comparison across time is complicated by changes to coding practices at the census and the possibility of response errors overwhelming the small number of same-sex cohabitations [@black_demographics_2000;@black_measurement_2007]. Therefore, I restrict my analysis to same-sex marriages since 2013.
 
@@ -291,7 +333,9 @@ In addition to the age weighting, I also apply sample weights to adjust for samp
 
 # Results
 
-All results are presented graphically as the trend in the outmarriage ratio/odds ratio over time. All figures involving odds ratios use logarithmic scaling of the y-axis to highlight differences over time and across groups, so an observed linear trend in these figures corresponds to exponential growth on the original scale. The colors used for each type of interracial marriage pairing are maintained across separate figures. All figures include 83% confidence bands unless otherwise stated. An 83% confidence band facilitates easier comparison between parameter estimates than a traditional 95% band because an overlap in these bands will be approximately equal to a statistically significant difference at $p<0.05$ [@knol_misuse_2011].
+All results are presented graphically as the trend in the outmarriage ratio/odds ratio over time.[^rep-data] All figures involving odds ratios use logarithmic scaling of the y-axis to highlight differences over time and across groups, so an observed linear trend in these figures corresponds to exponential growth on the original scale. The colors used for each type of interracial marriage pairing are maintained across separate figures. All figures include 83% confidence bands unless otherwise stated. An 83% confidence band facilitates easier comparison between parameter estimates than a traditional 95% band because an overlap in these bands will be approximately equal to a statistically significant difference at $p<0.05$ [@knol_misuse_2011].
+
+[^rep-data]: The replication package included with this article contains all model estimates in a machine readable format.
 
 ## Trends in Outmarriage Ratios
 

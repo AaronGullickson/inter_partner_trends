@@ -82,7 +82,7 @@ I appreciate R2's concern as log-linear models are a somewhat specialized method
 
 > “The age weighting is to make sure the joint distribution of extant couples in a given year will match the joint age distribution of newlyweds in a given year”. This still reads technical. Provide a more intuitive explanation, supplemented with concrete, detailed example may help explain the procedure more clearly.
 
-I apologize but I have not been able to find this quote in either the main manuscript or the supplementary appendix. However, I do take R2's point that I should try to make the age weighting more intuitive to readers and less technical. In the original draft, I attempted to do this by treating the age weighting as a generalization of the approach of restricting spouses by age group, but this clearly was insufficient. I have modified the language on pg. XX of the Data and Methods to make this generalization more explicit and I have included an example from the 2023 data to help readers understand the technique more concretely.
+I apologize but I have not been able to find this exact quote in either the main manuscript or the supplementary appendix. However, I do take R2's point that I should try to make the age weighting more intuitive to readers and less technical. In the original draft, I attempted to do this by treating the age weighting as a generalization of the approach of restricting spouses by age group, but this clearly was insufficient. I have modified the language on pg. XX of the Data and Methods to make this generalization more explicit and I have included an example from the 2023 data to help readers understand the technique more concretely.
 
 ### Issue 4: Differences in common support between age distributions
 
@@ -90,7 +90,7 @@ I apologize but I have not been able to find this quote in either the main manus
 
 To provide a visual example, I have now included Figure SX in the supplementary appendix which shows the overlap (common support) between newlywed husband's age distribution and the age distribution of all husbands in 2008. As the figure shows there is quite a bit of overlap in common support.
 
-However, I don't think this is a relevant issue for what I am trying to accomplish with the weights. The issue of common support is typically applied to propensity score matching and related methods where one needs to identify treatment and control cases that must overlap on propensity scores. That is not my goal. My goal rather is more akin to post-stratification weighting in which I want to make one population look more like another population. I hope that my response to Issue 3 above (which tried to better address these goals) will also help address R2's concern here.
+However, I don't think this is a relevant issue for what I am trying to accomplish with the weights. The issue of common support is typically applied to propensity score matching and related methods where one needs to identify treatment and control cases that must overlap on propensity scores. That is not my goal here. My goal rather is more akin to post-stratification weighting in which I want to make one population look more like another population on some observable characteristics. I hope that my response to Issue 3 above (which tried to better address these goals) will also help address R2's concern here.
 
 ### Issue 5: Additional discussion of interracial marriage and union dissolution
 
@@ -126,7 +126,9 @@ TODO: respond
 
 > I would like to have a table showing all data sources and measures and race/ethnicity questions adopted. And at least the total N for each analysis. I found the analysis comprehensive, but I did not see any tables on such details.
 
-TODO: respond
+I now include a table in the main manuscript showing data source and sample size by union type and time period for the full analysis (Table 1, pg. XX). I am somewhat unclear what R2 means by "measures" here, but I am happy to make further adjustments here if feasible. I also have decided not to take up space in the supplementary appendix showing the exact question wording and options for each year of the Census and ACS as this would be extensive and such information is easily accessible online.
+
+Additionally, I do not provide the actual statistical output from the models in tabular form even in the supplementary appendix because this would be very large. However, the replication package that will be available with this article will include RData files that provide the full estimates from all models used in the analysis, so other researchers will have full access to these results in a machine-readable format. I have now indicated this in Footnote XX.
 
 > Page 5, is it 15% in the hypothetical example?
 
