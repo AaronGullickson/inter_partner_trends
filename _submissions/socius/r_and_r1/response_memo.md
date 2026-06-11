@@ -1,5 +1,6 @@
 ---
 editor: visual
+format: pdf
 ---
 
 ## Editor Comments
@@ -132,7 +133,7 @@ Additionally, I do not provide the actual statistical output from the models in 
 
 > Page 5, is it 15% in the hypothetical example?
 
-I don't understand this comment.
+I am afraid that I don't full understand the comment here. The 15% was indeed from the toy example described on this page. I have checked the writing here and made a couple of minor changes to ensure that I am being clear in how I am using the 15% number in each context.
 
 > Page 8, data, did the author use the 5-year files or pool single year together? Are there age constraints in the couples’ samples? What about household weights?
 
