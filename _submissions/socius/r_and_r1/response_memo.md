@@ -123,7 +123,7 @@ R2 also asks me to consider providing a table in the appendix with various sampl
 
 TODO: respond
 
-### Minor Issues TODO
+### Minor Issues
 
 > I would like to have a table showing all data sources and measures and race/ethnicity questions adopted. And at least the total N for each analysis. I found the analysis comprehensive, but I did not see any tables on such details.
 
