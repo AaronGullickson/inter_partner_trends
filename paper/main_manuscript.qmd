@@ -170,7 +170,7 @@ In what follows, I attempt to resolve many of these shortcomings to produce an a
 
 # Data and Methods
 
-Data for this analysis are derived from the microdata Census samples for Census 1960, 1970, 1980, 1990, and 2000, and American Community Survey (ACS) data from 2001 to 2023, with the exception of 2020. All data were extracted via the Integrated Public Use Microdata Sample system [@ruggles_ipums_2025]. ACS data from 2020 is removed due to issues with data collection during the COVID pandemic. To improve statistical power for the smaller ACS samples, single year samples are combined into intervals from 2001-2005, 2006-2010, 2011-2015, 2016-2019, and 2021-2023. The midpoint of the interval is used for analyzing trends.
+Data for this analysis are derived from the microdata Census samples for Census 1960, 1970, 1980, 1990, and 2000, and American Community Survey (ACS) data from 2001 to 2023, with the exception of 2020. All data were extracted via the Integrated Public Use Microdata Sample system [@ruggles_ipums_2025]. ACS data from 2020 is removed due to issues with data collection during the COVID pandemic. To improve statistical power for the smaller ACS samples, single year samples are pooled into intervals from 2001-2005, 2006-2010, 2011-2015, 2016-2019, and 2021-2023. The midpoint of the interval is used for analyzing trends.
 
 The primary data used for analysis include all extant heterosexual married couples in each sample. I focus primarily on heterosexual marriages because this is the only union type that is consistently identifiable throughout the entire time period. Cohabiting partners can also be identified since 1990 at which point "unmarried partner" was provided as an option for relationship to head of household. Same-sex marriages can be identified since 2013 when the Census Bureau stopped recoding same-sex married partners to unmarried partners. To compare the trends for these union types with heterosexual married couples, I also analyze trends in overall interracial coupling for opposite-sex cohabitations from 1990 to 2023 and same-sex marriages from 2013-2023.[^same-sex-cohab] @tbl-sample-size shows the sample size of each union type by time period for the full analysis.
 
@@ -327,9 +327,7 @@ I apply age weights separately to opposite-sex and same-sex marriages. I have no
 
 In addition to the age weighting, I also apply sample weights to adjust for sample design in the Census and ACS results.[^4] Weights are applied by taking the sum of weights as frequency counts. Because of the use of weights as well as complex survey design, the analytical standard errors of model parameter estimates will be underestimated. No clear analytical solution exists for this issue, so I use a bootstrap technique to generate standard errors by resampling 1000 times from the individual level data within each year to re-generate parameter estimates.
 
-[^4]: Because the unit of observation is a couple, I use the mean of both partner's person weight to derive the couple weight.
-
-
+[^4]: Because the unit of observation is a couple, I use the mean of both partner's person weight to derive the couple weight. All sample weights are divided by the mean sample weight for each year.
 
 # Results
 

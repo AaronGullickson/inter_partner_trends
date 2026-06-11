@@ -136,7 +136,11 @@ I don't understand this comment.
 
 > Page 8, data, did the author use the 5-year files or pool single year together? Are there age constraints in the couples’ samples? What about household weights?
 
-TODO: respond
+Single years are pooled together as the time periods don't always match the five-year files. I have modified the language on pg. XX to clarify that single year samples are being pooled.
+
+No age constraints are applied to couples because I instead use the age weighting technique described on pp. 15-16 of the original draft. I do use sample weights as well which is discussed on pg. 16 of the original draft. Because opposite-sex marriages may occur within subfamilies of the household, I do not use household weights but rather the mean of person weights across the two partners, as described in Footnote XX. In practice, this couple weight is highly correlated with the household weight (r = 0.98).
+
+Presumably, R2 was expecting that I put discussion of age restrictions and weighting earlier in the draft where I describe the data sources. However, because the issue of sample weighting relates to my use of age weighting and the need to bootstrap standard errors, I prefer to leave this discussion in its current place.
 
 > If the author has time and energy they can invest in gender differences within cohabitation findings. That can be the main story in the cohabitation analysis I believe.
 
