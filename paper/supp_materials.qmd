@@ -270,7 +270,7 @@ The main results for the analysis excludes unions involving foreign-born individ
 
 ```{r}
 #| label: fig-intermar-single-gen
-#| fig-cap: Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| fig-cap: Comparison of odds of racial exogamy for single race pairings by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
 
 model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
   mutate(gen = "all")
@@ -283,6 +283,7 @@ model_state_bs |>
   mutate(gen = "2nd+ only") |>
   bind_rows(model_state_single_all_gen_bs) |>
   bind_rows(model_state_single_no_first_gen_bs) |>
+  filter(year != "1960") |>
   #filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
   mutate(gen = factor(gen, 
                       levels = c("2nd+ only", "1.5 and 2nd+", "all"),
@@ -303,7 +304,7 @@ model_state_bs |>
 ```
 
 
-@fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population, the overall trends are similar. 
+@fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population.  The 1.5 generation is not distinguishable in 1960, so estimates are only shown from 1970 onward. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population, the overall trends are similar. 
 
 # Full Results for Alternate Union Types
 
