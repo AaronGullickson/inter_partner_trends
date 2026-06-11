@@ -217,7 +217,9 @@ tibble(
   tab_spanner(label = "Wife", columns = starts_with("g"))
 ```
 
-To help fix ideas, @tbl-cross-product provides a view of the frequency of interracial marriage for three abstract groups when marriages are cross-tabulated by the race of husband and wife. For reasons discussed above, the preferred measure of the strength of intermarriage across group combinations has long been the odds ratio or cross-product resulting from a cross-tabulation of husband's race by wife's race. From @tbl-cross-product, I can estimate the odds ratio of interracial marriage between Group 1 and Group 2 as:
+To help fix ideas, @tbl-cross-product provides a view of the frequency of interracial marriage for three abstract groups when marriages are cross-tabulated by the race of husband and wife.[^same-sex-cross-tab] For reasons discussed above, the preferred measure of the strength of intermarriage across group combinations has long been the odds ratio or cross-product resulting from a cross-tabulation of husband's race by wife's race. From @tbl-cross-product, I can estimate the odds ratio of interracial marriage between Group 1 and Group 2 as:
+
+[^same-sex-cross-tab]: The same-sex marriage sample cannot be cross-tabulated by gender. Because this sample only includes heads of households and their partners, I instead cross-tabulate same-sex marriages by head of household status instead of gender. Because all the models used in the analysis are symmetric with respect to gender, this approach is applied for convenience, but I would get the same result by randomly assigning each partner to the row or column.
 
 $$
 \text{odds ratio} = \frac{F_{12}F_{21}}{F_{11}F_{22}}
@@ -261,9 +263,9 @@ $$
 \log(F_{ijkt}) = \lambda+\lambda_i+\lambda_j+\lambda_k+\lambda_t+\lambda_{ik}+\lambda_{jk}+\lambda_{it}+\lambda_{jt}+\lambda_{ikt}+\lambda_{jkt}+\beta_{ijt}+\alpha_{ijt}
 $$ {#eq-model-full}
 
-where $k$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.[^same-sex-cross-tab]
+where $k$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.[^zero-cells]
 
-[^same-sex-cross-tab]: The same-sex marriage sample cannot be cross-tabulated by gender. Because this sample only includes heads of households and their partners, I cross-tabulate same-sex marriages by head of household status instead of gender. Because all the models used here are symmetric with respect to gender, this approach is applied for convenience, but I would get the same result by randomly assigning each partner to the row or column dimension.
+[^zero-cells]: Zero cell counts in the cells forming the odds ratio in @eq-cross-product will prevent estimation of the parameters of the model for that group comparison. Such zero cell counts are more likely when sample size for one or both groups are small and when the underlying likelihood of interracial marriage is small. Determining the degree of subgroup analysis that could be sustained without being affected by such zero cell counts was determined by investigation of cell frequencies. For the main results, the log-odds ratio is not reported for the AIAN/API pairing in 1960 due to zero cell counts.
 
 ## Measuring Stocks vs. Flows
 

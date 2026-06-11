@@ -100,13 +100,21 @@ However, I don't think this is a relevant issue for what I am trying to accompli
 >
 > - Zhang, Y. and Van Hook, J. (2009), Marital Dissolution Among Interracial Couples. Journal of Marriage and Family, 71: 95-107.
 
-Thank you for raising this point. I have changed the wording in that section (pg. XX) to indicate the somewhat mixed and inconclusive empirical results on this question. I have added the requested citation as well as another citation from Fu and Wolfinger (2011) which is consistent with the "mixed" nature of the results.
+Thank you for raising this point, which I should have discussed in more detail as the research in this area is quite mixed. I have changed the wording in that section (pg. XX) to indicate the somewhat mixed and inconclusive empirical results on this question. I have added the requested citation as well as another citation from Fu and Wolfinger (2011) which is consistent with the "mixed" nature of the results.
 
-### Issue 6 TODO: Show sample size and discuss power
+### Issue 6: Show sample size and discuss power
 
-> In many parts of the analysis, the author acknowledges N limits, why not showing the data sample sizes in detail in an appendix table? Let the readers decide when is it appropriate to not continue more sub-group level analyses? a. Is there a threshold the author adopts in loglinear models that it is probably underpowered?
+> In many parts of the analysis, the author acknowledges N limits, why not showing the data sample sizes in detail in an appendix table? Let the readers decide when is it appropriate to not continue more sub-group level analyses? Is there a threshold the author adopts in loglinear models that it is probably underpowered?
 
-TODO: respond
+Thank you for raising this point, as I am realizing my discussion of sample size limitations in the original draft may have been too vague. Because I am not conducting explicit hypothesis tests, I do not have a threshold based explicitly on statistical power. I would rather just provide confidence intervals and allow readers to judge for themselves, as R2 suggests. For example, some of the confidence intervals in Figure 3 are quite wide in the early years of the analysis for certain groups, eg. Black/API.
+
+Instead, sample size limits the analysis due to zero cells in the contingency table between husband's and wife's group in a given year. These zero cells will preclude estimation entirely because the odds ratio requires a non-zero cell count in each of the four cells forming the odds ratio. Zero cells are more likely when sample size is smaller, but also when the undelying likelihood of interracial marriage is lower. Thus, the likelihood of not being able to estimate an odds ratio between two groups at all increases as the underlying likelihood of interracial marriage decreases. This issue is most pronounced for small groups in the early period of the analysis when the odds of interracial marriage for all groups was much lower.
+
+Determining the feasible level of subgroup analysis required evaluating whether the resulting contingency tables contained zero cells that would preclude estimation of some or all model parameters. In practice, this involved examining cell frequencies across increasingly disaggregated subgroup specifications. I also remove the case of AIAN/API interracial marriage in 1960 due to zero cell counts.
+
+I have now included footnote XX of the main article which discusses the issue with zero counts in more detail.
+
+R2 also asks me to consider providing a table in the appendix with various sample sizes. In response to another comment by R2, I am now providing a table of overall sample size for each year and union type. However, it would not be feasible or particularly helpful to provide the necessary tables for every possible subgroup analysis I considered. Because the issue is the zero cells arising in the contingency table, I would need to show the cross-tabulation of subgroups in every year for every possible subgroup analysis, which would lead to an enormous set of tables.
 
 ### Issue 7 TODO: Incorporate existing explanations for API intermarriage decline
 
