@@ -3,6 +3,8 @@ editor: visual
 format: pdf
 ---
 
+# Response Memo
+
 ## Editor Comments
 
 > We are fortunate to have received reviews from two scholars with expertise in the field. They provided some constructive cristicisms, and I encourage you to carefully address them. I have a couple of further comments, which I detail below.
@@ -54,6 +56,8 @@ In terms of the "shouldn't" aspect, as I noted in the first draft, the biggest s
 In terms of the "doesn't" aspect, the trends lines for most groups don't show any significant discontinuity across either the 2000 or 2020 cutpoints, suggesting that these changes are artificially driving up or down the estimate of interracial marriage.
 
 In addition to Table S1, I have included more detailed language describing the issue and the results from the Table in the Data and Methods section (pg. XX). I have also included discussion of the issue in the results section for the main trends across single race groups (pg. XX) and for the multiracial groups (pg. XX).
+
+TODO: This will also affect the Hispanic subgroup comparison (duh) so I should just limit that to the 2019 or earlier.
 
 ## Reviewer 2 Comments
 
