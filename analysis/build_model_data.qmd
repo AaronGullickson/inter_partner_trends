@@ -1,7 +1,7 @@
 ---
 title: "Build Model Data"
 params:
-  bootstrap_rep: 3
+  bootstrap_rep: 1000
 format: html
 ---
 
@@ -95,7 +95,7 @@ tic()
 data_model_state_no_first_gen <- census |>
   # only native born
   filter(gen_husband != "1st" & gen_wife != "1st") |>
-  # drop 1960
+  # drop 1960 - no 1.5 in this time period
   filter(year != "1960") |>
   # only marriages
   filter(union_type == "marriage") |>
@@ -105,8 +105,6 @@ toc()
 
 tic()
 data_model_state_all_gen <- census |>
-  # drop 1960
-  filter(year != "1960") |>
   # only marriages
   filter(union_type == "marriage") |>
   generate_bootstrap_data(params$bootstrap_rep, 
