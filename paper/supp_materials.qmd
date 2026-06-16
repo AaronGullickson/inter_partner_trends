@@ -284,8 +284,6 @@ model_state_bs |>
   mutate(gen = "2nd+ only") |>
   bind_rows(model_state_single_all_gen_bs) |>
   bind_rows(model_state_single_no_first_gen_bs) |>
-  filter(year != "1960") |>
-  #filter(!(term %in% c("White/Black", "White/AIAN", "Black/AIAN"))) |>
   mutate(gen = factor(gen, 
                       levels = c("2nd+ only", "1.5 and 2nd+", "all"),
                       labels = c("Native-born only", "Native-born and 1.5 gen",
