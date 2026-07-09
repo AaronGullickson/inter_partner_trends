@@ -71,11 +71,13 @@ Thank your for these comments!
 >
 > The strength of the paper is its scope and new-ish method, but sometimes the technical focus can compromise interpretation and theory. If I imagine myself as a general sociologist but not one in the subfield, I will find myself asking the following questions: The author already touched upon some of them, but I would like to see some expansions:
 
-### Issue 1 TODO: **Outmarriage rate v. log linear models**
+### Issue 1 **Outmarriage rate v. log linear models**
 
 > the author was careful in proposing the log-linear models with state constraints while acknowledging the benefit of a simple rate approach. Somewhere in the manuscript, the author mentioned that the out-marriage rate is more intuitive and captures living experience of couples, while loglinear models are better at assessing true group boundaries after accounting for differences in group sizes. This is true, and I think the author could expand on these points to more extendedly spell out the benefit of each method/approach.
 
-TODO: respond
+Thank you for raising this point. While I did hint at the value of outmarriage ratios in the background and conclusions section of the original draft, the focus was much more on the odds ratio and I likely implicitly signaled that odds ratios were fundamentally better in some ways. While odds ratios provide a better measure of social distance, I think outmarriage ratios also can be valuable. As I note in the beginning of the background section, we often study interracial marriage to both (a) understand the strength of boundaries and (b) estimate the growth of mixed-race families and children in the next generation. The odds ratio is better for the first goal, but the outmarriage ratio is better for the second.
+
+To address this issue I have reworked the language in the background section on pg. XX to make this comparison more explicit and to not indicate a strong preference for one form of measure over the other. I have also added an explicit discussion of the measurement of outmarriage ratios in the data and methods section on pg. XX. I have also made some modest changes to the results and conclusions section to emphasize the value of the outmarriage ratio approach.
 
 ### Issue 2: Interpretation of log-linear models
 
