@@ -263,7 +263,7 @@ tibble(
   tab_spanner(label = "Wife", columns = starts_with("g"))
 ```
 
-To help fix ideas, @tbl-cross-product provides a view of the frequency of interracial marriage for three abstract groups when marriages are cross-tabulated by the race of husband and wife.[^same-sex-cross-tab] From this table, I can calculate either outmarriage ratios or odds ratios. For example, the outmarriage ratio for husbands from Group 1 would be:
+To help fix ideas, @tbl-cross-product provides a view of the frequency of interracial marriage for three abstract groups where marriages are cross-tabulated by the race of husband and wife.[^same-sex-cross-tab] From this table, I can calculate either outmarriage ratios or odds ratios. For example, the outmarriage ratio for husbands from Group 1 would be:
 
 [^same-sex-cross-tab]: The same-sex marriage sample cannot be cross-tabulated by gender. Because this sample only includes heads of households and their partners, I instead cross-tabulate same-sex marriages by head of household status instead of gender. Because all the models used in the analysis are symmetric with respect to gender, this approach is applied for convenience, but I would get the same result by randomly assigning each partner to the row or column.
 
@@ -271,7 +271,7 @@ $$
 \text{outmarriage ratio} = \frac{F_{21}+F_{31}}{F_{11}+F_{21}+F_{31}}
 $$ {#eq-outmarriage-ratio}
 
-This outmarriage ratio measures the proportion of Group 1 husbands who are married to a member of a different group. Parallel outmarriage ratios can be constructed for wives. An outmarriage ratio for all marriages can also be calculated by taking the sum of the off-diagonal cells in @@tbl-cross-product divided by the total number of marriages.
+This outmarriage ratio measures the proportion of Group 1 husbands who are married to a member of a different group. Parallel outmarriage ratios can be constructed for wives. An outmarriage ratio for all marriages can also be calculated by taking the sum of the off-diagonal cells in @tbl-cross-product divided by the total number of marriages.
 
 As discussed earlier, the outmarriage ratio provides a useful summary of the experience of interracial marriage but can be heavily influenced by relative group size. For this reason, the odds ratio is often preferred as a measure of social distance because it factors out relative group size. The odds ratio can be calculated as the inverse cross-product between any two groups in @tbl-cross-product. For example, the odds ratio of marriage between Groups 1 and 2 is given by:
 
@@ -285,7 +285,7 @@ Although this odds ratio and its standard error can be estimated directly, I ins
 
 $$
 \log(F_{ij}) = \lambda+\lambda_i+\lambda_j
-$$
+$$ {#eq-model-null}
 
 where $F_{ij}$ is the frequency count in row $i$ (husband's race) and column $j$ (wife's race). This model assumes there is no association between the row and column variables. The model is typically estimated by a poisson generalized linear model with dummy coding of the row and column categories. Fitted cell counts from this model predict the number of marriages expected under the assumption that individuals partner without regard for race. These fitted cell counts will be identical to those used for a chi-squared test of independence for contingency tables.
 
@@ -293,16 +293,17 @@ To account for the association between husband's and wife's race, a two-way inte
 
 $$
 \log(F_{ij}) = \lambda+\lambda_i+\lambda_j+\lambda_{ij}
-$$
-The $\lambda_{ij}$ interaction term contains $(I-1)(J-1)$ parameters, where $I$ and $J$ are the number of categories for the row and column variables, respectively. These interaction parameters saturate the model, such that the fitted values will exactly match the observed frequency counts for the contingency table. The interaction parameters themselves identify all of the non-redundant log-odds ratios that can be derived from the contingency table. It is also possible use a reduced parameterization of the interaction that does not saturate the model, yielding a more parsimonious representation, although that is not my goal here.
+$$ {#eq-model-saturated}
 
-Default dummy coding of categories will not produce $\lambda_{ij}$ estimates that directly match the desired log odds ratios between each racial pairing. Instead, I use a custom parameterization as follows:
+The $\lambda_{ij}$ interaction term contains $(I-1)(J-1)$ parameters, where $I$ and $J$ are the number of categories for the row and column variables, respectively. These interaction parameters saturate the model, such that the fitted values will exactly match the observed frequency counts for the contingency table. The interaction parameters themselves identify all of the non-redundant log-odds ratios that can be derived from the contingency table. One can also use a reduced parameterization of the interaction that does not saturate the model, yielding a more parsimonious representation, but that is not my goal here.
+
+Default dummy coding of categories will not produce $\lambda_{ij}$ estimates that are directly interpretable as the log odds ratios between each racial pairing. Instead, I use a custom parameterization as follows:
 
 $$
 \log(F_{ij})=\lambda+\lambda_i+\lambda_j+\beta_{ij}+\alpha_{ij}
 $$ {#eq-model-basic}
 
-The $\beta_{ij}$ and $\alpha_{ij}$ parameters account for the saturated interaction between husband's and wife's race. The $\beta_{ij}$ parameters estimate the desired log odds ratios for each non-endogamous pairing of husband's and wife's race. The $\alpha_{ij}$ parameters are nuisance parameters required to completely saturate the model and constraining the $\beta_{ij}$ parameters to equal the desired log odds ratios. More details on this parameterization are provided in the supplementary materials. 
+The $\beta_{ij}$ and $\alpha_{ij}$ parameters fully account for the interaction between husband's and wife's race. The $\beta_{ij}$ parameters estimate the desired log odds ratios for each non-endogamous pairing of husband's and wife's race. The $\alpha_{ij}$ parameters are nuisance parameters required to completely saturate the model and constrain the $\beta_{ij}$ parameters to equal the desired log odds ratios. More details on this parameterization are provided in the supplementary materials. 
 
 One advantage of log-linear models is that they naturally extend to higher-dimensional contingency tables. I take advantage of this property to estimate models based on a four-way contingency table defined by husband's race, wife's race, state of residence, and year. The full model is given by:
 

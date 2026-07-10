@@ -118,22 +118,20 @@ tibble(
   tab_spanner(label = "Wife", columns = starts_with("g"))
 ```
 
-For purposes of exposition, I reproduce Table XX from the main paper here as @tbl-cross-product. The default saturated log-linear model would be fit as follows:
+For purposes of exposition, I reproduce Table XX from the main paper here as @tbl-cross-product. The default saturated log-linear model would be fit to a table such as this one as follows:
 
 $$
-\log(F_{ij}) = \lambda+\lambda_i+\lambda_j+\lambda_{ij}
-$$
+\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}^{HR:WR}
+$$ {#eq-model-standard}
 
-Using standard dummy coding of the row and column categories, the $\lambda_{ij}$ parameters estimated will not match the desired cross-product of each possible pairing of racial groups. Additionally, the saturated model will estimate four parameters from @tbl-cross-product, but only three pairings are present in the data (G1/G2, G1/G3, and G2/G3). 
-
-I instead use a custom parameterization of the contingency table that allows for direct estimation of the desired log odds ratios as $\beta$ parameters and the remaining nuisance terms as $\alpha$ terms. The model is given by:
+The $HR$ and $WR$ notation is used to distinguish $\lambda$ terms that relate to husband's race or wife's race, respectively. Using standard dummy coding of the row and column categories, the $\lambda_{ij}$ parameters estimated are not directly interpretable as the desired log odds ratio for each interracial pairing. I instead use a custom parameterization of the interaction between row and column that allows for direct estimation of the desired log odds ratios as $\beta$ parameters, as well as additional $\alpha$ nuisance parameters. The model is given by:
 
 $$
-\log(F_{ij})=\lambda+\lambda_i+\lambda_j+\beta_{ij}+\alpha_{ij}
-$$
+\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}
+$$ {#eq-model-custom}
 
 
-@tbl-model-param shows the parameter coding that would be used for a model in the three group case shown in @tbl-cross-product. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The single $\alpha$ parameter is estimated via ANOVA style coding for one of the pairings. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product.
+@tbl-model-param shows the parameter coding that would be used for a model in the three group case shown in @tbl-cross-product. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The remaining required term is assigned to an $\alpha$ parameter, which captures the additional gender asymmetry in some pairings required to saturate the model. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product. This model produces an identical fit to the model shown in @eq-model-standard and only differs in the coding of the interaction terms.
 
 ```{r}
 #| label: tbl-model-param
@@ -154,18 +152,19 @@ tibble(
 ``` 
 
 
-More generally, for a contingency table with $k$ racial groups, the model would estimate $k(k-1)/2$ $\beta$ parameters and $(1/2)k^2-(3/2)k+1$ $\alpha$ parameters. The $\beta$ parameters directly estimate the log-odds ratio for a particular pairing, but one might ask what the $\alpha$ parameters estimate. Indirectly, the $\alpha$ parameters address differences in gender asymmetry across different pairings. In the two group case, the gender asymmetry in who intermarries is absorbed into the marginal row ($\lambda_i$) and column ($\lambda_j$) terms and no $\alpha$ parameter exists. In this case, one could estimate the log of the gender ratio by:
+More generally, for a contingency table with $k$ racial groups, the model would estimate $k(k-1)/2$ $\beta$ parameters and $(1/2)k^2-(3/2)k+1$ $\alpha$ parameters. The $\beta$ parameters directly estimate the log odds ratio for a particular pairing, but the $\alpha$ parameters are somewhat more difficult to interpret. Indirectly, the $\alpha$ parameters address differences in gender asymmetry across different pairings. In the two group case, the gender asymmetry in intermarriage is absorbed into the marginal row ($\lambda_i^{HR}$) and column ($\lambda_j^{WR}$) terms and no $\alpha$ parameter exists. In this case, one could estimate the log of the gender ratio between the two off-diagonal cells by:
 
 $$
 \log(\frac{F_{12}}{F_{21}}) = \log(F_{12})-\log(F_{21})=\lambda_2^{WR}-\lambda_2^{HR}+\beta_{12}
-$$
-In the three group case, assuming standard dummy coding, the log of the gender ratio for intermarriage between Group 1 and Group 2 and Group 1 and Group 3 can be estimated in the same fashion. However, for the case of intermarriage between Group 2 and Group 3, the log of the gender ratio is determined by:
+$$ {#eq-model-gender-two-case}
+
+In the three group case, assuming standard dummy coding, the log of the gender ratio for intermarriage between Group 1 and Group 2 and Group 1 and Group 3 can be estimated in the same fashion as @eq-model-gender-two-case. However, for the case of intermarriage between Group 2 and Group 3, the log of the gender ratio is determined by:
 
 $$
 \log(F_{23})-\log(F_{32}) = \lambda_2^{HR}+\lambda_3^{WR}-\lambda_3^{HR}-\lambda_2^{WR}+\beta_{23}+2\alpha_{23}
-$$
+$$ {#eq-model-gender-complicated}
 
-In short, the additional $\alpha$ parameter is needed to adjust for the fact that the marginal $\lambda_i$ and $\lambda_j$ parameters alone won't properly produce the correct gender asymmetry for pairings not involving the reference category.
+In @eqn-model-gender-complicated, the $\alpha$ parameter is required to estimate gender asymmetry correctly. In short, the marginal $\lambda_i^{HR}$ and $\lambda_j^{WR}$ parameters determine the gender asymmetry only for pairings involving the reference group. The $\alpha$ parameters provide the additional terms needed to reproduce the correct gender asymmetry for all remaining interracial pairings while allowing the $\beta$ parameters to retain their interpretation as log odds ratios.
 
 # Age Weighting Procedure
 
