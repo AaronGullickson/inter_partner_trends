@@ -273,7 +273,7 @@ $$ {#eq-outmarriage-ratio}
 
 This outmarriage ratio measures the proportion of Group 1 husbands who are married to a member of a different group. Parallel outmarriage ratios can be constructed for wives. An outmarriage ratio for all marriages can also be calculated by taking the sum of the off-diagonal cells in @@tbl-cross-product divided by the total number of marriages.
 
-As discussed earlier, the outmarriage ratio provides a useful summary of the experience of interracial marriage but can be heavily influenced by relative group size. For this reason, the odds ratio is often preferred as a measure of social distance because it factors out differences in relative group size. The odds ratio can be calculated as the inverse cross-product between any two groups in @tbl-cross-product. For example, the odds ratio of marriage between Groups 1 and 2 is given by:
+As discussed earlier, the outmarriage ratio provides a useful summary of the experience of interracial marriage but can be heavily influenced by relative group size. For this reason, the odds ratio is often preferred as a measure of social distance because it factors out relative group size. The odds ratio can be calculated as the inverse cross-product between any two groups in @tbl-cross-product. For example, the odds ratio of marriage between Groups 1 and 2 is given by:
 
 $$
 \text{odds ratio} = \frac{F_{12}F_{21}}{F_{11}F_{22}}
@@ -281,13 +281,42 @@ $$ {#eq-cross-prod}
 
 This cross-product can be interpreted as the odds ratio of an individual from one of the groups having a partner from the other group relative to those same odds for an individual from the other group. If this cross-product is equal to one then group membership is not a factor in partner selection. Values lower than one indicate barriers to interracial marriage.
 
-Although this odds ratio and its standard error can be estimated directly from a cross-tabulation, I instead use a model approach to estimate these values for the analysis. By using a model, I can condition the results on a variety of other factors, discussed below. To estimate the odds ratios, I use a log-linear model approach, where the outcome variable is the frequency count for a given cell in a cross-tabulation like @tbl-cross-product. For a single year of the analysis, I estimate the following model:
+Although this odds ratio and its standard error can be estimated directly, I instead use a model approach to estimate these values for the analysis. By using a model, I can condition the results on other factors, discussed below. To estimate the odds ratios, I use a log-linear model approach. The log-linear model has long been used by sociologists to estimate association in contingency tables of varying dimension. Log-linear models differ from more familiar models because they predict the frequency counts of a contingency table and association between variables is determined by interaction terms rather than main effects. For @tbl-cross-product above, I could estimate a null model that just predicts cell frequencies by the marginal distribution of husband's and wife's races:
+
+$$
+\log(F_{ij}) = \lambda+\lambda_i+\lambda_j
+$$
+
+where $F_{ij}$ is the frequency count in row $i$ (husband's race) and column $j$ (wife's race). This model assumes there is no association between the row and column variables. The model is typically estimated by a poisson generalized linear model with dummy coding of the row and column categories. Fitted cell counts from this model predict the number of marriages expected under the assumption that individuals partner without regard for race. These fitted cell counts will be identical to those used for a chi-squared test of independence for contingency tables.
+
+To account for the association between husband's and wife's race, a two-way interaction term can be added:
+
+$$
+\log(F_{ij}) = \lambda+\lambda_i+\lambda_j+\lambda_{ij}
+$$
+The $\lambda_{ij}$ interaction term contains $(I-1)(J-1)$ parameters, where $I$ and $J$ are the number of categories for the row and column variables, respectively. These interaction parameters saturate the model, such that the fitted values will exactly match the observed frequency counts for the contingency table. The interaction parameters themselves identify all of the non-redundant log-odds ratios that can be derived from the contingency table. It is also possible use a reduced parameterization of the interaction that does not saturate the model, yielding a more parsimonious representation, although that is not my goal here.
+
+Default dummy coding of categories will not produce $\lambda_{ij}$ estimates that directly match the desired log odds ratios between each racial pairing. Instead, I use a custom parameterization as follows:
 
 $$
 \log(F_{ij})=\lambda+\lambda_i+\lambda_j+\beta_{ij}+\alpha_{ij}
 $$ {#eq-model-basic}
 
-Where $F_{ij}$ is the frequency count of marriages with a husband of race $i$ and a wife of race $j$. The model accounts for the marginal distributions of husband's race ($\lambda_i$) and wife's race ($\lambda_j$). The $\beta_{ij}$ and $\alpha_{ij}$ parameters account for the saturated interaction between husband's and wife's race. The $\beta_{ij}$ parameters estimate the desired log odds ratios for each non-endogamous pairing of husband's and wife's race. The $\alpha_{ij}$ parameters are residual parameters that must also be estimated to fully saturate the interaction between husband's and wife's race. For example, in a three-by-three table like @tbl-cross-product, one can identify four non-redundant odds ratios, but only three intermarriage odds ratios ($\beta_{ij}$) can be estimated for the three pairwise group comparisons. The fourth unique odds ratio is estimated with $\alpha_{ij}$.
+The $\beta_{ij}$ and $\alpha_{ij}$ parameters account for the saturated interaction between husband's and wife's race. The $\beta_{ij}$ parameters estimate the desired log odds ratios for each non-endogamous pairing of husband's and wife's race. The $\alpha_{ij}$ parameters are nuisance parameters required to completely saturate the model and constraining the $\beta_{ij}$ parameters to equal the desired log odds ratios. More details on this parameterization are provided in the supplementary materials. 
+
+One advantage of log-linear models is that they naturally extend to higher-dimensional contingency tables. I take advantage of this property to estimate models based on a four-way contingency table defined by husband's race, wife's race, state of residence, and year. The full model is given by:
+
+$$
+\log(F_{ijkt}) = \lambda+\lambda_i+\lambda_j+\lambda_k+\lambda_t+\lambda_{ik}+\lambda_{jk}+\lambda_{it}+\lambda_{jt}+\lambda_{ikt}+\lambda_{jkt}+\beta_{ijt}+\alpha_{ijt}
+$$ {#eq-model-full}
+
+where $k$ is the state of residence and $t$ is the time period. All the two and three way interactions between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.[^zero-cells]
+
+This specification allows the $\beta$ parameters to vary over time, allowing for an analysis of trends. Including state of residence adjusts for geographic differences in the racial composition of local populations. This geographic adjustment is important although imperfect as states are usually too large to serve as a marriage market and I only have the state of residence at the time of data collection, not at the time of the marriage. Nonetheless, adjusting for state variation will account for much of the geographic variation in population distribution by race.
+
+[^zero-cells]: Zero cell counts in the cells forming the odds ratio in @eq-cross-prod will prevent estimation of the parameters of the model for that group comparison. Such zero cell counts are more likely when sample size for one or both groups is small and when the underlying likelihood of interracial marriage is small. Determining the degree of subgroup analysis that could be sustained without being affected by such zero cell counts was determined by investigation of cell frequencies. For the main results, the log-odds ratio is not reported for the AIAN/API pairing in 1960 due to zero cell counts.
+
+<!-- For example, in a three-by-three table like @tbl-cross-product, one can identify four non-redundant odds ratios, but only three intermarriage odds ratios ($\beta_{ij}$) can be estimated for the three pairwise group comparisons. The fourth unique odds ratio is estimated with $\alpha_{ij}$.
 
 To clarify this approach, @tbl-model-param, shows the parameter coding that would be used for a model in the three group case shown in @tbl-cross-product. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The single $\alpha$ parameter is estimated via ANOVA style coding for one of the pairings. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product.
 
@@ -307,19 +336,10 @@ tibble(
   cols_label(hrace = "Husband",
              g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
   tab_spanner(label = "Wife", columns = starts_with("g"))
-```
+``` 
 
-In most of the models used in the analysis to follow, I make two additional adjustments to the model outlined in @eq-model-basic. First, I use a single model across time and allow all of the parameters from @eq-model-basic to vary by time. Second, I include state of residence to adjust for geographic variation in population distribution by race. This geographic adjustment is important although imperfect as states are usually too large to serve as a marriage market and I only have the state of residence at the time of data collection, not at the time of the marriage. Nonetheless, adjusting for state variation will likely address the lion's share of geographic variation in population distribution by race.
+-->
 
-The full model is thus given by:
-
-$$
-\log(F_{ijkt}) = \lambda+\lambda_i+\lambda_j+\lambda_k+\lambda_t+\lambda_{ik}+\lambda_{jk}+\lambda_{it}+\lambda_{jt}+\lambda_{ikt}+\lambda_{jkt}+\beta_{ijt}+\alpha_{ijt}
-$$ {#eq-model-full}
-
-where $k$ is the state of residence and $t$ is the time period. All the two and three way tables between each partner's race, time, and state are added to the model and the $\beta$ and $\alpha$ parameters themselves vary by time.[^zero-cells]
-
-[^zero-cells]: Zero cell counts in the cells forming the odds ratio in @eq-cross-prod will prevent estimation of the parameters of the model for that group comparison. Such zero cell counts are more likely when sample size for one or both groups is small and when the underlying likelihood of interracial marriage is small. Determining the degree of subgroup analysis that could be sustained without being affected by such zero cell counts was determined by investigation of cell frequencies. For the main results, the log-odds ratio is not reported for the AIAN/API pairing in 1960 due to zero cell counts.
 
 ## Measuring Stocks vs. Flows
 
