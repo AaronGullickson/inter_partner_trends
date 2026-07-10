@@ -15,11 +15,11 @@ format: pdf
 
 TODO: Respond
 
-### Issue 2 TODO: Explanation of loglinear modeling
+###  Issue 2 TODO: Explanation of loglinear modeling
 
 > Second, As someone who was trained in the loglinear modeling tradition, I was pleased to see your use of it. R1 is right: This method is often considered the "gold standard" for analyzing intermarriages. Because most today's graduate students are no longer trained in that tradition, R2 is right about finding a way to help their graduate students interpret the results. I think a brief section (no longer than a couple of paragraphs, perhaps) explaining the basic nitty-gritty of loglinear modeling would go a long way.
 
-TODO: Respond
+This is an excellent idea. I have reworked my discussion of measuring interracial marriage in the data and methods section on pp. XX of the revised draft to incorporate a more basic discussion of how log-linear models work that I hope will satisfy both the editor and R2. To save word count here and avoid becoming overly technical, I have moved the discussion of the parameterization of the model to the supplementary materials. Moving this section to the supplementary materials allowed me to expand the explanation of the coding substantially and to give a better interpretation of the nuisance $\alpha$ parameters. This more lengthy exposition in the supplementary materials should allow other interested researchers to better utilize the approach while not bogging down the main manuscript for general readers on a more technical point.
 
 ## Reviewer 1 Comments
 
@@ -71,7 +71,7 @@ Thank your for these comments!
 >
 > The strength of the paper is its scope and new-ish method, but sometimes the technical focus can compromise interpretation and theory. If I imagine myself as a general sociologist but not one in the subfield, I will find myself asking the following questions: The author already touched upon some of them, but I would like to see some expansions:
 
-### Issue 1 **Outmarriage rate v. log linear models**
+### Issue 1: **Outmarriage rate v. log linear models**
 
 > the author was careful in proposing the log-linear models with state constraints while acknowledging the benefit of a simple rate approach. Somewhere in the manuscript, the author mentioned that the out-marriage rate is more intuitive and captures living experience of couples, while loglinear models are better at assessing true group boundaries after accounting for differences in group sizes. This is true, and I think the author could expand on these points to more extendedly spell out the benefit of each method/approach.
 
