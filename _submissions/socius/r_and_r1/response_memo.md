@@ -15,7 +15,7 @@ format: pdf
 
 TODO: Respond
 
-###  Issue 2 TODO: Explanation of loglinear modeling
+###  Issue 2: Explanation of loglinear modeling
 
 > Second, As someone who was trained in the loglinear modeling tradition, I was pleased to see your use of it. R1 is right: This method is often considered the "gold standard" for analyzing intermarriages. Because most today's graduate students are no longer trained in that tradition, R2 is right about finding a way to help their graduate students interpret the results. I think a brief section (no longer than a couple of paragraphs, perhaps) explaining the basic nitty-gritty of loglinear modeling would go a long way.
 
@@ -83,7 +83,7 @@ To address this issue I have reworked the language in the background section on 
 
 > Loglinear models can be hard to interpret when including many terms, and there is also recent advancement in counterfactual approaches and causal approaches. How do I persuade my graduate students that it is important to control for marginal distributions in a plain language? What does it mean by accounting for group size to begin with?
 
-I appreciate R2's concern as log-linear models are a somewhat specialized methodological approach, which students are often not trained in by default. The editor raised the same point and asked me to provide more background to help readers better understand the models. Please see my response to those comment above, which should address this issue as well.
+I appreciate R2's concern as log-linear models are a somewhat specialized methodological approach, which students are often not trained in by default. The editor raised the same point and asked me to provide more background to help readers better understand the models. Please see my response to that comment above.
 
 ### Issue 3: Better explanation of age weighting
 
