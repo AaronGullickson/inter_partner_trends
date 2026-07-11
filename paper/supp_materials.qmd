@@ -5,6 +5,7 @@ bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 format:
   aog-article-pdf:
+    toc: true
     papersize: letter
     #mainfont: Baskerville 
     #sansfont: Futura-Medium
@@ -36,66 +37,11 @@ load(here("data", "data_constructed", "data_couples.RData"))
 load(here("data", "data_constructed", "joint_age_dist_newlyweds.RData"))
 load(here("data", "data_constructed", "age_weight_example.RData"))
 load(here("data", "data_constructed", "model_state_bs.RData"))
+load(here("data", "data_constructed", "model_basic_bs.RData"))
 load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
 load(here("data", "data_constructed", "models_cohab.RData"))
 load(here("data", "data_constructed", "model_same_sex.RData"))
-```
-
-
-# Comparison of Spouse Race Distribution Before and After 2020
-
-@tbl-race-dist shows the distribution of race from for husbands and wives 2020 onward in comparison to the two immediately preceding time periods based on the coding of race described in the data and methods section of the main article. For single-race groups, the shift in racial distribution from 2020 onward is small and may reflect undergoing shifts that were already underway prior to 2020. The most notable changes are for the two multiracial groups of White-Black and White-AIAN which more than doubled in size.
-
-```{r}
-#| label: tbl-race-dist
-#| tbl-cap: Comparison of the distribution of race for husbands and wives for 2020-2023 and the two immediately preceding time periods.
-
-temp <- census |>
-  filter(year == 2013 | year == 2017.5 | year == 2022) |>
-  mutate(race_husband = collapse_race(race_husband)) |>
-  filter(!(race_husband %in% c("Black-AIAN", "Black-API"))) |>
-  group_by(race_husband, year) |>
-  summarize(n = n(), .groups = "drop") |>
-  group_by(year) |>
-  mutate(prop = n / sum(n)) |>
-  select(-n) |>
-  pivot_wider(names_from = year, values_from = prop) |>
-  rename(race = race_husband,
-         husband2010 = `2013`,
-         husband2015 = `2017.5`,
-         husband2020 = `2022`)
-
-temp <- census |>
-  filter(year == 2013 | year == 2017.5 | year == 2022) |>
-  mutate(race_wife = collapse_race(race_wife)) |>
-  filter(!(race_wife %in% c("Black-AIAN", "Black-API"))) |>
-  group_by(race_wife, year) |>
-  summarize(n = n(), .groups = "drop") |>
-  group_by(year) |>
-  mutate(prop = n / sum(n)) |>
-  select(-n) |>
-  pivot_wider(names_from = year, values_from = prop) |>
-  rename(race = race_wife,
-         wife2010 = `2013`,
-         wife2015 = `2017.5`,
-         wife2020 = `2022`) |>
-  left_join(temp)
-
-temp |>
-  gt() |>
-  fmt_percent(c(starts_with("wife"), starts_with("husband"))) |>
-  cols_label(
-    wife2010 ~ "2011-2015",
-    wife2015 ~ "2016-2019",
-    wife2020 ~ "2020-2023",
-    husband2010 ~ "2011-2016",
-    husband2015 ~ "2016-2019",
-    husband2020 ~ "2020-2023"
-  ) |>
-  tab_spanner(starts_with("wife"), label = "Wife") |>
-  tab_spanner(starts_with("husband"), label = "Husband")
-
 ```
 
 # Log-linear model parameterization
@@ -293,6 +239,88 @@ age_weight2008 |>
   theme_bw(base_size = 12)
 ```
 
+# Comparison of Spouse Race Distribution Before and After 2020
+
+@tbl-race-dist shows the distribution of race from for husbands and wives 2020 onward in comparison to the two immediately preceding time periods based on the coding of race described in the data and methods section of the main article. For single-race groups, the shift in racial distribution from 2020 onward is small and may reflect undergoing shifts that were already underway prior to 2020. The most notable changes are for the two multiracial groups of White-Black and White-AIAN which more than doubled in size.
+
+```{r}
+#| label: tbl-race-dist
+#| tbl-cap: Comparison of the distribution of race for husbands and wives for 2020-2023 and the two immediately preceding time periods.
+
+temp <- census |>
+  filter(year == 2013 | year == 2017.5 | year == 2022) |>
+  mutate(race_husband = collapse_race(race_husband)) |>
+  filter(!(race_husband %in% c("Black-AIAN", "Black-API"))) |>
+  group_by(race_husband, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  select(-n) |>
+  pivot_wider(names_from = year, values_from = prop) |>
+  rename(race = race_husband,
+         husband2010 = `2013`,
+         husband2015 = `2017.5`,
+         husband2020 = `2022`)
+
+temp <- census |>
+  filter(year == 2013 | year == 2017.5 | year == 2022) |>
+  mutate(race_wife = collapse_race(race_wife)) |>
+  filter(!(race_wife %in% c("Black-AIAN", "Black-API"))) |>
+  group_by(race_wife, year) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(year) |>
+  mutate(prop = n / sum(n)) |>
+  select(-n) |>
+  pivot_wider(names_from = year, values_from = prop) |>
+  rename(race = race_wife,
+         wife2010 = `2013`,
+         wife2015 = `2017.5`,
+         wife2020 = `2022`) |>
+  left_join(temp)
+
+temp |>
+  gt() |>
+  fmt_percent(c(starts_with("wife"), starts_with("husband"))) |>
+  cols_label(
+    wife2010 ~ "2011-2015",
+    wife2015 ~ "2016-2019",
+    wife2020 ~ "2020-2023",
+    husband2010 ~ "2011-2016",
+    husband2015 ~ "2016-2019",
+    husband2020 ~ "2020-2023"
+  ) |>
+  tab_spanner(starts_with("wife"), label = "Wife") |>
+  tab_spanner(starts_with("husband"), label = "Husband")
+
+```
+
+
+# Comparison of Composition Adjusted Odds Ratio to Raw Odds Ratios
+
+```{r}
+#| label: fig-composition-comparison
+#| fig-cap: Comparison of odds of racial exogamy for single race pairings depending on whether results are adjusted for state-level differences in racial compositions. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| fig-height: 8
+#| fig-pos: "p"
+
+model_state_bs |> 
+  bind_rows(model_basic_bs) |> 
+  filter(!str_detect(term, "-")) |>
+  ggplot(aes(x = year, y = exp(estimate), group = composition, color = composition))+
+  geom_ribbon(aes(ymin = exp(conf.low), ymax = exp(conf.high), fill = composition),
+              alpha = 0.3, color = NA)+
+  geom_point(size = 1)+
+  geom_line()+
+  facet_wrap(~term)+
+  labs(y = NULL, color = "composition adjustment", fill = "composition adjustment")+
+  scale_color_manual(values = c("red", "navy", "darkgreen"))+
+  scale_fill_manual(values = c("red", "navy", "darkgreen"))+
+  scale_y_log10(labels = scales::comma)+
+  theme_bw()+
+  theme(legend.position = "bottom")
+
+```
+
 # Comparison of Age-Weighted and Duration-Specific Results
 
 Age-weighting the frequency counts of extant marriages for log-linear models to match the joint age distribution is superior to restricting the models to certain age ranges of husbands and/or wives. However, it is unlikely to exactly match the actual duration-specific data. First, the extant marriage data is affected by marriage dissolution and that information cannot be recovered. Second, although changes in the likelihood of interracial marriage by birth cohort are accounted for within the age weighted approach, period changes that identify marriage cohorts are not. For example, lets compare two marriages between fifty year old partners, one of which was formed this year and the other which was formed 25 years ago. Birth cohort related effects on the likelihood for interracial marriage (e.g. internalized preferences for partners of a given race) are the same across both sets of couples. However, period specific changes in that likelihood (e.g. a more liberal atmosphere, greater opportunities to meet cross-race partners) will differ for the two cases, and thus averaging out their likelihoods will underestimate the current likelihood.
@@ -304,6 +332,8 @@ For some years of the time period, I have data to examine the direction and stre
 ```{r}
 #| label: fig-intermar-cur-mar
 #| fig-cap: Comparison of odds of racial exogamy for single race pairings that involve the Hispanic or API by age weighted results and newlyweds (within a year). Estimates are derived from log-linear models that control for state racial composition. Age weighted results are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| fig-height: 8
+#| fig-pos: "p"
 
 # add in missing values to break line
 model_recent_mar <- expand_grid(term = unique(model_recent_mar$term), 
@@ -339,6 +369,8 @@ The main results for the analysis excludes unions involving foreign-born individ
 ```{r}
 #| label: fig-intermar-single-gen
 #| fig-cap: Comparison of odds of racial exogamy for single race pairings by restriction on foreign-born population. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown.
+#| fig-height: 8
+#| fig-pos: "p"
 
 model_state_single_all_gen_bs <- model_state_single_all_gen_bs |>
   mutate(gen = "all")
@@ -380,6 +412,8 @@ model_state_bs |>
 ```{r}
 #| label: fig-intermar-alt-unions
 #| fig-cap: Odds of racial exogamy across single race pairings, separately by opposite-sex marriage, opposite-sex cohabitation, and same-sex marriage. Estimates are derived from log-linear models that control for state racial composition and are weighted to reflect the joint age distribution of spouses. 83% confidence bands shown. Zero cells for same-sex marriages between Black/AIAN and AIAN/API in some year groupings prevent estimation of trends for same-sex marriages for those cases.
+#| fig-height: 8
+#| fig-pos: "p"
 
 model_state_bs <- model_state_bs |>
   mutate(union_type = "opposite-sex marriage")
