@@ -15,7 +15,7 @@ format: pdf
 
 TODO: Respond
 
-###  Issue 2: Explanation of loglinear modeling
+### Issue 2: Explanation of loglinear modeling
 
 > Second, As someone who was trained in the loglinear modeling tradition, I was pleased to see your use of it. R1 is right: This method is often considered the "gold standard" for analyzing intermarriages. Because most today's graduate students are no longer trained in that tradition, R2 is right about finding a way to help their graduate students interpret the results. I think a brief section (no longer than a couple of paragraphs, perhaps) explaining the basic nitty-gritty of loglinear modeling would go a long way.
 
@@ -121,13 +121,21 @@ I have now included footnote XX of the main article which discusses the issue wi
 
 R2 also asks me to consider providing a table in the appendix with various sample sizes. In response to another comment by R2, I am now providing a table of overall sample size for each year and union type. However, it would not be feasible or particularly helpful to provide the necessary tables for every possible subgroup analysis I considered. Because the issue is the zero cells arising in the contingency table, I would need to show the cross-tabulation of subgroups in every year for every possible subgroup analysis, which would lead to an enormous set of tables.
 
-### Issue 7 TODO: Incorporate existing explanations for API intermarriage decline
+### Issue 7: Incorporate existing explanations for API intermarriage decline
 
 > The foreign-born population might be critical in explaining the decline in API intermarriage since 2000. There is recent work highlighting this, and the author can expand on this argument since this is one of the central arguments:
 >
 > - Qian, Z., & Qian, Y. (2020). Generation, education, and intermarriage of Asian Americans. Journal of Ethnic and Migration Studies, 46(14), 2880–2895.
 
-TODO: respond
+Thank you for pushing on this point as it made me realize that I have not adequately put my results here in conversation with the results of prior work more generally. I have now re-worked the background section to more explicitly describe the results observed in prior work and to discuss the argument about the role of rising immigration in the trends for the API population on pp XX. I have also added two paragraphs to the conclusion section on pg. XX to put my results into perspective with prior work. Doing so has helped highlight the contributions of the current article by showing where it affirms, clarifies, and challenges prior work. In particular, the results here have helped to clarify some ambiguous findings with regard to the intermarriage trends for the API and Hispanic population for which I observed divergent trends.
+
+While I appreciate R2's comment to help me re-frame the results, these results are somewhat inconsistent with the rising immigration argument referenced by R2. I discuss this issue in the conclusions, but also re-iterate and extend the same points here for reference. The first article that I am of aware of to make this argument is Qian and Lichter (2007 - TODO CITE). However, their own results are somewhat contradictory in this regard. They found that the outmarriage ratio of native-born Asians had declined from 1990 to 2000, but that the odds ratio of native-born White/Asian intermarriage had increased, which suggests that the effect of a growing foreign-born population was largely to increase the pool of co-ethnic options on the marriage market (i.e. a compositional effect). However, in the discussion of the rising immigration argument in the conclusions, Qian and Lichter (2007) make a stronger argument that growing immigration reinforces "cultural and ethnic solidarity" (pg. 90), even though this effect does not show up for the odds ratio. Notably, Qian and Lichter (2007) make this argument for *both* the Asian and Hispanic groups. Qian and Lichter (2011) report a similar divergence between the outmarriage and odds ratio for Asians over the 1980 to 2008 period.
+
+Interestingly, I do not find a divergence in the outmarriage and odds ratio for the API population over this time period (1980-2008), both of which peak and begin to decline over the time period. The difference in my results from prior results is due to the controls for state racial composition. The API population was heavily concentrated in particular states in 1980 and dispersed more widely over this time period, increasing exposure to interracial marriage.
+
+Therefore, the plateau or stalling out of interracial marriage for the API population is not driven purely by co-ethnic population increase due to immigration because I observe it for both the outmarriage and odds ratio of native-born partners. Furthermore, we do not observe this trend at all for Hispanics, who experienced the same rise in immigration.
+
+I have now tried to clarify these issues more properly in the manuscript in the front end and conclusions as discussed above and I think it helps to clarify one of the important contributions of this manuscript. I have also added a section to the supplementary materials that compares the trends in the odds ratio with and without controlling for state racial composition.
 
 ### Minor Issues
 

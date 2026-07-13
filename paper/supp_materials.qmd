@@ -49,6 +49,7 @@ load(here("data", "data_constructed", "model_same_sex.RData"))
 ```{r}
 #| label: tbl-cross-product
 #| tbl-cap: Abstract table of the frequency of interracial marriage across three groups, cross-tabulated by husband's race and wife's race.
+#| eval: false
 
 tibble(
   "hrace" = c("Group 1", "Group 2", "Group 3"),
@@ -64,7 +65,7 @@ tibble(
   tab_spanner(label = "Wife", columns = starts_with("g"))
 ```
 
-For purposes of exposition, I reproduce Table XX from the main paper here as @tbl-cross-product. The default saturated log-linear model would be fit to a table such as this one as follows:
+The default saturated log-linear model would be fit to a table such as this one as follows:
 
 $$
 \log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}^{HR:WR}
@@ -77,7 +78,7 @@ $$
 $$ {#eq-model-custom}
 
 
-@tbl-model-param shows the parameter coding that would be used for a model in the three group case shown in @tbl-cross-product. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The remaining required term is assigned to an $\alpha$ parameter, which captures the additional gender asymmetry in some pairings required to saturate the model. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product. This model produces an identical fit to the model shown in @eq-model-standard and only differs in the coding of the interaction terms.
+@tbl-model-param shows the parameter coding that would be used for a model in the three group case. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The remaining required term is assigned to an $\alpha$ parameter, which captures the additional gender asymmetry in some pairings required to saturate the model. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product. This model produces an identical fit to the model shown in @eq-model-standard and only differs in the coding of the interaction terms.
 
 ```{r}
 #| label: tbl-model-param
@@ -110,7 +111,7 @@ $$
 \log(F_{23})-\log(F_{32}) = \lambda_2^{HR}+\lambda_3^{WR}-\lambda_3^{HR}-\lambda_2^{WR}+\beta_{23}+2\alpha_{23}
 $$ {#eq-model-gender-complicated}
 
-In @eqn-model-gender-complicated, the $\alpha$ parameter is required to estimate gender asymmetry correctly. In short, the marginal $\lambda_i^{HR}$ and $\lambda_j^{WR}$ parameters determine the gender asymmetry only for pairings involving the reference group. The $\alpha$ parameters provide the additional terms needed to reproduce the correct gender asymmetry for all remaining interracial pairings while allowing the $\beta$ parameters to retain their interpretation as log odds ratios.
+In @eq-model-gender-complicated, the $\alpha$ parameter is required to estimate gender asymmetry correctly. In short, the marginal $\lambda_i^{HR}$ and $\lambda_j^{WR}$ parameters determine the gender asymmetry only for pairings involving the reference group. The $\alpha$ parameters provide the additional terms needed to reproduce the correct gender asymmetry for all remaining interracial pairings while allowing the $\beta$ parameters to retain their interpretation as log odds ratios.
 
 # Age Weighting Procedure
 
@@ -180,6 +181,7 @@ ggplot(temp, aes(x = YEAR, y = age_diff))+
 ```{r}
 #| label: fig-age-dist-tile
 #| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
+#| eval: false
 
 prop_age_year_recent |>
   filter(YEAR %in% c(1988, 1990, 2000:2008)) |>
@@ -219,8 +221,6 @@ prop_age_year_recent |>
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
-
-As a further check, @fig-age-dist-tile shows heat maps of the full joint distribution of newlywed age for the years of the interpolated distributions. The years of 1988 and 2008 provide actual data. The figure shows a smooth transition in the intervening time period in the joint age distribution, as the ages of grooms and brides both increase and the age gap between them declines slightly. 
 
 @fig-age-weight-example shows an example of how the age weighting operates for the 2008 data on husband's age. The red histogram shows the age distribution of husband's age across all marriages, while the blue histogram shows the age distribution of newlywed husbands (those married in the last year). The histogram shown by dotted lines is the distribution of husband's age in extant marriage, weighted by the age weight. The dotted line shows a very close fit with the actual distribution of newlyweds. It is not exact because of the use of coarser age groups necessitated by the input data, as described above.
 
@@ -320,6 +320,12 @@ model_state_bs |>
   theme(legend.position = "bottom")
 
 ```
+
+All reported odds ratios in the main article are adjusted for state racial composition, as described in the data and methods. While odds ratio adjust for group size, they do so with the assumption that all individuals are drawn from a single marriage market. However, individuals typically choose partners from their local area and racial groups are not evenly distributed across these local area marriage markets. @harris_how_2005 show that adjusting for differences in local area racial composition empirically increases the odds of exogamy.
+
+@fig-composition-comparison compares the racial composition adjusted and unadjusted odds ratios of interracial marriage for each single-race pairing over time. Adjusting for state-level racial composition increases the odds ratio for every pairing, except for the White/Black odds ratio. The largest differences are observed for interracial marriages involving the API population, particularly in the early period of the analysis. The API population was heavily concentrated in a small number of states in the early period, but became more geographically dispersed over time due to changing international and secondary migration patterns [@frey_migration_2011].
+
+For the White/API pairing, the composition adjustment shifts the peak of the White/API trend. For the unadjusted case, the odds ratio grows at a decelerating rate until the 2000s where it levels off. For the adjusted case, the odds ratio peaks in 1990 and then gradually declines. The unadjusted results are consistent with the findings of @qian_changing_2011, which showed increasing odds ratios of White/API intermarriage between 1980 and 2008, but those findings do not hold once one accounts for state-level racial composition. In short, increases in the White/API odds ratio between 1980 and 2008 were driven by increasing geographic dispersion of the API population that increased opportunities for interracial marriage.
 
 # Comparison of Age-Weighted and Duration-Specific Results
 
