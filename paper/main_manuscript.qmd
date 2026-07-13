@@ -12,7 +12,7 @@ filters:
 format:
   aog-article-pdf:
     papersize: letter
-    keep-tex: true
+    keep-tex: false
     #mainfont: Baskerville 
     #sansfont: Futura-Medium
     #fontsize: 12pt   
@@ -22,10 +22,10 @@ format:
     fig-pos: "!t"
     colorlinks: true
     urlcolor: red
-  #submittable-docx: 
-  #  fig-format: pdf
-  #  out-width: "100%"
-  #  fig-width: 6.25 # theoretically it should be 6.5 with 1 inch margins
+  submittable-docx: 
+    fig-format: pdf
+    out-width: "100%"
+    fig-width: 6.25 # theoretically it should be 6.5 with 1 inch margins
   #submittable-pdf:
   #  keep-tex: false
   #  fig-pos: "!t"
@@ -142,7 +142,7 @@ The significance of interracial marriage to social systems is twofold.[^1] First
 
 [^1]: I use the term "interracial" here because I will focus on marriage between groups that are identified by a racialized boundary, but the logic could apply equally well to "intergroup" marriage where groups are defined by ethnicity, religion, etc.
 
-Second, an increase in the likelihood of interracial marriage is seen as a harbinger of intergenerational change because the children from such unions can plausibly claim possession of both group identifications [@root_racially_1992]. Such children then potentially represent another source by which group boundaries can be weakened. This argument comes with important caveats. Marriage is not the only means by which to produce "mixed" children. For example, for most of US history, White/Black mixing predominantly occurred outside of marriage [@hodes_white_1997; @kennedy_interracial_2003]. Furthermore, norms of classification such as the "one drop rule" can often effectively stunt any challenge to group boundaries arising from "mixed" progeny [@johnston_race_1970; @davis_who_1991]. Nonetheless, the "biracial baby boom" resulting from rising interracial marriage in the post-Civil Rights period has played an important role in restructuring our understanding, and even measurement, of racial boundaries [@lee_americas_2004].
+Second, an increase in the likelihood of interracial marriage is seen as a harbinger of intergenerational change because the children from such unions can plausibly claim possession of both group identifications [@root_racially_1992]. Such children then potentially represent another source by which group boundaries can be weakened. <!-- This argument comes with important caveats. Marriage is not the only means by which to produce "mixed" children. For example, for most of US history, White/Black mixing predominantly occurred outside of marriage [@hodes_white_1997; @kennedy_interracial_2003]. Furthermore, norms of classification such as the "one drop rule" can often effectively stunt any challenge to group boundaries arising from "mixed" progeny [@johnston_race_1970; @davis_who_1991]. --> The "biracial baby boom" resulting from rising interracial marriage in the post-Civil Rights period has played an important role in restructuring our understanding, and even measurement, of racial boundaries [@lee_americas_2004], as well as the potential growth of a "majority-minority" society [@alba_great_2020].
 
 Measuring the frequency of interracial marriage is complicated by differences in group size. Group size plays an important role in who marries whom, because it determines the racial distribution of potential partners. Whether or not group size is accounted for in a measure of interracial marriage can lead to substantial differences in our assessment of its frequency. A popular measure of interracial marriage is the outmarriage ratio. Typically, the outmarriage ratio measures the percent of individuals from a given group that are married to someone belonging to a different group, although it can also be measured across the population at large. The measure is intuitive and easy to understand. However, it is also heavily influenced by relative group size.
 
