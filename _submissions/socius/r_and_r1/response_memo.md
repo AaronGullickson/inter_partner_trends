@@ -5,7 +5,7 @@ format: pdf
 
 # Response Memo
 
-I want to thank the editor and reviewer for providing such valuable and comprehensive feedback on the first draft of the manuscript. I have taken each point seriously and tried to address all of them in the revised manuscript, which I believe is much improved as a result. Below I detail my response to each point.
+I want to thank the editor and reviewer for providing such valuable and comprehensive feedback on the first draft of the manuscript. I have taken each point seriously and tried to address all of them in the revised manuscript, which I believe is much improved as a result. Below I detail my response to each point. The comments by editors and reviewers are indented.
 
 Since most points centered on reframing background and/or results, the analysis itself is largely unchanged in this draft. However, I did make one important addition to the analysis. In response to Issue 1 from R1, I have added an analysis of same-sex marriages from 2013-2023 to the section on cohabitation, as discussed in my response to that point.
 
