@@ -1,11 +1,12 @@
 ---
-title: "Supplementary Materials"
+title: "Supplementary Materials for Trends and Heterogeneity in Interracial Marriage in the United States, 1960-2023"
 reference-section-title: References
 bibliography: ../bibliography/project.bib
 csl: ../bibliography/chicago-parenthetical.csl
 format:
   aog-article-pdf:
     toc: true
+    number-sections: true
     papersize: letter
     #mainfont: Baskerville 
     #sansfont: Futura-Medium
@@ -20,6 +21,7 @@ header-includes:
   - \usepackage{caption}
   - \captionsetup[subfigure]{justification=centering}
   - \renewcommand{\thefigure}{S\arabic{figure}}
+  - \renewcommand{\thesection}{S\arabic{section}}
 ---
 
 ```{r}
@@ -42,201 +44,6 @@ load(here("data", "data_constructed", "models_state_gen_bs.RData"))
 load(here("data", "data_constructed", "model_recent_mar.RData"))
 load(here("data", "data_constructed", "models_cohab.RData"))
 load(here("data", "data_constructed", "model_same_sex.RData"))
-```
-
-# Log-linear model parameterization
-
-```{r}
-#| label: tbl-cross-product
-#| tbl-cap: Abstract table of the frequency of interracial marriage across three groups, cross-tabulated by husband's race and wife's race.
-#| eval: false
-
-tibble(
-  "hrace" = c("Group 1", "Group 2", "Group 3"),
-  "g1" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
-  "g2" = c("$F_{12}$", "$F_{22}$", "$F_{32}$"),
-  "g3" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
-)  |> 
-  gt() |>
-  fmt_markdown() |>
-  cols_align("center", columns = starts_with("g")) |>
-  cols_label(hrace = "Husband",
-             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
-  tab_spanner(label = "Wife", columns = starts_with("g"))
-```
-
-The default saturated log-linear model would be fit to a table such as this one as follows:
-
-$$
-\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}^{HR:WR}
-$$ {#eq-model-standard}
-
-The $HR$ and $WR$ notation is used to distinguish $\lambda$ terms that relate to husband's race or wife's race, respectively. Using standard dummy coding of the row and column categories, the $\lambda_{ij}$ parameters estimated are not directly interpretable as the desired log odds ratio for each interracial pairing. I instead use a custom parameterization of the interaction between row and column that allows for direct estimation of the desired log odds ratios as $\beta$ parameters, as well as additional $\alpha$ nuisance parameters. The model is given by:
-
-$$
-\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}
-$$ {#eq-model-custom}
-
-
-@tbl-model-param shows the parameter coding that would be used for a model in the three group case. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The remaining required term is assigned to an $\alpha$ parameter, which captures the additional gender asymmetry in some pairings required to saturate the model. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product. This model produces an identical fit to the model shown in @eq-model-standard and only differs in the coding of the interaction terms.
-
-```{r}
-#| label: tbl-model-param
-#| tbl-cap: Log-linear model parameters applied to a cross-tabulation of husband's race and wife's race for three groups.
-
-tibble(
-  "hrace" = c("Group 1", "Group 2", "Group 3"),
-  "g1" = c("$0$", "$0$", "$0$"),
-  "g2" = c("$\\beta_{12}$", "$0$", "$-\\alpha_{23}$"),
-  "g3" = c("$\\beta_{13}$", "$\\beta_{23}+\\alpha_{23}$", "$0$"),
-)  |> 
-  gt() |>
-  fmt_markdown() |>
-  cols_align("center", columns = starts_with("g")) |>
-  cols_label(hrace = "Husband",
-             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
-  tab_spanner(label = "Wife", columns = starts_with("g"))
-``` 
-
-
-More generally, for a contingency table with $k$ racial groups, the model would estimate $k(k-1)/2$ $\beta$ parameters and $(1/2)k^2-(3/2)k+1$ $\alpha$ parameters. The $\beta$ parameters directly estimate the log odds ratio for a particular pairing, but the $\alpha$ parameters are somewhat more difficult to interpret. Indirectly, the $\alpha$ parameters address differences in gender asymmetry across different pairings. In the two group case, the gender asymmetry in intermarriage is absorbed into the marginal row ($\lambda_i^{HR}$) and column ($\lambda_j^{WR}$) terms and no $\alpha$ parameter exists. In this case, one could estimate the log of the gender ratio between the two off-diagonal cells by:
-
-$$
-\log(\frac{F_{12}}{F_{21}}) = \log(F_{12})-\log(F_{21})=\lambda_2^{WR}-\lambda_2^{HR}+\beta_{12}
-$$ {#eq-model-gender-two-case}
-
-In the three group case, assuming standard dummy coding, the log of the gender ratio for intermarriage between Group 1 and Group 2 and Group 1 and Group 3 can be estimated in the same fashion as @eq-model-gender-two-case. However, for the case of intermarriage between Group 2 and Group 3, the log of the gender ratio is determined by:
-
-$$
-\log(F_{23})-\log(F_{32}) = \lambda_2^{HR}+\lambda_3^{WR}-\lambda_3^{HR}-\lambda_2^{WR}+\beta_{23}+2\alpha_{23}
-$$ {#eq-model-gender-complicated}
-
-In @eq-model-gender-complicated, the $\alpha$ parameter is required to estimate gender asymmetry correctly. In short, the marginal $\lambda_i^{HR}$ and $\lambda_j^{WR}$ parameters determine the gender asymmetry only for pairings involving the reference group. The $\alpha$ parameters provide the additional terms needed to reproduce the correct gender asymmetry for all remaining interracial pairings while allowing the $\beta$ parameters to retain their interpretation as log odds ratios.
-
-# Age Weighting Procedure
-
-Weights are applied to each couple such that the joint age distribution of extant couples in a given year will match the joint age distribution of newlyweds in that same year. The weight $w_{ij}$ for a couple with the husband in age group $i$ and the wife in age group $j$ is given by:
-
-$$w_{ij} = \frac{p^{(N)}_{ij}}{p^{(E)}_{ij}}$$
-
-where $w_{ij}$ is the weight for couples where the husband belongs to age group $i$ and the wife belongs to age group $j$, $p^{(N)}_{ij}$ is the proportion of newlywed couples belonging to the joint age group, and $p^{(E)}_{ij}$ is the proportion of extant couples in the Census/ACS data source belonging to the joint age group.
-
-To determine $p^{(N)}_{ij}$ for the entire time period, I rely upon two sources. From 2008 onward, ACS data includes information on marital timing for all current marriages and therefore I can estimate this value directly from the data by taking all couples married a year or less. Prior to 2008, I rely upon US vital statistics reports on marriage for 1960, 1970, 1980, and 1988 [@nationalcenterforhealthstatistics_vital_1960; @nationalcenterforhealthstatistics_vital_1970; @nationalcenterforhealthstatistics_vital_1980; @nationalcenterforhealthstatistics_vital_1988]. Each of these sources provides tables of the joint age distribution of newlyweds, originating from marriage records. However, each source has idiosyncrasies that present challenges.
-
-First, the sources use different age groupings. I therefore use an age grouping that can be made consistent across sources by summing smaller groups in more detailed sources. The age grouping I use for both husbands and wives is under 20, 20-24, 25-29, 30-34, 35-44, 45-54 and 55 or over. Second, some data sources use tables that are disaggregated further, requiring me to sum results across multiple tables. The 1960 data are split by the previous marital status of brides (single, divorced, widowed). The 1988 data are split by the race of newlyweds into White, Black, and Other and exclude multiracial couples. 
-
-These data sources provide me with the joint age distribution up to 1988. After 1988, these reports were no longer produced. To calculate the joint age distribution for Census 1990, Census 2000, and the ACS from 2001-2007, I linearly interpolate the joint age distribution from 1988 to 2008. Specifically,
-
-
-$$p^{(t)}_{ij} = (1 - \alpha) * p^{(1988)}_{ij} + \alpha * p^{(2008)}_{ij}$$
-
-Where $p^{(t)}_{ij}$ denotes the proportion of couples in which the husband belongs to age group $i$ and the wife belongs to age group $j$ in year $t$. The interpolation weight, $\alpha$, is given by:
-
-$$\alpha = \frac{t_i-1988}{2008-1988} = \frac{t-1988}{20}$$
-
-```{r}
-#| label: fig-summary-age-dist
-#| fig-cap: Summary measures of age distribution of spouses, interpolated and non-interpolated data
-#| layout-ncol: 2
-#| fig-subcap:
-#|   - Mean age of husbands
-#|   - Mean age of wives
-#|   - Spousal age gap
-
-years_interp <- c(1990, 2000:2007)
-
-temp <- prop_age_year_recent |>
-  filter(union_type == "marriage") |>
-  group_by(YEAR) |>
-  summarize(mean_age_husband = sum(age_group_husband * prop),
-            mean_age_wife = sum(age_group_wife * prop),
-            age_diff = mean_age_husband - mean_age_wife) |>
-  ungroup() |>
-  mutate(interpolated = YEAR %in% years_interp)
-
-ggplot(temp, aes(x = YEAR, y = mean_age_husband))+
-  geom_line(color = "grey70")+
-  geom_point(aes(color = interpolated))+
-  labs(x = "year", y = "mean grooms's age")+
-  scale_color_manual(values = c("navy", "red"))+
-  theme_bw(base_size = 16)
-
-ggplot(temp, aes(x = YEAR, y = mean_age_wife))+
-  geom_line(color = "grey70")+
-  geom_point(aes(color = interpolated))+
-  labs(x = "year", y = "mean brides's age")+
-  scale_color_manual(values = c("navy", "red"))+
-  theme_bw(base_size = 16)
-
-ggplot(temp, aes(x = YEAR, y = age_diff))+
-  geom_line(color = "grey70")+
-  geom_point(aes(color = interpolated))+
-  labs(x = "year", y = "Spousal age gap")+
-  scale_color_manual(values = c("navy", "red"))+
-  theme_bw(base_size = 16)
-```
-
-@fig-summary-age-dist examines the mean age of grooms and brides, and the age difference between them across the time period with years of interpolation highlighted in red. The interpolated results are smoother than the later time period which relies on single years of ACS data, but otherwise produces a reasonable interpolation across the years of missing data.
-
-```{r}
-#| label: fig-age-dist-tile
-#| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
-#| eval: false
-
-prop_age_year_recent |>
-  filter(YEAR %in% c(1988, 1990, 2000:2008)) |>
-  mutate(age_group_husband = case_when(
-           age_group_husband < 20 ~ "Under 20",
-           age_group_husband < 25 ~ "20-24",
-           age_group_husband < 30 ~ "25-29",
-           age_group_husband < 35 ~ "30-34",
-           age_group_husband < 45 ~ "35-44",
-           age_group_husband < 55 ~ "45-54",
-           age_group_husband >= 55 ~ "55+",
-         ),
-         age_group_husband = factor(
-           age_group_husband,
-           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
-                      "45-54", "55+")
-         ),
-         age_group_wife = case_when(
-           age_group_wife < 20 ~ "Under 20",
-           age_group_wife < 25 ~ "20-24",
-           age_group_wife < 30 ~ "25-29",
-           age_group_wife < 35 ~ "30-34",
-           age_group_wife < 45 ~ "35-44",
-           age_group_wife < 55 ~ "45-54",
-           age_group_wife >= 55 ~ "55+",
-         ),
-         age_group_wife = factor(
-           age_group_wife,
-           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
-                      "45-54", "55+")
-         )) |>
-  ggplot(aes(x = age_group_husband, y = age_group_wife, fill = prop)) +
-  geom_tile() +
-  scale_fill_viridis_c(direction = -1) +
-  facet_wrap(~YEAR)+
-  labs(x = "husband's age", y = "wife's age", fill = "joint\nproportion")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-```
-
-@fig-age-weight-example shows an example of how the age weighting operates for the 2008 data on husband's age. The red histogram shows the age distribution of husband's age across all marriages, while the blue histogram shows the age distribution of newlywed husbands (those married in the last year). The histogram shown by dotted lines is the distribution of husband's age in extant marriage, weighted by the age weight. The dotted line shows a very close fit with the actual distribution of newlyweds. It is not exact because of the use of coarser age groups necessitated by the input data, as described above.
-
-```{r}
-#| label: fig-age-weight-example
-#| fig-cap: Comparison of the age distribution of husbands in 2008 for extant marriages (red) vs. newlyweds (blue), with the age-weighted distribution of extant marriages shown by a dotted line.
-
-age_weight2008 |>
-  ggplot(aes(x = age_husband, y = after_stat(density)))+
-  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
-  geom_histogram(data = filter(age_weight2008, dur_mar <= 1),
-                 color = NA, fill = "navy",  binwidth = 1, alpha = 0.7)+
-  geom_histogram(alpha = 0.7, fill = NA, binwidth = 1, linetype = 2, 
-                 color = "black", aes(weight = weight_age))+
-  labs(x = "husband's age")+
-  theme_bw(base_size = 12)
 ```
 
 # Comparison of Spouse Race Distribution Before and After 2020
@@ -294,6 +101,201 @@ temp |>
 
 ```
 
+# Log-linear Model Parameterization
+
+```{r}
+#| label: tbl-cross-product
+#| tbl-cap: Abstract table of the frequency of interracial marriage across three groups, cross-tabulated by husband's race and wife's race.
+#| eval: false
+
+tibble(
+  "hrace" = c("Group 1", "Group 2", "Group 3"),
+  "g1" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
+  "g2" = c("$F_{12}$", "$F_{22}$", "$F_{32}$"),
+  "g3" = c("$F_{11}$", "$F_{21}$", "$F_{31}$"),
+)  |> 
+  gt() |>
+  fmt_markdown() |>
+  cols_align("center", columns = starts_with("g")) |>
+  cols_label(hrace = "Husband",
+             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
+  tab_spanner(label = "Wife", columns = starts_with("g"))
+```
+
+The default saturated log-linear model for a two-way contingency table of husband's race by wife's race is as follows:
+
+$$
+\log(F_{ij}) = \lambda+\lambda_i^{HR}+\lambda_j^{WR}+\lambda_{ij}^{HR:WR}
+$$ {#eq-model-standard}
+
+The $HR$ and $WR$ notation is used to distinguish $\lambda$ terms that relate to husband's race or wife's race, respectively. Using standard dummy coding of the row and column categories, the $\lambda_{ij}$ parameters estimated are not directly interpretable as the desired log odds ratio for each interracial pairing. I instead use a custom parameterization of the interaction between row and column that allows for direct estimation of the desired log odds ratios as $\beta$ parameters, as well as additional $\alpha$ nuisance parameters. The model is given by:
+
+$$
+\log(F_{ij})=\lambda+\lambda_i^{HR}+\lambda_j^{WR}+\beta_{ij}+\alpha_{ij}
+$$ {#eq-model-custom}
+
+
+@tbl-model-param shows the parameter coding that would be used for a model in the case of three groups. The three $\beta$ parameters are estimated by dummy coding the upper off-diagonal cell for each pairwise comparison. The remaining required term is assigned to an ANOVA-style $\alpha$ parameter, which captures the additional gender asymmetry in some pairings required to saturate the model. Using this modeling approach, the exponentiated $\beta$ parameters of the log-linear model will exactly correspond to the odds ratios estimated manually by the cross-product. This model produces an identical fit to the model shown in @eq-model-standard and only differs in the coding of the interaction terms.
+
+```{r}
+#| label: tbl-model-param
+#| tbl-cap: Log-linear model parameters applied to a cross-tabulation of husband's race and wife's race for three groups.
+
+tibble(
+  "hrace" = c("Group 1", "Group 2", "Group 3"),
+  "g1" = c("$0$", "$0$", "$0$"),
+  "g2" = c("$\\beta_{12}$", "$0$", "$-\\alpha_{23}$"),
+  "g3" = c("$\\beta_{13}$", "$\\beta_{23}+\\alpha_{23}$", "$0$"),
+)  |> 
+  gt() |>
+  fmt_markdown() |>
+  cols_align("center", columns = starts_with("g")) |>
+  cols_label(hrace = "Husband",
+             g1 = "Group 1", g2 = "Group 2", g3 = "Group 3") |>
+  tab_spanner(label = "Wife", columns = starts_with("g"))
+``` 
+
+
+More generally, for a contingency table with $k$ racial groups, the model would estimate $k(k-1)/2$ $\beta$ parameters and $(1/2)k^2-(3/2)k+1$ $\alpha$ parameters. The $\beta$ parameters directly estimate the log odds ratio for a particular pairing, but the $\alpha$ parameters are somewhat more difficult to interpret. Indirectly, the $\alpha$ parameters address differences in gender asymmetry across different pairings. In the two group case, the gender asymmetry in intermarriage is absorbed into the marginal row ($\lambda_i^{HR}$) and column ($\lambda_j^{WR}$) terms and no $\alpha$ parameter exists. In this case, one could estimate the log of the gender ratio between the two off-diagonal cells by:
+
+$$
+\log(\frac{F_{12}}{F_{21}}) = \log(F_{12})-\log(F_{21})=\lambda_2^{WR}-\lambda_2^{HR}+\beta_{12}
+$$ {#eq-model-gender-two-case}
+
+In the three group case, assuming standard dummy coding, the log of the gender ratio for intermarriage between Group 1 and Group 2 and Group 1 and Group 3 can be estimated in the same fashion as @eq-model-gender-two-case. However, for the case of intermarriage between Group 2 and Group 3, the log of the gender ratio is determined by:
+
+$$
+\log(F_{23})-\log(F_{32}) = \lambda_2^{HR}+\lambda_3^{WR}-\lambda_3^{HR}-\lambda_2^{WR}+\beta_{23}+2\alpha_{23}
+$$ {#eq-model-gender-complicated}
+
+In @eq-model-gender-complicated, the $\alpha$ parameter is required to estimate gender asymmetry correctly. In short, the marginal $\lambda_i^{HR}$ and $\lambda_j^{WR}$ parameters determine the gender asymmetry only for pairings involving the reference group. The $\alpha$ parameters provide the additional terms needed to reproduce the correct gender asymmetry for all remaining interracial pairings while allowing the $\beta$ parameters to retain their interpretation as log odds ratios.
+
+# Age Weighting Procedure
+
+Weights are applied to each couple such that the joint age distribution of extant couples in a given year will match the joint age distribution of newlyweds in that same year. The weight $w_{ij}$ for a couple with the husband in age group $i$ and the wife in age group $j$ is given by:
+
+$$w_{ij} = \frac{p^{(N)}_{ij}}{p^{(E)}_{ij}}$$
+
+where $w_{ij}$ is the weight for couples where the husband belongs to age group $i$ and the wife belongs to age group $j$, $p^{(N)}_{ij}$ is the proportion of newlywed couples belonging to the joint age group, and $p^{(E)}_{ij}$ is the proportion of extant couples in the Census/ACS data source belonging to the joint age group.
+
+To determine $p^{(N)}_{ij}$ for the entire time period, I rely upon two sources. From 2008 onward, ACS data includes information on marital timing for all current marriages and therefore I can estimate this value directly from the data by taking all couples married a year or less. Prior to 2008, I rely upon US vital statistics reports on marriage for 1960, 1970, 1980, and 1988 [@nationalcenterforhealthstatistics_vital_1960; @nationalcenterforhealthstatistics_vital_1970; @nationalcenterforhealthstatistics_vital_1980; @nationalcenterforhealthstatistics_vital_1988]. Each of these sources provides tables of the joint age distribution of newlyweds, originating from marriage records. However, each source has idiosyncrasies that present challenges.
+
+First, the sources use different age groupings. I therefore use an age grouping that can be made consistent across sources by summing smaller groups in more detailed sources. The age grouping I use for both husbands and wives is under 20, 20-24, 25-29, 30-34, 35-44, 45-54 and 55 or over. Second, some data sources use tables that are disaggregated further, requiring me to sum results across multiple tables. The 1960 data are split by the previous marital status of brides (single, divorced, widowed). The 1988 data are split by the race of newlyweds into White, Black, and Other and exclude multiracial couples. 
+
+These data sources provide me with the joint age distribution up to 1988. After 1988, these reports were no longer produced. To calculate the joint age distribution for Census 1990, Census 2000, and the ACS from 2001-2007, I linearly interpolate the joint age distribution from 1988 to 2008. Specifically,
+
+
+$$p^{(t)}_{ij} = (1 - \alpha) * p^{(1988)}_{ij} + \alpha * p^{(2008)}_{ij}$$
+
+```{r}
+#| label: fig-summary-age-dist
+#| fig-cap: Summary measures of age distribution of spouses, interpolated and non-interpolated data
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - Mean age of husbands
+#|   - Mean age of wives
+#|   - Spousal age gap
+
+years_interp <- c(1990, 2000:2007)
+
+temp <- prop_age_year_recent |>
+  filter(union_type == "marriage") |>
+  group_by(YEAR) |>
+  summarize(mean_age_husband = sum(age_group_husband * prop),
+            mean_age_wife = sum(age_group_wife * prop),
+            age_diff = mean_age_husband - mean_age_wife) |>
+  ungroup() |>
+  mutate(interpolated = YEAR %in% years_interp)
+
+ggplot(temp, aes(x = YEAR, y = mean_age_husband))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean grooms's age")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
+
+ggplot(temp, aes(x = YEAR, y = mean_age_wife))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "mean brides's age")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
+
+ggplot(temp, aes(x = YEAR, y = age_diff))+
+  geom_line(color = "grey70")+
+  geom_point(aes(color = interpolated))+
+  labs(x = "year", y = "Spousal age gap")+
+  scale_color_manual(values = c("navy", "red"))+
+  theme_bw(base_size = 16)
+```
+
+
+Where $p^{(t)}_{ij}$ denotes the proportion of couples in which the husband belongs to age group $i$ and the wife belongs to age group $j$ in year $t$. The interpolation weight, $\alpha$, is given by:
+
+$$\alpha = \frac{t_i-1988}{2008-1988} = \frac{t-1988}{20}$$
+
+@fig-summary-age-dist examines the mean age of grooms and brides, and the age difference between them across the time period with years of interpolation highlighted in red. The interpolated results are smoother than the later time period which relies on single years of ACS data, but otherwise produces a reasonable interpolation across the years of missing data.
+
+```{r}
+#| label: fig-age-dist-tile
+#| fig-cap: Heat map of joint distribution of spouse's age, real and interpolated years
+#| eval: false
+
+prop_age_year_recent |>
+  filter(YEAR %in% c(1988, 1990, 2000:2008)) |>
+  mutate(age_group_husband = case_when(
+           age_group_husband < 20 ~ "Under 20",
+           age_group_husband < 25 ~ "20-24",
+           age_group_husband < 30 ~ "25-29",
+           age_group_husband < 35 ~ "30-34",
+           age_group_husband < 45 ~ "35-44",
+           age_group_husband < 55 ~ "45-54",
+           age_group_husband >= 55 ~ "55+",
+         ),
+         age_group_husband = factor(
+           age_group_husband,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         ),
+         age_group_wife = case_when(
+           age_group_wife < 20 ~ "Under 20",
+           age_group_wife < 25 ~ "20-24",
+           age_group_wife < 30 ~ "25-29",
+           age_group_wife < 35 ~ "30-34",
+           age_group_wife < 45 ~ "35-44",
+           age_group_wife < 55 ~ "45-54",
+           age_group_wife >= 55 ~ "55+",
+         ),
+         age_group_wife = factor(
+           age_group_wife,
+           levels = c("Under 20", "20-24", "25-29", "30-34", "35-44",
+                      "45-54", "55+")
+         )) |>
+  ggplot(aes(x = age_group_husband, y = age_group_wife, fill = prop)) +
+  geom_tile() +
+  scale_fill_viridis_c(direction = -1) +
+  facet_wrap(~YEAR)+
+  labs(x = "husband's age", y = "wife's age", fill = "joint\nproportion")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+@fig-age-weight-example shows an example of how the age weighting operates for the 2008 data on husband's age. The red histogram shows the age distribution of husband's age across all marriages, while the blue histogram shows the age distribution of newlywed husbands (those married in the last year). The histogram shown by dotted lines is the distribution of husband's age in extant marriage after weighting. The dotted line shows a very close fit with the actual distribution of newlyweds. It is not exact because of the use of coarser age groups necessitated by the input data, as described above.
+
+```{r}
+#| label: fig-age-weight-example
+#| fig-cap: Comparison of the age distribution of husbands in 2008 for extant marriages (red) vs. newlyweds (blue), with the age-weighted distribution of extant marriages shown by a dotted line.
+
+age_weight2008 |>
+  ggplot(aes(x = age_husband, y = after_stat(density)))+
+  geom_histogram(alpha = 0.7, fill = "red", binwidth = 1)+
+  geom_histogram(data = filter(age_weight2008, dur_mar <= 1),
+                 color = NA, fill = "navy",  binwidth = 1, alpha = 0.7)+
+  geom_histogram(alpha = 0.7, fill = NA, binwidth = 1, linetype = 2, 
+                 color = "black", aes(weight = weight_age))+
+  labs(x = "husband's age")+
+  theme_bw(base_size = 12)
+```
 
 # Comparison of Composition Adjusted Odds Ratio to Raw Odds Ratios
 
@@ -323,15 +325,15 @@ model_state_bs |>
 
 All reported odds ratios in the main article are adjusted for state racial composition, as described in the data and methods. While odds ratio adjust for group size, they do so with the assumption that all individuals are drawn from a single marriage market. However, individuals typically choose partners from their local area and racial groups are not evenly distributed across these local area marriage markets. @harris_how_2005 show that adjusting for differences in local area racial composition empirically increases the odds of exogamy.
 
-@fig-composition-comparison compares the racial composition adjusted and unadjusted odds ratios of interracial marriage for each single-race pairing over time. Adjusting for state-level racial composition increases the odds ratio for every pairing, except for the White/Black odds ratio. The largest differences are observed for interracial marriages involving the API population, particularly in the early period of the analysis. The API population was heavily concentrated in a small number of states in the early period, but became more geographically dispersed over time due to changing international and secondary migration patterns [@frey_migration_2011].
+@fig-composition-comparison compares odds ratios of interracial marriage for each single-race pairing over time depending on whether they have been adjusted for state racial composition or not. Adjusting for state-level racial composition increases the odds ratio for every pairing, except for the White/Black case. The largest differences are observed for interracial marriages involving the API population, particularly in the early period of the analysis. The API population was heavily concentrated in a small number of states in the early period, but became more geographically dispersed over time due to changing international and secondary migration patterns [@frey_migration_2011].
 
 For the White/API pairing, the composition adjustment shifts the peak of the White/API trend. For the unadjusted case, the odds ratio grows at a decelerating rate until the 2000s where it levels off. For the adjusted case, the odds ratio peaks in 1990 and then gradually declines. The unadjusted results are consistent with the findings of @qian_changing_2011, which showed increasing odds ratios of White/API intermarriage between 1980 and 2008, but those findings do not hold once one accounts for state-level racial composition. In short, increases in the White/API odds ratio between 1980 and 2008 were driven by increasing geographic dispersion of the API population that increased opportunities for interracial marriage.
 
 # Comparison of Age-Weighted and Duration-Specific Results
 
-Age-weighting the frequency counts of extant marriages for log-linear models to match the joint age distribution is superior to restricting the models to certain age ranges of husbands and/or wives. However, it is unlikely to exactly match the actual duration-specific data. First, the extant marriage data is affected by marriage dissolution and that information cannot be recovered. Second, although changes in the likelihood of interracial marriage by birth cohort are accounted for within the age weighted approach, period changes that identify marriage cohorts are not. For example, lets compare two marriages between fifty year old partners, one of which was formed this year and the other which was formed 25 years ago. Birth cohort related effects on the likelihood for interracial marriage (e.g. internalized preferences for partners of a given race) are the same across both sets of couples. However, period specific changes in that likelihood (e.g. a more liberal atmosphere, greater opportunities to meet cross-race partners) will differ for the two cases, and thus averaging out their likelihoods will underestimate the current likelihood.
+Age-weighting the frequency counts of extant marriages for log-linear models to match the joint age distribution is superior to restricting the models to certain age ranges of husbands and/or wives. However, it is unlikely to exactly match the actual duration-specific data. First, the extant marriage data is affected by marriage dissolution and that information cannot be recovered. Second, although changes in the likelihood of interracial marriage by birth cohort are accounted for within the age weighted approach, period changes that identify marriage cohorts are not. For example, we could compare two marriages between fifty year old partners, one of which was formed this year and the other which was formed 25 years ago. Birth cohort related effects on the likelihood for interracial marriage (e.g. internalized preferences for partners of a given race) are the same across both sets of couples. However, period specific changes in that likelihood (e.g. a more liberal atmosphere, greater opportunities to meet cross-race partners) will differ for the two cases, and thus averaging out their likelihoods will underestimate the current likelihood.
 
-In both cases, the direction of the bias arising from using age-weighted extant data is predictable. Marriage dissolution may be more likely for interracial couples, although that finding may differ by types of unions or by controlling for spousal characteristics [@bratter_will_2008;@zhang_marital_2009;@fu_broken_2011], but there is no evidence that it is lower. The general period effects over this time period indicate a more liberalizing environment with regard to interracial marriage. Therefore, I expect that models with actual duration-specific data will find a somewhat higher likelihood of interracial marriage than age-weighted extant data. 
+In both cases, the direction of the bias arising from using age-weighted extant data is predictable. Marriage dissolution may be more likely for interracial couples, although that finding may differ by types of unions or by controlling for spousal characteristics [@bratter_will_2008;@zhang_marital_2009;@fu_broken_2011]. The general period effects over this time period indicate a more liberalizing environment with regard to interracial marriage. Therefore, I expect that models with actual duration-specific data will find a somewhat higher likelihood of interracial marriage than age-weighted extant data. 
 
 For some years of the time period, I have data to examine the direction and strength of the bias directly. From 1960 to 1980 and after 2007, I have information on the duration of marriage that I can use to restrict the sample to individuals married in the last year. For the 1960 to 1980 period, this information is only provided for first marriages. @fig-intermar-cur-mar compares results based on duration data to the full results that use age weighting to make the sample representative of the newlywed population. 
 
@@ -366,7 +368,7 @@ model_state_bs |>
 ```
 
 
-As expected, the duration-specific results produce slightly higher odds of interracial marriage for most groups. The degree of difference is higher in the early period between 1960 and 1980. However, the duration data here is limited to first marriages which may also lead to some discrepancy with the age weighted data which are for all marriages. Overall, the discrepancy between the two approaches is minor and the trends across the two approaches are similar. 
+As expected, the duration-specific results produce slightly higher odds of interracial marriage for most groups. The degree of difference is higher in the early period between 1960 and 1980. However, the duration data in this time period are limited to first marriages which may also lead to some discrepancy with the age weighted data which are for all marriages. Overall, the discrepancy between the two approaches is minor and the trends across the two approaches are similar. 
 
 # Inclusion of Foreign-Born Population
 
@@ -408,11 +410,11 @@ model_state_bs |>
 ```
 
 
-@fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population.  The 1.5 generation is not distinguishable in 1960, so estimates are only shown from 1970 onward. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population, the overall trends are similar. 
+@fig-intermar-single-gen compares the result for the main analysis, which only includes the native born, to results that include the foreign-born population. I experiment with only including the "1.5" generation, which consists of individuals who arrived in the US before age 18, and the entire foreign-born population.  The 1.5 generation is not distinguishable in 1960, so estimates are only shown from 1970 onward for that case. The results show that inclusion of the foreign-born population depresses the odds ratio of interracial marriage for all pairings that involve an API or Hispanic partner. As expected, the results for White/Black, White/AIAN, and Black/AIAN marriage are unaffected by the inclusion. The results look similar regardless of whether the entire foreign-born population is included or only the 1.5 generation. Although the rates are lower when including the foreign-born population, the overall trends are similar. The most significance difference is that the plateauing of the White/API trend happens even earlier (1970) when including the foreign-born population. 
 
 # Full Results for Alternate Union Types
 
-@fig-intermar-alt-unions shows a comparison of the odds of interracial marriage across all three union types and all pairings. Because of some zero cells for the case of Black/AIAN and AIAN/API same-sex marriage those trends cannot be shown. The results here are consistent with those shown in the main article, and showing higher odds of interracial marriage in general for opposite-sex cohabitation and same-sex marriage relative to opposite-sex marriage. Estimation of the trend for same-sex marriages, however, is more difficult for dual-minority pairings due to small sample size.  
+@fig-intermar-alt-unions shows a comparison of the odds of interracial marriage across all three union types and all pairings. Due to some zero cells for the case of Black/AIAN and AIAN/API same-sex marriage, those trends cannot be shown. The results here are consistent with those shown in the main article, and show higher odds of interracial partnering for opposite-sex cohabitation and same-sex marriage relative to opposite-sex marriage. Estimation of the trend for same-sex marriages, however, is more difficult for dual-minority pairings due to small sample size.  
 
 
 ```{r}
