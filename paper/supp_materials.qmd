@@ -52,7 +52,7 @@ load(here("data", "data_constructed", "model_same_sex.RData"))
 
 ```{r}
 #| label: tbl-race-dist
-#| tbl-cap: Comparison of the distribution of race for husbands and wives for 2020-2023 and the two immediately preceding time periods.
+#| tbl-cap: Comparison of the distribution of race for husbands and wives for 2021-2023 and the two immediately preceding time periods.
 
 temp <- census |>
   filter(year == 2013 | year == 2017.5 | year == 2022) |>
@@ -91,10 +91,10 @@ temp |>
   cols_label(
     wife2010 ~ "2011-2015",
     wife2015 ~ "2016-2019",
-    wife2020 ~ "2020-2023",
+    wife2020 ~ "2021-2023",
     husband2010 ~ "2011-2016",
     husband2015 ~ "2016-2019",
-    husband2020 ~ "2020-2023"
+    husband2020 ~ "2021-2023"
   ) |>
   tab_spanner(starts_with("wife"), label = "Wife") |>
   tab_spanner(starts_with("husband"), label = "Husband")
