@@ -6,7 +6,7 @@ keywords: [interracial marriage, trends, racial exogamy]
 #thanks: Prepared for the 2026 Annual Meeting of the Population Association of America, St. Louis, Missouri
 reference-section-title: References
 bibliography: ../bibliography/project.bib
-csl: ../bibliography/chicago-parenthetical.csl
+csl: ../bibliography/american-sociological-association.csl
 filters:
   - abstract-section
 format:

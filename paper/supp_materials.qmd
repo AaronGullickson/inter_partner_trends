@@ -2,7 +2,7 @@
 title: "Supplementary Materials for Trends and Heterogeneity in Interracial Marriage in the United States, 1960-2023"
 reference-section-title: References
 bibliography: ../bibliography/project.bib
-csl: ../bibliography/chicago-parenthetical.csl
+csl: ../bibliography/american-sociological-association.csl
 format:
   aog-article-pdf:
     toc: true
