@@ -43,7 +43,7 @@ _products/**
 
 # We always ignore anything in the constructed data directory - that should 
 # NEVER go under version control. 
-data/data_constructed/*
+data/data_constructed/data*.RData
 
 # If you are using the data_version.yml to version external data, then
 # each collaborator will have a data_version_local.yml that we don't want
