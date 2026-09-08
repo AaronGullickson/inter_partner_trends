@@ -107,4 +107,6 @@ params:
   bootstrap_rep: 1000
 ```
 
-For convenience, I also include all of the final model estimates as RData files in the `data/data_constructed` directory. These files can be used to re-run the `analysis/analysis.qmd` quarto document and all the code contained within it.
+## Accessing Model Results
+
+For convenience, I also include all of the final model estimates as RData files in the `data/data_constructed` directory. These files can be used to re-run the `analysis/analysis.qmd` quarto document and all the code contained within it. They can also be used to extract exact values for parameter estimates based on figures shown in the article.
