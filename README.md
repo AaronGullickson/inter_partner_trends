@@ -22,7 +22,7 @@ The vital statistics data were transcribed from hand from specific tables in PDF
 
 To ensure all package dependencies for the project are met, users should first source in the `utils/check_packages.R` script. Below, I show the `sessionInfo()` in R for the last run of the full project:
 
-```r
+``` r
 R version 4.5.0 (2025-04-11)
 Platform: x86_64-pc-linux-gnu
 Running under: Ubuntu 22.04 LTS
@@ -109,4 +109,66 @@ params:
 
 ## Accessing Model Results
 
-For convenience, I also include all of the final model estimates as RData files in the `data/data_constructed` directory. These files can be used to re-run the `analysis/analysis.qmd` quarto document and all the code contained within it. They can also be used to extract exact values for parameter estimates based on figures shown in the article.
+For convenience, I also include all of the final model estimates as RData files in the `data/data_constructed` directory. These files can be used to re-run the `analysis/analysis.qmd` quarto document and all the code contained within it. They can also be used to extract exact values for parameter estimates based on figures shown in the article. Each of the files contains the following models:
+
+- `model_basic_bs.RData` - Log odds ratios for each pairing from basic models that do *not* control for state composition. These results are not used in the article.
+
+- `model_state_bs.RData` - Log odds ratios for each pairing with adjustment for state composition. These are the main results discussed in the article.
+
+- `models_counterfactual.RData` - Log odds ratios for each pairing from three models, each controlling for state composition:
+
+  - `model_cf_best_stat_bs` - Multiracial individuals are assigned to best single race
+
+  - `model_cf_minority_state_bs` - Multiracial individuals are assigned to minority race
+
+  - `model_cf_white_state_bs` - Multiracial individuals are assigned as white
+
+- `models_cohab.RData` - Log odds ratio for each pairing from two models, each controlling for state composition:
+
+  - `model_state_cohab_bs` - Log odds ratios for cohabitations
+
+  - `model_state_combined_bs` - Log odds ratios for marriages and cohabitations combined
+
+- `model_same_sex.RData` - Log odds ratio for each pairing from a model of same-sex marriages, controlling for state composition.
+
+- `models_state_gen_bs.RData` - Log odds ratios for all single race pairings from two models, each controlling for state composition:
+
+  - `model_state_single_all_gen_bs` - Includes foreign-born and 1.5 generation, as well as 2nd+ generation.
+
+  - `model_state_single_no_first_gen_bs` - Includes1.5 generation as well as 2nd+ generation, but no foreign-born individuals.
+
+- `model_recent_mar.RData`  - Log odds ratios for all single race pairings for a model based on marriages formed within the last year, for years where such data is available.
+
+- `models_subgroups.RData` - Log odds ratios for models that break out differences within the Asian, Hispanic, and Indigenous groups.
+
+  - `model_asian_sub_simple_state_bs` - Separates API into East & Southeast Asian, South Asian, and Pacific Islander. Includes only White among non-API responses.
+
+  - `model_asian_sub_state_bs` - Separates API into East Asian, Southeast Asian, South Asian, and Pacific Islander. Includes only White among non-API responses.
+
+  - `model_hispanic_sub_state_bs` - Separates Hispanic into White Hispanic, Black Hispanic, and Other Hispanic. Includes White and Black among non-Hispanic responses.
+
+- `model_region.RData` - Log odds ratios for models that allow estimates to vary by Census region. Not discussed in main article.
+
+- `exogamy_trends.RData` - Contains two objects:
+
+  - `exogamy_trend` - Overall exogamy trends by year
+
+  - exogamy_trend_race - Exogamy trends by racial group and gender
+
+All model results contain the same format of variables:
+
+- `term` - The specific racial pairing
+
+- `year` - Year. For ACS data, this gives the center point of the year interval.
+
+- `type` - How the model was run. Most will show `bootstrap1000` indicating that standard errors were estimated by boostrapping 1000 times.
+
+- `composition` - What compositional variables were adjusted for. Most models will show "state."
+
+- `control` - What other control variables were added to the model. Currently this should be "none" for all models.
+
+- `estimate` - The estimated log odds ratio.
+
+- `std.error` - the estimated standard error.
+
+- `conf.low` and `conf.high` - the lower and upper bounds of the 83% confidence interval.
